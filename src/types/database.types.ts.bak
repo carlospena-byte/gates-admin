@@ -1,0 +1,533 @@
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export type Database = {
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+  public: {
+    Tables: {
+      amenities: {
+        Row: {
+          capacity: number | null
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          location: string | null
+          name: string
+          requires_booking: boolean
+          residential_id: string
+        }
+        Insert: {
+          capacity?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          location?: string | null
+          name: string
+          requires_booking?: boolean
+          residential_id: string
+        }
+        Update: {
+          capacity?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          location?: string | null
+          name?: string
+          requires_booking?: boolean
+          residential_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "amenities_residential_id_fkey"
+            columns: ["residential_id"]
+            isOneToOne: false
+            referencedRelation: "residentials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      amenity_bookings: {
+        Row: {
+          amenity_id: string
+          created_at: string
+          end_time: string
+          id: string
+          notes: string | null
+          residential_id: string
+          start_time: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          amenity_id: string
+          created_at?: string
+          end_time: string
+          id?: string
+          notes?: string | null
+          residential_id: string
+          start_time: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          amenity_id?: string
+          created_at?: string
+          end_time?: string
+          id?: string
+          notes?: string | null
+          residential_id?: string
+          start_time?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "amenity_bookings_amenity_id_fkey"
+            columns: ["amenity_id"]
+            isOneToOne: false
+            referencedRelation: "amenities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "amenity_bookings_residential_id_fkey"
+            columns: ["residential_id"]
+            isOneToOne: false
+            referencedRelation: "residentials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "amenity_bookings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      platform_admins: {
+        Row: {
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          first_name: string | null
+          last_name: string | null
+          phone: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          first_name?: string | null
+          last_name?: string | null
+          phone?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          first_name?: string | null
+          last_name?: string | null
+          phone?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      residential_users: {
+        Row: {
+          created_at: string
+          residential_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          residential_id: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          residential_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "residential_users_residential_id_fkey"
+            columns: ["residential_id"]
+            isOneToOne: false
+            referencedRelation: "residentials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "residential_users_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      residentials: {
+        Row: {
+          address: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          location_lat: number | null
+          location_lng: number | null
+          name: string
+          owner_user_id: string | null
+          plan_type: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          location_lat?: number | null
+          location_lng?: number | null
+          name: string
+          owner_user_id?: string | null
+          plan_type?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          location_lat?: number | null
+          location_lng?: number | null
+          name?: string
+          owner_user_id?: string | null
+          plan_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "residentials_owner_user_id_fkey"
+            columns: ["owner_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      unit_members: {
+        Row: {
+          created_at: string
+          residential_id: string
+          unit_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          residential_id: string
+          unit_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          residential_id?: string
+          unit_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unit_members_residential_id_fkey"
+            columns: ["residential_id"]
+            isOneToOne: false
+            referencedRelation: "residentials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unit_members_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unit_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      units: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          owner_user_id: string | null
+          residential_id: string
+          unit_type: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          owner_user_id?: string | null
+          residential_id: string
+          unit_type?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          owner_user_id?: string | null
+          residential_id?: string
+          unit_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "units_owner_user_id_fkey"
+            columns: ["owner_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "units_residential_id_fkey"
+            columns: ["residential_id"]
+            isOneToOne: false
+            referencedRelation: "residentials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      is_platform_admin: { Args: never; Returns: boolean }
+      is_residential_admin: {
+        Args: { _residential_id: string }
+        Returns: boolean
+      }
+      is_residential_owner: {
+        Args: { _residential_id: string }
+        Returns: boolean
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
+  public: {
+    Enums: {},
+  },
+} as const
+
+
+// ============================================================================
+// Helper Types for Easier Usage
+// ============================================================================
+
+export type Tables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row']
+export type TablesInsert<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Insert']
+export type TablesUpdate<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Update']
+
+// Specific table types
+export type Profile = Tables<'profiles'>
+export type Residential = Tables<'residentials'>
+export type ResidentialUser = Tables<'residential_users'>
+export type Unit = Tables<'units'>
+export type UnitMember = Tables<'unit_members'>
+export type Amenity = Tables<'amenities'>
+export type AmenityBooking = Tables<'amenity_bookings'>
+
+// Insert types
+export type InsertProfile = TablesInsert<'profiles'>
+export type InsertResidential = TablesInsert<'residentials'>
+export type InsertResidentialUser = TablesInsert<'residential_users'>
+export type InsertUnit = TablesInsert<'units'>
+export type InsertUnitMember = TablesInsert<'unit_members'>
+export type InsertAmenity = TablesInsert<'amenities'>
+export type InsertAmenityBooking = TablesInsert<'amenity_bookings'>
+
+// Update types
+export type UpdateProfile = TablesUpdate<'profiles'>
+export type UpdateResidential = TablesUpdate<'residentials'>
+export type UpdateResidentialUser = TablesUpdate<'residential_users'>
+export type UpdateUnit = TablesUpdate<'units'>
+export type UpdateUnitMember = TablesUpdate<'unit_members'>
+export type UpdateAmenity = TablesUpdate<'amenities'>
+export type UpdateAmenityBooking = TablesUpdate<'amenity_bookings'>

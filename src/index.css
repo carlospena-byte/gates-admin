@@ -24,6 +24,10 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
+
+    --mesh-purple: 270 95% 70%;
+    --mesh-orange: 28 95% 62%;
+    --mesh-amber: 38 95% 60%;
   }
 
   .dark {
@@ -49,6 +53,53 @@
   }
 }
 
+@layer utilities {
+  .mesh-bg {
+    background:
+      radial-gradient(900px circle at 12% 18%, hsl(var(--mesh-purple) / 0.55), transparent 58%),
+      radial-gradient(1000px circle at 88% 16%, hsl(var(--mesh-amber) / 0.45), transparent 60%),
+      radial-gradient(1000px circle at 20% 92%, hsl(var(--mesh-orange) / 0.40), transparent 58%),
+      radial-gradient(1200px circle at 86% 88%, hsl(var(--mesh-purple) / 0.35), transparent 65%),
+      linear-gradient(to bottom, hsl(var(--background) / 0.55), hsl(var(--background) / 0.85));
+    filter: saturate(1.25) blur(44px);
+    transform: scale(1.08);
+    opacity: 0.9;
+  }
+
+  .dark .mesh-bg {
+    background:
+      radial-gradient(900px circle at 12% 18%, hsl(var(--mesh-purple) / 0.48), transparent 58%),
+      radial-gradient(1000px circle at 88% 16%, hsl(var(--mesh-amber) / 0.38), transparent 60%),
+      radial-gradient(1000px circle at 20% 92%, hsl(var(--mesh-orange) / 0.34), transparent 58%),
+      radial-gradient(1200px circle at 86% 88%, hsl(var(--mesh-purple) / 0.30), transparent 65%),
+      linear-gradient(to bottom, hsl(var(--background) / 0.35), hsl(var(--background) / 0.78));
+    filter: saturate(1.35) blur(46px);
+    transform: scale(1.08);
+    opacity: 0.95;
+  }
+
+  .mesh-grid {
+    opacity: 0.24;
+    background-image:
+      linear-gradient(to right, hsl(var(--foreground) / 0.08) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--foreground) / 0.08) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: radial-gradient(circle at 50% 25%, black 14%, transparent 66%);
+  }
+
+  .dark .mesh-grid {
+    opacity: 0.16;
+    background-image:
+      linear-gradient(to right, hsl(var(--foreground) / 0.10) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--foreground) / 0.10) 1px, transparent 1px);
+  }
+
+  .mesh-vignette {
+    background: radial-gradient(circle at 50% 10%, transparent 30%, hsl(var(--background) / 0.85) 78%);
+    opacity: 0.9;
+  }
+}
+
 @layer base {
   * {
     @apply border-border;
@@ -56,4 +107,13 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Ensure toasts appear above all other elements including sheets */
+[data-sonner-toaster] {
+  z-index: 9999 !important;
+}
+
+[data-sonner-toast] {
+  pointer-events: auto !important;
 }

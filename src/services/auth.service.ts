@@ -1,6 +1,6 @@
 import { requireSupabase } from "../lib/supabaseClient";
 import type { Session, User } from "@supabase/supabase-js";
-import { ApiError, type ApiResult } from "./api.service";
+import { wrapResult, type ApiResult } from "./apiResult";
 
 // ============================================================================
 // Types
@@ -22,25 +22,6 @@ export interface VerifyOtpParams {
 }
 
 // ============================================================================
-// Helper Functions
-// ============================================================================
-
-function success<T>(data: T): ApiResult<T> {
-  return { success: true, data };
-}
-
-function failure<T>(error: ApiError): ApiResult<T> {
-  return { success: false, error };
-}
-
-function handleSupabaseError(error: unknown, context: string): ApiError {
-  if (error instanceof Error) {
-    return new ApiError(`${context}: ${error.message}`, undefined, error);
-  }
-  return new ApiError(`${context}: Unknown error`, undefined, error);
-}
-
-// ============================================================================
 // Auth Service
 // ============================================================================
 
@@ -48,96 +29,72 @@ export const authService = {
   /**
    * Get the current session
    */
-  async getSession(): Promise<ApiResult<Session | null>> {
-    try {
-      const supabase = requireSupabase();
-      const { data, error } = await supabase.auth.getSession();
-
+  getSession(): Promise<ApiResult<Session | null>> {
+    return wrapResult("Failed to get session", async () => {
+      const { data, error } = await requireSupabase().auth.getSession();
       if (error) throw error;
-      return success(data.session);
-    } catch (error) {
-      return failure(handleSupabaseError(error, "Failed to get session"));
-    }
+      return data.session;
+    });
   },
 
   /**
    * Get the current user
    */
-  async getUser(): Promise<ApiResult<User | null>> {
-    try {
-      const supabase = requireSupabase();
-      const { data, error } = await supabase.auth.getUser();
-
+  getUser(): Promise<ApiResult<User | null>> {
+    return wrapResult("Failed to get user", async () => {
+      const { data, error } = await requireSupabase().auth.getUser();
       if (error) throw error;
-      return success(data.user);
-    } catch (error) {
-      return failure(handleSupabaseError(error, "Failed to get user"));
-    }
+      return data.user;
+    });
   },
 
   /**
    * Send OTP to email
    */
-  async signInWithOtp(params: SignInWithOtpParams): Promise<ApiResult<void>> {
-    try {
-      const supabase = requireSupabase();
-      const { error } = await supabase.auth.signInWithOtp({
+  signInWithOtp(params: SignInWithOtpParams): Promise<ApiResult<void>> {
+    return wrapResult("Failed to send OTP", async () => {
+      const { error } = await requireSupabase().auth.signInWithOtp({
         email: params.email,
         options: {
           shouldCreateUser: params.shouldCreateUser ?? true,
           data: params.data,
         },
       });
-
       if (error) throw error;
-      return success(undefined);
-    } catch (error) {
-      return failure(handleSupabaseError(error, "Failed to send OTP"));
-    }
+    });
   },
 
   /**
    * Verify OTP and sign in
    */
-  async verifyOtp(params: VerifyOtpParams): Promise<ApiResult<Session>> {
-    try {
-      const supabase = requireSupabase();
-      const { data, error } = await supabase.auth.verifyOtp({
+  verifyOtp(params: VerifyOtpParams): Promise<ApiResult<Session>> {
+    return wrapResult("Failed to verify OTP", async () => {
+      const { data, error } = await requireSupabase().auth.verifyOtp({
         email: params.email,
         token: params.token,
         type: "email",
       });
-
       if (error) throw error;
       if (!data.session) {
         throw new Error("No session returned after OTP verification");
       }
-
-      return success(data.session);
-    } catch (error) {
-      return failure(handleSupabaseError(error, "Failed to verify OTP"));
-    }
+      return data.session;
+    });
   },
 
   /**
    * Sign out
    */
-  async signOut(): Promise<ApiResult<void>> {
-    try {
-      const supabase = requireSupabase();
-      const { error } = await supabase.auth.signOut();
+  signOut(): Promise<ApiResult<void>> {
+    return wrapResult("Failed to sign out", async () => {
+      const { error } = await requireSupabase().auth.signOut();
 
-      // In local development with seeded users, signOut might return 403
-      // This is expected and we should still clear the local session
-      if (error && error.message && !error.message.includes('403')) {
+      // In local development with seeded users, signOut might return 403.
+      // This is expected and we should still treat the session as cleared.
+      if (error && error.message && !error.message.includes("403")) {
         throw error;
       }
-
-      // Even if there's a 403 error, we successfully signed out locally
-      return success(undefined);
-    } catch (error) {
-      return failure(handleSupabaseError(error, "Failed to sign out"));
-    }
+    });
   },
 
   /**

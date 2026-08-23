@@ -4,52 +4,26 @@
  */
 
 import { requireSupabase } from "@/lib/supabaseClient";
-import { ApiError, type ApiResult } from "@/services";
+import { unwrap, wrapResult, type ApiResult } from "./apiResult";
 
-class UnitAddonService {
-  private error(message: string, cause?: unknown) {
-    return { success: false as const, error: new ApiError(message, undefined, cause) };
+async function createMany(unitId: string, addonIds: string[]): Promise<ApiResult<void>> {
+  if (addonIds.length === 0) {
+    return { success: true, data: undefined };
   }
 
-  async createMany(unitId: string, addonIds: string[]): Promise<ApiResult<void>> {
-    try {
-      const supabase = requireSupabase();
-
-      if (addonIds.length === 0) {
-        return { success: true, data: undefined };
-      }
-
-      const { error } = await supabase.from("unit_addons").insert(
-        addonIds.map((addonId) => ({
-          unit_id: unitId,
-          addon_id: addonId,
-        })),
-      );
-
-      if (error) return this.error(error.message, error);
-
-      return { success: true, data: undefined };
-    } catch (error) {
-      return this.error(error instanceof Error ? error.message : "Unknown error occurred", error);
-    }
-  }
-
-  async deleteByUnitId(unitId: string): Promise<ApiResult<void>> {
-    try {
-      const supabase = requireSupabase();
-      const { error } = await supabase
+  return wrapResult("Failed to add unit addons", () =>
+    unwrap<void>(
+      requireSupabase()
         .from("unit_addons")
-        .delete()
-        .eq("unit_id", unitId);
-
-      if (error) return this.error(error.message, error);
-
-      return { success: true, data: undefined };
-    } catch (error) {
-      return this.error(error instanceof Error ? error.message : "Unknown error occurred", error);
-    }
-  }
+        .insert(addonIds.map((addonId) => ({ unit_id: unitId, addon_id: addonId }))),
+    ),
+  );
 }
 
-export const unitAddonService = new UnitAddonService();
+async function deleteByUnitId(unitId: string): Promise<ApiResult<void>> {
+  return wrapResult("Failed to remove unit addons", () =>
+    unwrap<void>(requireSupabase().from("unit_addons").delete().eq("unit_id", unitId)),
+  );
+}
 
+export const unitAddonService = { createMany, deleteByUnitId };

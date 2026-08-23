@@ -4,7 +4,6 @@
  */
 
 import { Fragment, useEffect, useState } from "react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -23,7 +22,8 @@ import { Pagination } from "@/components/Pagination";
 import { SortableTableHead } from "@/components/SortableTableHead";
 import { usePaginatedSortedData } from "@/hooks/usePaginatedSortedData";
 import { getLocationFullPath, locationHasChildren } from "@/lib/locationHierarchy";
-import { EditIcon, TrashIcon, ChevronDownIcon, ChevronRightIcon } from "./icons";
+import { confirmDeleteToast } from "@/lib/confirmDeleteToast";
+import { EditIcon, TrashIcon, ChevronDownIcon, ChevronRightIcon } from "@/components/icons";
 import type { UnitFormPayload } from "@/hooks/useUnitManagerData";
 import type { UnitType, Location, Addon, UnitWithWizardData } from "@/types/unit-wizard.types";
 
@@ -130,22 +130,8 @@ export function UnitTable({
   };
 
   const handleDelete = (id: string, name: string) => {
-    const toastId = toast(`Delete "${name}"?`, {
-      description: "This action cannot be undone.",
-      duration: Infinity,
-      action: {
-        label: "Delete",
-        onClick: async () => {
-          toast.dismiss(toastId);
-          await onDelete(id);
-        },
-      },
-      cancel: {
-        label: "Cancel",
-        onClick: () => {
-          toast.dismiss(toastId);
-        },
-      },
+    confirmDeleteToast(name, async () => {
+      await onDelete(id);
     });
   };
 

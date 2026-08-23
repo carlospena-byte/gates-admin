@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/LoadingStates";
-import { PlusIcon } from "./icons";
+import { PlusIcon } from "@/components/icons";
 import {
   getLocationFullPath,
   getParentLocationTypeOptions,

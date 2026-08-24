@@ -2,7 +2,7 @@ export const messages = {
   en: {
     "app.supabaseNotConfigured.title": "Supabase not configured",
     "app.supabaseNotConfigured.description": "Set env vars and reload.",
-    "app.supabaseNotConfigured.instructions": "Copy `.env.example` → `.env` and set:",
+    "app.supabaseNotConfigured.instructions": "Copy `.env.development.example` → `.env.development` and set:",
     "app.loading.title": "Loading…",
     "app.loading.description": "Resolving your access.",
     "app.accessError.title": "Access error",
@@ -114,7 +114,7 @@ export const messages = {
   es: {
     "app.supabaseNotConfigured.title": "Supabase no está configurado",
     "app.supabaseNotConfigured.description": "Configura las variables de entorno y recarga.",
-    "app.supabaseNotConfigured.instructions": "Copia `.env.example` → `.env` y configura:",
+    "app.supabaseNotConfigured.instructions": "Copia `.env.development.example` → `.env.development` y configura:",
     "app.loading.title": "Cargando…",
     "app.loading.description": "Resolviendo tu acceso.",
     "app.accessError.title": "Error de acceso",

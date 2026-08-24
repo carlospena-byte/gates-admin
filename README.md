@@ -64,3 +64,8 @@ npm run dev:prod
 
 - Config: `components.json`, `tailwind.config.ts`
 - Components: `src/components/ui/*`
+
+## Docs
+
+Development notes, feature writeups, and historical bug-fix postmortems live
+in [`docs/`](docs/README.md) — this README is the only doc kept at the repo root.

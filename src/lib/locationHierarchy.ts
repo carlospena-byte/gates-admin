@@ -42,3 +42,19 @@ export function getParentLocationTypeOptions(
   const codes = Array.from(new Set(locations.map((l) => l.type))).sort();
   return codes.map((code) => ({ code, name: code }));
 }
+
+/**
+ * Label for a location entry in a flat "pick a parent" dropdown, e.g.
+ * "Floor 3 (Floor - Parent: Tower A)".
+ */
+export function getLocationOptionLabel(
+  location: Location,
+  locations: Location[],
+  locationTypes: LocationTypeDefinition[],
+): string {
+  const typeName = getLocationTypeLabel(location.type, locationTypes);
+  const parentName = location.parent_id
+    ? locations.find((l) => l.id === location.parent_id)?.name
+    : null;
+  return parentName ? `${location.name} (${typeName} - Parent: ${parentName})` : `${location.name} (${typeName})`;
+}

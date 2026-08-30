@@ -1,10 +1,16 @@
 import { useEffect, useState } from "react";
 
 import { supabase } from "@/lib/supabaseClient";
+import type { ResidentialRole } from "@/types/database.types";
 
 export type Access =
   | { kind: "platform_admin" }
-  | { kind: "residential_admin"; residentialId: string; role: "owner" | "admin" | "security" | "member" };
+  | { kind: "residential_admin"; residentialId: string; role: ResidentialRole };
+
+/** Only owner/admin can create, edit, or delete within a residential — security/member are read-only. */
+export function canManageResidential(role: ResidentialRole): boolean {
+  return role === "owner" || role === "admin";
+}
 
 export function useAccess({
   enabled = true,
@@ -129,7 +135,7 @@ export function useAccess({
       setAccess({
         kind: "residential_admin",
         residentialId: residentialUserRow.residential_id,
-        role: residentialUserRow.role as "owner" | "admin" | "security" | "member",
+        role: residentialUserRow.role as ResidentialRole,
       });
     }
 

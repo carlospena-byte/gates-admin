@@ -5,14 +5,14 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Spinner } from "@/components/LoadingStates";
 import { confirmDeleteToast } from "@/lib/confirmDeleteToast";
-import { EditIcon, TrashIcon } from "@/components/icons";
+import { EditIcon, DeleteIcon } from "@/components/icons";
 import type { LocationTypeDefinition } from "@/types/unit-wizard.types";
 
 interface LocationTypeTableProps {
   locationTypes: LocationTypeDefinition[];
   isLoading: boolean;
   isSubmitting: boolean;
-  onUpdate: (id: string, name: string, code: string) => Promise<boolean>;
+  onUpdate: (id: string, name: string, code: string, level: number) => Promise<boolean>;
   onDelete: (id: string) => Promise<boolean>;
   onToggleActive: (id: string, currentStatus: boolean) => Promise<void>;
 }
@@ -28,22 +28,28 @@ export function LocationTypeTable({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
   const [editingCode, setEditingCode] = useState("");
+  const [editingLevel, setEditingLevel] = useState("1");
 
   const startEditing = (type: LocationTypeDefinition) => {
     setEditingId(type.id);
     setEditingName(type.name);
     setEditingCode(type.code);
+    setEditingLevel(String(type.level));
   };
 
   const cancelEditing = () => {
     setEditingId(null);
     setEditingName("");
     setEditingCode("");
+    setEditingLevel("1");
   };
 
+  const parsedEditingLevel = Number.parseInt(editingLevel, 10);
+  const isEditingLevelValid = Number.isInteger(parsedEditingLevel) && parsedEditingLevel >= 1;
+
   const handleUpdate = async (id: string) => {
-    if (!editingName.trim() || !editingCode.trim()) return;
-    const ok = await onUpdate(id, editingName.trim(), editingCode.trim());
+    if (!editingName.trim() || !editingCode.trim() || !isEditingLevelValid) return;
+    const ok = await onUpdate(id, editingName.trim(), editingCode.trim(), parsedEditingLevel);
     if (ok) cancelEditing();
   };
 
@@ -71,14 +77,17 @@ export function LocationTypeTable({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-1/3">Name</TableHead>
-                <TableHead className="w-1/3">Code</TableHead>
+                <TableHead className="w-1/4">Name</TableHead>
+                <TableHead className="w-1/4">Code</TableHead>
+                <TableHead className="w-[90px]">Level</TableHead>
                 <TableHead className="w-[110px]">Active</TableHead>
                 <TableHead className="w-[140px] text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {locationTypes.map((type) => (
+              {[...locationTypes]
+                .sort((a, b) => a.level - b.level || a.name.localeCompare(b.name))
+                .map((type) => (
                 <TableRow key={type.id}>
                   <TableCell className="font-medium">
                     {editingId === type.id ? (
@@ -108,6 +117,20 @@ export function LocationTypeTable({
                     )}
                   </TableCell>
                   <TableCell>
+                    {editingId === type.id ? (
+                      <Input
+                        type="number"
+                        min={1}
+                        value={editingLevel}
+                        onChange={(e) => setEditingLevel(e.target.value)}
+                        className="h-8"
+                        disabled={isSubmitting}
+                      />
+                    ) : (
+                      <span className="text-sm text-muted-foreground">{type.level}</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
                     <Switch
                       checked={type.is_active}
                       onCheckedChange={() => onToggleActive(type.id, type.is_active)}
@@ -121,7 +144,9 @@ export function LocationTypeTable({
                         <Button
                           size="sm"
                           onClick={() => handleUpdate(type.id)}
-                          disabled={isSubmitting || !editingName.trim() || !editingCode.trim()}
+                          disabled={
+                            isSubmitting || !editingName.trim() || !editingCode.trim() || !isEditingLevelValid
+                          }
                         >
                           {isSubmitting ? <Spinner size="sm" /> : "Save"}
                         </Button>
@@ -140,7 +165,7 @@ export function LocationTypeTable({
                           onClick={() => handleDelete(type.id, type.name)}
                           disabled={isSubmitting}
                         >
-                          <TrashIcon />
+                          <DeleteIcon />
                         </Button>
                       </div>
                     )}

@@ -55,29 +55,25 @@ export function LoginPage({ onCreateResidential }: { onCreateResidential: () => 
             </Alert>
           ) : null}
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">{t("login.email.label")}</label>
-            <Input
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder={t("login.email.placeholder")}
-              autoComplete="email"
-              disabled={isSubmitting || phase === "enter_token"}
-            />
-          </div>
+          <Input
+            label={t("login.email.label")}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder={t("login.email.placeholder")}
+            autoComplete="email"
+            disabled={isSubmitting || phase === "enter_token"}
+          />
 
           {phase === "enter_token" ? (
-            <div className="space-y-2">
-              <label className="text-sm font-medium">{t("login.otp.label")}</label>
-              <Input
-                value={token}
-                onChange={(e) => setToken(e.target.value)}
-                placeholder={t("login.otp.placeholder")}
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                disabled={isSubmitting}
-              />
-            </div>
+            <Input
+              label={t("login.otp.label")}
+              value={token}
+              onChange={(e) => setToken(e.target.value)}
+              placeholder={t("login.otp.placeholder")}
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              disabled={isSubmitting}
+            />
           ) : null}
 
           <div className="flex items-center gap-2">

@@ -18,6 +18,43 @@ import { NamedTypeTable } from "@/components/namedTypes/NamedTypeTable";
 import { useNamedTypeManagerData } from "@/hooks/useNamedTypeManagerData";
 import { addonTypeService } from "@/services";
 
+export function AddonTypeSettingsPanel({
+  residentialId,
+  onTypesUpdated,
+}: {
+  residentialId: string;
+  onTypesUpdated?: () => void;
+}) {
+  const { items, isLoading, isSubmitting, create, update, remove, toggleActive } = useNamedTypeManagerData(
+    addonTypeService,
+    residentialId,
+    true,
+    "Addon Type",
+    onTypesUpdated,
+  );
+
+  return (
+    <div className="space-y-4">
+      <NamedTypeForm
+        entityLabel="Addon Type"
+        placeholder="e.g., Parking, Storage, Gym..."
+        isSubmitting={isSubmitting}
+        onCreate={create}
+      />
+
+      <NamedTypeTable
+        entityLabel="Addon Type"
+        items={items}
+        isLoading={isLoading}
+        isSubmitting={isSubmitting}
+        onUpdate={update}
+        onDelete={remove}
+        onToggleActive={toggleActive}
+      />
+    </div>
+  );
+}
+
 interface AddonTypeManagerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -26,14 +63,6 @@ interface AddonTypeManagerProps {
 }
 
 export function AddonTypeManager({ open, onOpenChange, residentialId, onTypesUpdated }: AddonTypeManagerProps) {
-  const { items, isLoading, isSubmitting, create, update, remove, toggleActive } = useNamedTypeManagerData(
-    addonTypeService,
-    residentialId,
-    open,
-    "Addon Type",
-    onTypesUpdated,
-  );
-
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
@@ -44,23 +73,8 @@ export function AddonTypeManager({ open, onOpenChange, residentialId, onTypesUpd
           </SheetDescription>
         </SheetHeader>
 
-        <div className="space-y-4 py-6">
-          <NamedTypeForm
-            entityLabel="Addon Type"
-            placeholder="e.g., Parking, Storage, Gym..."
-            isSubmitting={isSubmitting}
-            onCreate={create}
-          />
-
-          <NamedTypeTable
-            entityLabel="Addon Type"
-            items={items}
-            isLoading={isLoading}
-            isSubmitting={isSubmitting}
-            onUpdate={update}
-            onDelete={remove}
-            onToggleActive={toggleActive}
-          />
+        <div className="py-6">
+          <AddonTypeSettingsPanel residentialId={residentialId} onTypesUpdated={onTypesUpdated} />
         </div>
       </SheetContent>
     </Sheet>

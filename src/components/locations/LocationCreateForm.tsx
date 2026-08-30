@@ -1,10 +1,15 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/LoadingStates";
 import { PlusIcon } from "@/components/icons";
-import { getLocationOptionLabel } from "@/lib/locationHierarchy";
+import {
+  getEligibleParentLocations,
+  getLocationFullPath,
+  sortLocationTypesByLevel,
+  typeRequiresParent,
+} from "@/lib/locationHierarchy";
 import type { Location, LocationTypeDefinition, CreateLocationDto } from "@/types/unit-wizard.types";
 
 interface LocationCreateFormProps {
@@ -24,13 +29,31 @@ export function LocationCreateForm({
   const [type, setType] = useState("");
   const [parentId, setParentId] = useState("");
 
+  // Types are picked mayor -> menor: level 1 first (e.g. Edificio, Bloque),
+  // then level 2 (e.g. Piso, Polígono), etc.
+  const sortedTypes = useMemo(() => sortLocationTypesByLevel(locationTypes), [locationTypes]);
+
+  const needsParent = typeRequiresParent(type, locationTypes);
+
+  const eligibleParents = useMemo(
+    () => getEligibleParentLocations(type, locations, locationTypes),
+    [type, locations, locationTypes],
+  );
+
+  // Changing the type can invalidate the previously selected parent (wrong level).
+  useEffect(() => {
+    setParentId("");
+  }, [type]);
+
+  const isMissingParent = needsParent && !parentId;
+
   const handleCreate = async () => {
-    if (!name.trim() || !type) return;
+    if (!name.trim() || !type || isMissingParent) return;
 
     const ok = await onCreate({
       name: name.trim(),
       type,
-      parent_id: parentId || null,
+      parent_id: needsParent ? parentId : null,
     });
 
     if (ok) {
@@ -45,20 +68,21 @@ export function LocationCreateForm({
       <label className="text-sm font-medium">Add New Location</label>
       <div className="space-y-2">
         <Input
+          label="Location Name"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Location name (e.g., Tower A, Floor 3)"
+          placeholder="e.g., Edificio A, Piso 3"
           disabled={isSubmitting}
         />
         <Select value={type} onValueChange={setType} disabled={isSubmitting}>
-          <SelectTrigger>
+          <SelectTrigger label="Location Type">
             <SelectValue placeholder="Select location type" />
           </SelectTrigger>
           <SelectContent>
-            {locationTypes.length > 0 ? (
-              locationTypes.map((t) => (
+            {sortedTypes.length > 0 ? (
+              sortedTypes.map((t) => (
                 <SelectItem key={t.id} value={t.code}>
-                  {t.name}
+                  {t.name} (Nivel {t.level})
                 </SelectItem>
               ))
             ) : (
@@ -68,24 +92,32 @@ export function LocationCreateForm({
             )}
           </SelectContent>
         </Select>
-        <Select
-          value={parentId || "none"}
-          onValueChange={(value) => setParentId(value === "none" ? "" : value)}
-          disabled={isSubmitting}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select parent location (optional)" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">None (Root level)</SelectItem>
-            {locations.map((location) => (
-              <SelectItem key={location.id} value={location.id}>
-                {getLocationOptionLabel(location, locations, locationTypes)}
+        {needsParent ? (
+          <Select
+            value={parentId || "none"}
+            onValueChange={(value) => setParentId(value === "none" ? "" : value)}
+            disabled={isSubmitting}
+          >
+            <SelectTrigger label="Parent Location">
+              <SelectValue placeholder="Select parent location" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none" disabled>
+                {eligibleParents.length > 0 ? "Select a parent" : "No eligible parent locations yet"}
               </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Button onClick={handleCreate} disabled={isSubmitting || !name.trim() || !type} className="w-full">
+              {eligibleParents.map((location) => (
+                <SelectItem key={location.id} value={location.id}>
+                  {getLocationFullPath(location, locations)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : null}
+        <Button
+          onClick={handleCreate}
+          disabled={isSubmitting || !name.trim() || !type || isMissingParent}
+          className="w-full"
+        >
           {isSubmitting ? (
             <Spinner size="sm" />
           ) : (

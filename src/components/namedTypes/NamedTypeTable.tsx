@@ -8,7 +8,7 @@ import { Pagination } from "@/components/Pagination";
 import { SortableTableHead } from "@/components/SortableTableHead";
 import { usePaginatedSortedData } from "@/hooks/usePaginatedSortedData";
 import { confirmDeleteToast } from "@/lib/confirmDeleteToast";
-import { EditIcon, TrashIcon } from "@/components/icons";
+import { EditIcon, DeleteIcon } from "@/components/icons";
 
 interface NamedTypeEntity {
   id: string;
@@ -177,7 +177,7 @@ export function NamedTypeTable<T extends NamedTypeEntity>({
                             onClick={() => handleDelete(item.id, item.name)}
                             disabled={isSubmitting}
                           >
-                            <TrashIcon />
+                            <DeleteIcon />
                           </Button>
                         </div>
                       )}

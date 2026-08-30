@@ -312,15 +312,21 @@ BEGIN
   -- STEP 7: Create sample location types
   -- ============================================================================
 
-  INSERT INTO public.location_types (residential_id, name, code)
+  INSERT INTO public.location_types (residential_id, name, code, level)
   VALUES
-    ('550e8400-e29b-41d4-a716-446655440000', 'Parking', 'PARK'),
-    ('550e8400-e29b-41d4-a716-446655440000', 'Storage', 'STOR'),
-    ('550e8400-e29b-41d4-a716-446655440000', 'Gym', 'GYM'),
-    ('550e8400-e29b-41d4-a716-446655440000', 'Pool', 'POOL'),
-    ('550e8400-e29b-41d4-a716-446655440000', 'Lounge', 'LOUNGE')
+    ('550e8400-e29b-41d4-a716-446655440000', 'Parking', 'PARK', 1),
+    ('550e8400-e29b-41d4-a716-446655440000', 'Storage', 'STOR', 1),
+    ('550e8400-e29b-41d4-a716-446655440000', 'Gym', 'GYM', 1),
+    ('550e8400-e29b-41d4-a716-446655440000', 'Pool', 'POOL', 1),
+    ('550e8400-e29b-41d4-a716-446655440000', 'Lounge', 'LOUNGE', 1),
+    -- Vertical development: Torre (level 1) contains Piso (level 2).
+    ('550e8400-e29b-41d4-a716-446655440000', 'Torre', 'TORRE', 1),
+    ('550e8400-e29b-41d4-a716-446655440000', 'Piso', 'PISO', 2),
+    -- Horizontal development: Pasaje (level 1) holds units directly, no floor.
+    ('550e8400-e29b-41d4-a716-446655440000', 'Pasaje', 'PASAJE', 1)
   ON CONFLICT (residential_id, code) DO UPDATE SET
-    name = EXCLUDED.name;
+    name = EXCLUDED.name,
+    level = EXCLUDED.level;
 
   -- ============================================================================
   -- STEP 8: Create sample amenities
@@ -336,49 +342,38 @@ BEGIN
   ON CONFLICT (residential_id, name) DO NOTHING;
 
   -- ============================================================================
-  -- STEP 9: Create sample buildings and floors
+  -- STEP 9: Create sample locations
+  -- Torre 1 -> Piso 1 (vertical, 2 levels deep) and Pasaje El Carao (horizontal,
+  -- units attach directly to it, no floor in between).
   -- ============================================================================
 
-  -- Building A
-  INSERT INTO public.buildings (id, residential_id, name)
+  INSERT INTO public.locations (id, residential_id, name, type, parent_id)
   VALUES
-    ('660e8400-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440000', 'Building A')
-  ON CONFLICT (id) DO UPDATE SET
-    name = EXCLUDED.name;
+    ('770e8400-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440000', 'Torre 1', 'TORRE', NULL)
+  ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name;
 
-  -- Building B
-  INSERT INTO public.buildings (id, residential_id, name)
+  INSERT INTO public.locations (id, residential_id, name, type, parent_id)
   VALUES
-    ('660e8400-e29b-41d4-a716-446655440002', '550e8400-e29b-41d4-a716-446655440000', 'Building B')
-  ON CONFLICT (id) DO UPDATE SET
-    name = EXCLUDED.name;
+    ('770e8400-e29b-41d4-a716-446655440002', '550e8400-e29b-41d4-a716-446655440000', 'Piso 1', 'PISO', '770e8400-e29b-41d4-a716-446655440001')
+  ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name;
 
-  -- Floors for Building A
-  INSERT INTO public.floors (building_id, name)
+  INSERT INTO public.locations (id, residential_id, name, type, parent_id)
   VALUES
-    ('660e8400-e29b-41d4-a716-446655440001', 'Ground Floor'),
-    ('660e8400-e29b-41d4-a716-446655440001', 'Second Floor'),
-    ('660e8400-e29b-41d4-a716-446655440001', 'Third Floor'),
-    ('660e8400-e29b-41d4-a716-446655440001', 'Penthouse Level')
-  ON CONFLICT (building_id, name) DO NOTHING;
+    ('770e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440000', 'Pasaje El Carao', 'PASAJE', NULL)
+  ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name;
 
-  -- Floors for Building B
-  INSERT INTO public.floors (building_id, name)
+  -- Create sample units. '101' sits on Piso 1 (under Torre 1); 'Casa 24' attaches
+  -- directly to Pasaje El Carao, no floor in between.
+  INSERT INTO public.units (residential_id, name, owner_user_id, location_id, is_active)
   VALUES
-    ('660e8400-e29b-41d4-a716-446655440002', 'Lobby Level'),
-    ('660e8400-e29b-41d4-a716-446655440002', 'Level 2'),
-    ('660e8400-e29b-41d4-a716-446655440002', 'Sky Lounge')
-  ON CONFLICT (building_id, name) DO NOTHING;
-
-  -- Create sample units
-  INSERT INTO public.units (residential_id, name, owner_user_id, is_active)
-  VALUES
-    ('550e8400-e29b-41d4-a716-446655440000', '101', owner_id, true),
-    ('550e8400-e29b-41d4-a716-446655440000', '102', owner_id, true),
-    ('550e8400-e29b-41d4-a716-446655440000', '201', NULL, true),
-    ('550e8400-e29b-41d4-a716-446655440000', '202', NULL, true),
-    ('550e8400-e29b-41d4-a716-446655440000', '301', admin_id, true)
-  ON CONFLICT (residential_id, name) DO NOTHING;
+    ('550e8400-e29b-41d4-a716-446655440000', '101', owner_id, '770e8400-e29b-41d4-a716-446655440002', true),
+    ('550e8400-e29b-41d4-a716-446655440000', '102', owner_id, NULL, true),
+    ('550e8400-e29b-41d4-a716-446655440000', '201', NULL, NULL, true),
+    ('550e8400-e29b-41d4-a716-446655440000', '202', NULL, NULL, true),
+    ('550e8400-e29b-41d4-a716-446655440000', '301', admin_id, NULL, true),
+    ('550e8400-e29b-41d4-a716-446655440000', 'Casa 24', NULL, '770e8400-e29b-41d4-a716-446655440003', true)
+  ON CONFLICT (residential_id, name) DO UPDATE SET
+    location_id = EXCLUDED.location_id;
 
   RAISE NOTICE '✅ Seed data created successfully!';
   RAISE NOTICE '';
@@ -389,7 +384,7 @@ BEGIN
   RAISE NOTICE '  - Security:       security@residential.com / test123';
   RAISE NOTICE '';
   RAISE NOTICE '🏢 Demo Residential: "Demo Residential Complex"';
-  RAISE NOTICE '📦 Sample Data: 4 unit types, 5 location types, 5 amenities, 2 buildings with floors, 5 units';
+  RAISE NOTICE '📦 Sample Data: 4 unit types, 8 location types, 5 amenities, 3 locations (Torre 1 > Piso 1, Pasaje El Carao), 6 units';
   RAISE NOTICE '';
   RAISE NOTICE '🔗 Mailpit (view OTP emails): http://localhost:8025';
 

@@ -189,6 +189,14 @@ pass = "mailpit"
 admin_email = "admin@local.test"
 sender_name = "gates-admin"
 
+# signInWithOtp() uses the "magic_link" mail type. The default Supabase template only
+# includes a clickable ConfirmationURL, not the numeric code — but the login UI asks the
+# user to type in a 6-digit code and calls verifyOtp() with it. Override the template so
+# the email actually shows {{ .Token }}.
+[auth.email.template.magic_link]
+subject = "Your login code"
+content_path = "./supabase/templates/magic_link.html"
+
 # Uncomment to customize email template
 # [auth.email.template.invite]
 # subject = "You have been invited"

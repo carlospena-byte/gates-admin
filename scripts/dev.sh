@@ -43,6 +43,11 @@ if [[ "$MODE" == "development" ]]; then
   # Keep local stack light - exclude services that have health check issues
   supabase start --workdir . --exclude realtime,storage-api,imgproxy,logflare,vector
 
+  # Supabase auth reaches Mailpit by container name (see supabase/config.toml),
+  # but `supabase start` recreates the auth container on its own network each
+  # time, dropping any prior connection. Reconnect Mailpit so OTP emails send.
+  docker network connect supabase_network_gates-admin gates-admin-mailpit 2>/dev/null || true
+
   # If a DB backup exists, restore it automatically (can be skipped via SKIP_DB_RESTORE=1).
   if [[ -f "supabase/db.backup.sql" ]] && [[ "${SKIP_DB_RESTORE:-0}" != "1" ]]; then
     echo "Found supabase/db.backup.sql — restoring local database from backup..."

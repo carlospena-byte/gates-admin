@@ -18,6 +18,32 @@ import { LocationTypeCreateForm } from "@/components/locationTypes/LocationTypeC
 import { LocationTypeTable } from "@/components/locationTypes/LocationTypeTable";
 import { useLocationTypeManagerData } from "@/hooks/useLocationTypeManagerData";
 
+export function LocationTypeSettingsPanel({
+  residentialId,
+  onTypesUpdated,
+}: {
+  residentialId: string;
+  onTypesUpdated?: () => void;
+}) {
+  const { locationTypes, isLoading, isSubmitting, create, update, remove, toggleActive } =
+    useLocationTypeManagerData(residentialId, true, onTypesUpdated);
+
+  return (
+    <div className="space-y-4">
+      <LocationTypeCreateForm isSubmitting={isSubmitting} onCreate={create} />
+
+      <LocationTypeTable
+        locationTypes={locationTypes}
+        isLoading={isLoading}
+        isSubmitting={isSubmitting}
+        onUpdate={update}
+        onDelete={remove}
+        onToggleActive={toggleActive}
+      />
+    </div>
+  );
+}
+
 interface LocationTypeManagerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -31,9 +57,6 @@ export function LocationTypeManager({
   residentialId,
   onTypesUpdated,
 }: LocationTypeManagerProps) {
-  const { locationTypes, isLoading, isSubmitting, create, update, remove, toggleActive } =
-    useLocationTypeManagerData(residentialId, open, onTypesUpdated);
-
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
@@ -44,17 +67,8 @@ export function LocationTypeManager({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="space-y-4 py-4">
-          <LocationTypeCreateForm isSubmitting={isSubmitting} onCreate={create} />
-
-          <LocationTypeTable
-            locationTypes={locationTypes}
-            isLoading={isLoading}
-            isSubmitting={isSubmitting}
-            onUpdate={update}
-            onDelete={remove}
-            onToggleActive={toggleActive}
-          />
+        <div className="py-4">
+          <LocationTypeSettingsPanel residentialId={residentialId} onTypesUpdated={onTypesUpdated} />
         </div>
       </SheetContent>
     </Sheet>

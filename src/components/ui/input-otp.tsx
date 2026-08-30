@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import { Dot } from "lucide-react";
+import { IconPointFilled } from "@tabler/icons-react";
 import { OTPInput, OTPInputContext } from "input-otp";
 
 import { cn } from "@/lib/utils";
@@ -59,7 +59,7 @@ InputOTPSlot.displayName = "InputOTPSlot";
 const InputOTPSeparator = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
     <div ref={ref} role="separator" className={cn("flex items-center", className)} {...props}>
-      <Dot className="h-4 w-4 text-muted-foreground" />
+      <IconPointFilled className="h-4 w-4 text-muted-foreground" />
     </div>
   ),
 );

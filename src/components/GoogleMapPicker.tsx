@@ -144,7 +144,7 @@ export function GoogleMapPicker({
     return (
       <div className="grid gap-2 sm:grid-cols-2">
         <Input
-          placeholder={t("map.latitude")}
+          label={t("map.latitude")}
           value={value ? String(value.lat) : ""}
           onChange={(e) => {
             const lat = Number(e.target.value);
@@ -153,7 +153,7 @@ export function GoogleMapPicker({
           }}
         />
         <Input
-          placeholder={t("map.longitude")}
+          label={t("map.longitude")}
           value={value ? String(value.lng) : ""}
           onChange={(e) => {
             const lng = Number(e.target.value);

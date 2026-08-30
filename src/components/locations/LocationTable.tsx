@@ -1,16 +1,19 @@
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Spinner } from "@/components/LoadingStates";
-import { Pagination } from "@/components/Pagination";
-import { SortableTableHead } from "@/components/SortableTableHead";
-import { usePaginatedSortedData } from "@/hooks/usePaginatedSortedData";
-import { getLocationTypeLabel } from "@/lib/locationHierarchy";
+import {
+  getEligibleParentLocations,
+  getLocationFullPath,
+  getLocationTypeLabel,
+  sortLocationTypesByLevel,
+  typeRequiresParent,
+} from "@/lib/locationHierarchy";
 import { confirmDeleteToast } from "@/lib/confirmDeleteToast";
-import { EditIcon, TrashIcon } from "@/components/icons";
+import { EditIcon, DeleteIcon } from "@/components/icons";
 import type { Location, LocationTypeDefinition, UpdateLocationDto } from "@/types/unit-wizard.types";
 
 interface LocationTableProps {
@@ -18,11 +21,47 @@ interface LocationTableProps {
   locationTypes: LocationTypeDefinition[];
   isLoading: boolean;
   isSubmitting: boolean;
-  /** True while the sheet is open; used only to reset to page 1 on open, matching the original behavior. */
-  open: boolean;
   onUpdate: (id: string, dto: UpdateLocationDto) => Promise<boolean>;
   onDelete: (id: string) => Promise<boolean>;
   onToggleActive: (id: string, currentStatus: boolean) => Promise<void>;
+}
+
+interface RankedLocation {
+  location: Location;
+  depth: number;
+}
+
+/**
+ * Flattens locations into parent-then-children render order (root locations
+ * sorted by name, each immediately followed by its own children, recursively)
+ * instead of one flat alphabetical list — grouping Piso 1/2/3 under their
+ * Torre instead of interleaving them with unrelated top-level locations.
+ */
+function rankLocationsByHierarchy(locations: Location[]): RankedLocation[] {
+  const validIds = new Set(locations.map((l) => l.id));
+  const childrenByParent = new Map<string | null, Location[]>();
+
+  for (const location of locations) {
+    const parentKey = location.parent_id && validIds.has(location.parent_id) ? location.parent_id : null;
+    const siblings = childrenByParent.get(parentKey) ?? [];
+    siblings.push(location);
+    childrenByParent.set(parentKey, siblings);
+  }
+
+  for (const siblings of childrenByParent.values()) {
+    siblings.sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  const ranked: RankedLocation[] = [];
+  const visit = (parentId: string | null, depth: number) => {
+    for (const location of childrenByParent.get(parentId) ?? []) {
+      ranked.push({ location, depth });
+      visit(location.id, depth + 1);
+    }
+  };
+  visit(null, 0);
+
+  return ranked;
 }
 
 export function LocationTable({
@@ -30,35 +69,11 @@ export function LocationTable({
   locationTypes,
   isLoading,
   isSubmitting,
-  open,
   onUpdate,
   onDelete,
   onToggleActive,
 }: LocationTableProps) {
-  const {
-    paginatedData: paginatedLocations,
-    totalItems,
-    totalPages,
-    startIndex,
-    endIndex,
-    sortField,
-    sortOrder,
-    handleSort,
-    currentPage,
-    setCurrentPage,
-    resetPage,
-  } = usePaginatedSortedData({
-    data: locations,
-    defaultSortField: "name" as keyof Location,
-    itemsPerPage: 10,
-  });
-
-  // Reset to page 1 only when the sheet is (re)opened, not after every
-  // mutation-triggered refresh -- matches the original loadData/loadLocations split.
-  useEffect(() => {
-    if (open) resetPage();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  const rankedLocations = useMemo(() => rankLocationsByHierarchy(locations), [locations]);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
@@ -79,13 +94,26 @@ export function LocationTable({
     setEditingParentId("");
   };
 
+  const sortedTypes = sortLocationTypesByLevel(locationTypes);
+  const editingNeedsParent = typeRequiresParent(editingType, locationTypes);
+  const eligibleParentsForEditing = editingId
+    ? getEligibleParentLocations(editingType, locations, locationTypes, editingId)
+    : [];
+  const isEditingMissingParent = editingNeedsParent && !editingParentId;
+
+  const handleTypeChange = (newType: string) => {
+    setEditingType(newType);
+    // A type change can invalidate the previously selected parent's level.
+    setEditingParentId("");
+  };
+
   const handleUpdate = async (id: string) => {
-    if (!editingName.trim() || !editingType) return;
+    if (!editingName.trim() || !editingType || isEditingMissingParent) return;
 
     const ok = await onUpdate(id, {
       name: editingName.trim(),
       type: editingType,
-      parent_id: editingParentId || null,
+      parent_id: editingNeedsParent ? editingParentId : null,
     });
 
     if (ok) cancelEditing();
@@ -97,14 +125,12 @@ export function LocationTable({
     });
   };
 
-  const getAvailableParents = (currentId?: string) => locations.filter((loc) => loc.id !== currentId);
-
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <label className="text-sm font-medium">
           Existing Locations
-          {totalItems > 0 && <span className="ml-2 text-muted-foreground">({totalItems} total)</span>}
+          {locations.length > 0 && <span className="ml-2 text-muted-foreground">({locations.length} total)</span>}
         </label>
       </div>
 
@@ -113,71 +139,61 @@ export function LocationTable({
           <Spinner />
         </div>
       ) : locations.length > 0 ? (
-        <>
-          <div className="rounded-lg border bg-card">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <SortableTableHead
-                    field="name"
-                    currentSortField={sortField}
-                    sortOrder={sortOrder}
-                    onSort={handleSort}
-                    className="w-1/4"
-                  >
-                    Name
-                  </SortableTableHead>
-                  <SortableTableHead
-                    field="type"
-                    currentSortField={sortField}
-                    sortOrder={sortOrder}
-                    onSort={handleSort}
-                    className="w-1/6"
-                  >
-                    Type
-                  </SortableTableHead>
-                  <TableHead className="w-1/4">Parent</TableHead>
-                  <TableHead className="w-[110px]">Active</TableHead>
-                  <TableHead className="w-[140px] text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paginatedLocations.map((location) => (
-                  <TableRow key={location.id}>
-                    <TableCell className="font-medium">
-                      {editingId === location.id ? (
-                        <Input
-                          value={editingName}
-                          onChange={(e) => setEditingName(e.target.value)}
-                          placeholder="Location name"
-                          className="h-8"
-                          autoFocus
-                          disabled={isSubmitting}
-                        />
-                      ) : (
-                        <span className="truncate">{location.name}</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {editingId === location.id ? (
-                        <Select value={editingType} onValueChange={setEditingType} disabled={isSubmitting}>
-                          <SelectTrigger className="h-8">
-                            <SelectValue placeholder="Type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {locationTypes.map((t) => (
-                              <SelectItem key={t.id} value={t.code}>
-                                {t.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <span className="text-sm truncate">{getLocationTypeLabel(location.type, locationTypes)}</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {editingId === location.id ? (
+        <div className="rounded-lg border bg-card">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-1/4">Name</TableHead>
+                <TableHead className="w-1/6">Type</TableHead>
+                <TableHead className="w-1/4">Parent</TableHead>
+                <TableHead className="w-[110px]">Active</TableHead>
+                <TableHead className="w-[140px] text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rankedLocations.map(({ location, depth }) => (
+                <TableRow key={location.id} className={depth > 0 ? "bg-muted/30" : undefined}>
+                  <TableCell className="font-medium">
+                    {editingId === location.id ? (
+                      <Input
+                        value={editingName}
+                        onChange={(e) => setEditingName(e.target.value)}
+                        placeholder="Location name"
+                        className="h-8"
+                        autoFocus
+                        disabled={isSubmitting}
+                      />
+                    ) : (
+                      <span
+                        className={depth === 0 ? "truncate font-semibold" : "truncate text-muted-foreground"}
+                        style={depth > 0 ? { paddingLeft: `${depth * 20}px` } : undefined}
+                      >
+                        {depth > 0 ? "↳ " : ""}
+                        {location.name}
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {editingId === location.id ? (
+                      <Select value={editingType} onValueChange={handleTypeChange} disabled={isSubmitting}>
+                        <SelectTrigger className="h-8">
+                          <SelectValue placeholder="Type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {sortedTypes.map((t) => (
+                            <SelectItem key={t.id} value={t.code}>
+                              {t.name} (Nivel {t.level})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <span className="text-sm truncate">{getLocationTypeLabel(location.type, locationTypes)}</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {editingId === location.id ? (
+                      editingNeedsParent ? (
                         <Select
                           value={editingParentId || "none"}
                           onValueChange={(value) => setEditingParentId(value === "none" ? "" : value)}
@@ -187,75 +203,72 @@ export function LocationTable({
                             <SelectValue placeholder="Parent" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="none">None</SelectItem>
-                            {getAvailableParents(location.id).map((parent) => (
+                            <SelectItem value="none" disabled>
+                              {eligibleParentsForEditing.length > 0 ? "Select a parent" : "No eligible parents"}
+                            </SelectItem>
+                            {eligibleParentsForEditing.map((parent) => (
                               <SelectItem key={parent.id} value={parent.id}>
-                                {parent.name}
+                                {getLocationFullPath(parent, locations)}
                               </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                       ) : (
-                        <span className="text-sm text-muted-foreground truncate">
-                          {location.parent_id
-                            ? locations.find((l) => l.id === location.parent_id)?.name || "Unknown"
-                            : "None"}
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Switch
-                        checked={location.is_active}
-                        onCheckedChange={() => onToggleActive(location.id, location.is_active)}
-                        disabled={isSubmitting || editingId === location.id}
-                        aria-label={`Set ${location.name} ${location.is_active ? "inactive" : "active"}`}
-                      />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {editingId === location.id ? (
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            size="sm"
-                            onClick={() => handleUpdate(location.id)}
-                            disabled={isSubmitting || !editingName.trim() || !editingType}
-                          >
-                            {isSubmitting ? <Spinner size="sm" /> : "Save"}
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={cancelEditing} disabled={isSubmitting}>
-                            Cancel
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="flex justify-end gap-1">
-                          <Button size="sm" variant="ghost" onClick={() => startEditing(location)} disabled={isSubmitting}>
-                            <EditIcon />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleDelete(location.id, location.name)}
-                            disabled={isSubmitting}
-                          >
-                            <TrashIcon />
-                          </Button>
-                        </div>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalItems={totalItems}
-            startIndex={startIndex}
-            endIndex={endIndex}
-            onPageChange={setCurrentPage}
-          />
-        </>
+                        <span className="text-sm text-muted-foreground">Root level</span>
+                      )
+                    ) : (
+                      <span className="text-sm text-muted-foreground truncate">
+                        {location.parent_id
+                          ? locations.find((l) => l.id === location.parent_id)?.name || "Unknown"
+                          : "None"}
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Switch
+                      checked={location.is_active}
+                      onCheckedChange={() => onToggleActive(location.id, location.is_active)}
+                      disabled={isSubmitting || editingId === location.id}
+                      aria-label={`Set ${location.name} ${location.is_active ? "inactive" : "active"}`}
+                    />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {editingId === location.id ? (
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => handleUpdate(location.id)}
+                          disabled={
+                            isSubmitting || !editingName.trim() || !editingType || isEditingMissingParent
+                          }
+                        >
+                          {isSubmitting ? <Spinner size="sm" /> : "Save"}
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={cancelEditing} disabled={isSubmitting}>
+                          Cancel
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex justify-end gap-1">
+                        <Button size="sm" variant="ghost" onClick={() => startEditing(location)} disabled={isSubmitting}>
+                          <EditIcon />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDelete(location.id, location.name)}
+                          disabled={isSubmitting}
+                        >
+                          <DeleteIcon />
+                        </Button>
+                      </div>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       ) : (
         <div className="text-center py-8 text-sm text-muted-foreground">No locations yet. Create one above.</div>
       )}

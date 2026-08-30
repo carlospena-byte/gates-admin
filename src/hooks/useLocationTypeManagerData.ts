@@ -35,12 +35,13 @@ export function useLocationTypeManagerData(
   }, [open, reload]);
 
   const create = useCallback(
-    async (name: string, code: string): Promise<boolean> => {
+    async (name: string, code: string, level: number): Promise<boolean> => {
       setIsSubmitting(true);
       const result = await locationTypeService.create({
         residential_id: residentialId,
         name,
         code: code.toUpperCase(),
+        level,
       });
       setIsSubmitting(false);
 
@@ -58,9 +59,9 @@ export function useLocationTypeManagerData(
   );
 
   const update = useCallback(
-    async (id: string, name: string, code: string): Promise<boolean> => {
+    async (id: string, name: string, code: string, level: number): Promise<boolean> => {
       setIsSubmitting(true);
-      const result = await locationTypeService.update(id, { name, code: code.toUpperCase() });
+      const result = await locationTypeService.update(id, { name, code: code.toUpperCase(), level });
       setIsSubmitting(false);
 
       if (!result.success) {

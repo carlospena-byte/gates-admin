@@ -1,6 +1,6 @@
 /**
  * Factory for the CRUD shape repeated across the flat entity tables
- * (buildings, unit_types, location_types, addon_types, locations, addons...):
+ * (unit_types, location_types, addon_types, locations, addons...):
  * list-by-parent, getById, create, update, delete, toggleActive.
  *
  * The Supabase query builder is typed against a literal table name, so

@@ -126,9 +126,6 @@ export function useQuery<T>(
   // Initial fetch - runs when enabled changes
   useEffect(() => {
     if (enabled) {
-      if (import.meta.env.DEV) {
-        console.log('🔄 useQuery: Fetching data (enabled changed to true)');
-      }
       fetchData();
       return;
     }
@@ -141,8 +138,12 @@ export function useQuery<T>(
     }));
   }, [enabled, fetchData]); // Depend on both enabled AND fetchData
 
-  // Cleanup on unmount
+  // Cleanup on unmount. Also re-arm on (re)mount: React StrictMode's dev-only
+  // mount→unmount→mount cycle runs this cleanup once without a real unmount,
+  // which would otherwise leave isMountedRef stuck at false forever and
+  // silently drop the state update from the in-flight fetch.
   useEffect(() => {
+    isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
       if (abortControllerRef.current) {

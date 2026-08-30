@@ -23,13 +23,7 @@ import { LocationTable } from "@/components/locations/LocationTable";
 import { LocationTypeManager } from "@/components/LocationTypeManager";
 import { useLocationManagerData } from "@/hooks/useLocationManagerData";
 
-interface LocationManagerProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  residentialId: string;
-}
-
-export function LocationManager({ open, onOpenChange, residentialId }: LocationManagerProps) {
+export function LocationSettingsPanel({ residentialId }: { residentialId: string }) {
   const [typeManagerOpen, setTypeManagerOpen] = useState(false);
 
   const {
@@ -42,8 +36,51 @@ export function LocationManager({ open, onOpenChange, residentialId }: LocationM
     updateLocation,
     deleteLocation,
     toggleActive,
-  } = useLocationManagerData(residentialId, open);
+  } = useLocationManagerData(residentialId, true);
 
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button variant="outline" size="sm" onClick={() => setTypeManagerOpen(true)}>
+          <SettingsIcon />
+          <span className="ml-2">Manage Types</span>
+        </Button>
+      </div>
+
+      <LocationCreateForm
+        locations={locations}
+        locationTypes={locationTypes}
+        isSubmitting={isSubmitting}
+        onCreate={createLocation}
+      />
+
+      <LocationTable
+        locations={locations}
+        locationTypes={locationTypes}
+        isLoading={isLoading}
+        isSubmitting={isSubmitting}
+        onUpdate={updateLocation}
+        onDelete={deleteLocation}
+        onToggleActive={toggleActive}
+      />
+
+      <LocationTypeManager
+        open={typeManagerOpen}
+        onOpenChange={setTypeManagerOpen}
+        residentialId={residentialId}
+        onTypesUpdated={reload}
+      />
+    </div>
+  );
+}
+
+interface LocationManagerProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  residentialId: string;
+}
+
+export function LocationManager({ open, onOpenChange, residentialId }: LocationManagerProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
@@ -52,45 +89,14 @@ export function LocationManager({ open, onOpenChange, residentialId }: LocationM
         onInteractOutside={(e) => e.preventDefault()}
       >
         <SheetHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <SheetTitle>Manage Locations</SheetTitle>
-              <SheetDescription>Create and manage hierarchical locations</SheetDescription>
-            </div>
-            <Button variant="outline" size="sm" onClick={() => setTypeManagerOpen(true)}>
-              <SettingsIcon />
-              <span className="ml-2">Manage Types</span>
-            </Button>
-          </div>
+          <SheetTitle>Manage Locations</SheetTitle>
+          <SheetDescription>Create and manage hierarchical locations</SheetDescription>
         </SheetHeader>
 
-        <div className="space-y-4 py-6">
-          <LocationCreateForm
-            locations={locations}
-            locationTypes={locationTypes}
-            isSubmitting={isSubmitting}
-            onCreate={createLocation}
-          />
-
-          <LocationTable
-            locations={locations}
-            locationTypes={locationTypes}
-            isLoading={isLoading}
-            isSubmitting={isSubmitting}
-            open={open}
-            onUpdate={updateLocation}
-            onDelete={deleteLocation}
-            onToggleActive={toggleActive}
-          />
+        <div className="py-6">
+          <LocationSettingsPanel residentialId={residentialId} />
         </div>
       </SheetContent>
-
-      <LocationTypeManager
-        open={typeManagerOpen}
-        onOpenChange={setTypeManagerOpen}
-        residentialId={residentialId}
-        onTypesUpdated={reload}
-      />
     </Sheet>
   );
 }

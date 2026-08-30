@@ -6,7 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Spinner } from "@/components/LoadingStates";
 import { useI18n } from "@/i18n/useI18n";
-import { authService, residentialService, residentialUserService, profileService } from "@/services";
+import {
+  authService,
+  residentialService,
+  residentialUserService,
+  profileService,
+  locationTypeService,
+} from "@/services";
 import { useSession } from "@/state/useSession";
 
 export function ResidentialSignupPage({
@@ -102,6 +108,16 @@ export function ResidentialSignupPage({
       return;
     }
 
+    // Best-effort starter types so the owner has "Edificio"/"Bloque"/"Piso"
+    // ready to use instead of creating the location hierarchy vocabulary
+    // from scratch on their first visit to Manage Locations.
+    const residentialId = createResult.data.id;
+    await Promise.all([
+      locationTypeService.create({ residential_id: residentialId, name: "Edificio", code: "EDIFICIO", level: 1 }),
+      locationTypeService.create({ residential_id: residentialId, name: "Bloque", code: "BLOQUE", level: 1 }),
+      locationTypeService.create({ residential_id: residentialId, name: "Piso", code: "PISO", level: 2 }),
+    ]);
+
     onComplete();
   };
 
@@ -124,52 +140,46 @@ export function ResidentialSignupPage({
           {!userId ? (
             <>
               <div className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">{t("signup.firstName.label")}</label>
-                  <Input
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    disabled={isSubmitting}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">{t("signup.lastName.label")}</label>
-                  <Input value={lastName} onChange={(e) => setLastName(e.target.value)} disabled={isSubmitting} />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">{t("signup.email.label")}</label>
                 <Input
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  autoComplete="email"
-                  disabled={isSubmitting || otpSent}
+                  label={t("signup.firstName.label")}
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  disabled={isSubmitting}
                 />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">{t("signup.phone.label")}</label>
                 <Input
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder={t("signup.phone.placeholder")}
+                  label={t("signup.lastName.label")}
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
                   disabled={isSubmitting}
                 />
               </div>
 
+              <Input
+                label={t("signup.email.label")}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+                disabled={isSubmitting || otpSent}
+              />
+
+              <Input
+                label={t("signup.phone.label")}
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder={t("signup.phone.placeholder")}
+                disabled={isSubmitting}
+              />
+
               {otpSent ? (
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">{t("login.otp.label")}</label>
-                  <Input
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
-                    placeholder={t("login.otp.placeholder")}
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    disabled={isSubmitting}
-                  />
-                </div>
+                <Input
+                  label={t("login.otp.label")}
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value)}
+                  placeholder={t("login.otp.placeholder")}
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  disabled={isSubmitting}
+                />
               ) : null}
 
               <div className="flex gap-2">
@@ -197,20 +207,20 @@ export function ResidentialSignupPage({
                 </Alert>
               ) : null}
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium">{t("signup.residentialName.label")}</label>
-                <Input value={name} onChange={(e) => setName(e.target.value)} disabled={isSubmitting} />
-              </div>
+              <Input
+                label={t("signup.residentialName.label")}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                disabled={isSubmitting}
+              />
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium">{t("signup.residentialAddress.label")}</label>
-                <Input
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder={t("signup.residentialAddress.placeholder")}
-                  disabled={isSubmitting}
-                />
-              </div>
+              <Input
+                label={t("signup.residentialAddress.label")}
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder={t("signup.residentialAddress.placeholder")}
+                disabled={isSubmitting}
+              />
 
               <div className="flex gap-2">
                 <Button variant="outline" onClick={onBackToLogin} disabled={isSubmitting}>

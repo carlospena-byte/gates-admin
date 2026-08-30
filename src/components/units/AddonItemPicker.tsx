@@ -7,8 +7,13 @@
 import { useMemo, useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getLocationFullPath, sortLocationTypesByLevel } from "@/lib/locationHierarchy";
-import { formatCurrency } from "@/lib/utils";
+import {
+  getDescendantLocationIds,
+  getLocationFullPath,
+  getLocationTypeLabel,
+  sortLocationTypesByLevel,
+} from "@/lib/locationHierarchy";
+import { cn, formatCurrency } from "@/lib/utils";
 import type { AddonItem, AddonType, Location, LocationTypeDefinition } from "@/types/unit-wizard.types";
 
 const ALL = "__all__";
@@ -36,6 +41,7 @@ export function AddonItemPicker({
 }: AddonItemPickerProps) {
   const [locationTypeCode, setLocationTypeCode] = useState(ALL);
   const [locationId, setLocationId] = useState(ALL);
+  const [subLocationId, setSubLocationId] = useState(ALL);
   const [addonTypeId, setAddonTypeId] = useState(ALL);
 
   const sortedLocationTypes = useMemo(() => sortLocationTypesByLevel(locationTypes), [locationTypes]);
@@ -51,17 +57,45 @@ export function AddonItemPicker({
   // Reset the location filter if it no longer matches the selected location type.
   const effectiveLocationId = locationOptions.some((l) => l.id === locationId) ? locationId : ALL;
 
+  // Children of the selected location (e.g. the floors under a selected tower)
+  // — surfaced as an extra drill-down select once a location is chosen.
+  const subLocationOptions = useMemo(
+    () =>
+      effectiveLocationId === ALL
+        ? []
+        : locations
+            .filter((l) => l.is_active && l.parent_id === effectiveLocationId)
+            .sort((a, b) => a.name.localeCompare(b.name)),
+    [locations, effectiveLocationId],
+  );
+
+  const effectiveSubLocationId = subLocationOptions.some((l) => l.id === subLocationId) ? subLocationId : ALL;
+  const subLocationLabel = subLocationOptions.length
+    ? getLocationTypeLabel(subLocationOptions[0].type, locationTypes)
+    : "";
+
+  // The most specific location actually chosen — a floor if picked, else the tower itself.
+  const targetLocationId = effectiveSubLocationId !== ALL ? effectiveSubLocationId : effectiveLocationId;
+
+  const allowedLocationIds = useMemo(
+    () => (targetLocationId === ALL ? null : new Set(getDescendantLocationIds(targetLocationId, locations))),
+    [targetLocationId, locations],
+  );
+
   const activeItems = useMemo(() => addonItems.filter((item) => item.is_active), [addonItems]);
 
   const filteredItems = useMemo(
     () =>
       activeItems.filter((item) => {
-        if (locationTypeCode !== ALL && item.locations?.type !== locationTypeCode) return false;
-        if (effectiveLocationId !== ALL && item.location_id !== effectiveLocationId) return false;
+        if (allowedLocationIds) {
+          if (!item.location_id || !allowedLocationIds.has(item.location_id)) return false;
+        } else if (locationTypeCode !== ALL && item.locations?.type !== locationTypeCode) {
+          return false;
+        }
         if (addonTypeId !== ALL && item.addons?.addon_type_id !== addonTypeId) return false;
         return true;
       }),
-    [activeItems, locationTypeCode, effectiveLocationId, addonTypeId],
+    [activeItems, allowedLocationIds, locationTypeCode, addonTypeId],
   );
 
   const allFilteredSelected =
@@ -85,7 +119,7 @@ export function AddonItemPicker({
         )}
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-3">
+      <div className={cn("grid gap-2 sm:grid-cols-3", subLocationOptions.length > 0 && "lg:grid-cols-4")}>
         <Select value={addonTypeId} onValueChange={setAddonTypeId} disabled={disabled}>
           <SelectTrigger label="Addon Type">
             <SelectValue placeholder="All addon types" />
@@ -105,6 +139,7 @@ export function AddonItemPicker({
           onValueChange={(v) => {
             setLocationTypeCode(v);
             setLocationId(ALL);
+            setSubLocationId(ALL);
           }}
           disabled={disabled}
         >
@@ -121,7 +156,14 @@ export function AddonItemPicker({
           </SelectContent>
         </Select>
 
-        <Select value={effectiveLocationId} onValueChange={setLocationId} disabled={disabled}>
+        <Select
+          value={effectiveLocationId}
+          onValueChange={(v) => {
+            setLocationId(v);
+            setSubLocationId(ALL);
+          }}
+          disabled={disabled}
+        >
           <SelectTrigger label="Location">
             <SelectValue placeholder="All locations" />
           </SelectTrigger>
@@ -134,6 +176,22 @@ export function AddonItemPicker({
             ))}
           </SelectContent>
         </Select>
+
+        {subLocationOptions.length > 0 && (
+          <Select value={effectiveSubLocationId} onValueChange={setSubLocationId} disabled={disabled}>
+            <SelectTrigger label={subLocationLabel}>
+              <SelectValue placeholder={`All ${subLocationLabel}`} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL}>All {subLocationLabel}</SelectItem>
+              {subLocationOptions.map((location) => (
+                <SelectItem key={location.id} value={location.id}>
+                  {location.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       <div className="border rounded-md max-h-64 overflow-y-auto">

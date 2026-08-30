@@ -5,11 +5,16 @@ export * from "./amenities.service";
 export { unitTypeService } from "./unitTypeService";
 export { locationService } from "./locationService";
 export { locationTypeService } from "./locationTypeService";
-export { buildingService } from "./buildingService";
-export { floorService } from "./floorService";
 export { addonTypeService } from "./addonTypeService";
 export { addonService } from "./addonService";
+export { addonItemService } from "./addonItemService";
 export { unitAddonService } from "./unitAddonService";
+export { unitResidentService } from "./unitResidentService";
+export { unitRentalService } from "./unitRentalService";
+export { unitRentalPaymentService } from "./unitRentalPaymentService";
+export { chargeService } from "./chargeService";
+export { unitChargeService } from "./unitChargeService";
+export { auditLogService } from "./auditLogService";
 
 // Re-export commonly used types
 export type { TablesUpdate, TablesInsert } from "../types/database.types";

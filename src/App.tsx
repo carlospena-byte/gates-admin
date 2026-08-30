@@ -7,12 +7,24 @@ import { LoginPage } from "@/pages/LoginPage";
 import { PlatformDashboardPage } from "@/pages/PlatformDashboardPage";
 import { ResidentialDashboardPage } from "@/pages/ResidentialDashboardPage";
 import { ResidentialSignupPage } from "@/pages/ResidentialSignupPage";
+import { SettingsPage } from "@/pages/SettingsPage";
 import { UnitsPage } from "@/pages/UnitsPage";
+import { UnitDetailPage } from "@/pages/UnitDetailPage";
+import { AddonDetailPage } from "@/pages/AddonDetailPage";
+import { ChargeDetailPage } from "@/pages/ChargeDetailPage";
 import { useI18n } from "@/i18n/useI18n";
 import { isMessageKey } from "@/i18n/messages";
 import { useAccess } from "@/state/useAccess";
 import { useSession } from "@/state/useSession";
-import { getCurrentRoute, navigateTo, type RouteType } from "@/config/routes";
+import {
+  getCurrentRoute,
+  getUnitIdFromHash,
+  getAddonIdFromHash,
+  getChargeIdFromHash,
+  isSettingsRoute,
+  navigateTo,
+  type RouteType,
+} from "@/config/routes";
 
 export default function App() {
   const { t } = useI18n();
@@ -167,7 +179,51 @@ export default function App() {
   if (currentRoute === "units") {
     return (
       <AppFrame>
-        <UnitsPage residentialId={access.residentialId} />
+        <UnitsPage residentialId={access.residentialId} role={access.role} />
+      </AppFrame>
+    );
+  }
+
+  if (currentRoute === "unitDetail") {
+    const unitId = getUnitIdFromHash();
+    if (unitId) {
+      return (
+        <AppFrame>
+          <UnitDetailPage residentialId={access.residentialId} unitId={unitId} role={access.role} />
+        </AppFrame>
+      );
+    }
+    navigateTo("units");
+  }
+
+  if (currentRoute === "addonDetail") {
+    const addonId = getAddonIdFromHash();
+    if (addonId) {
+      return (
+        <AppFrame>
+          <AddonDetailPage residentialId={access.residentialId} addonId={addonId} role={access.role} />
+        </AppFrame>
+      );
+    }
+    navigateTo("residential");
+  }
+
+  if (currentRoute === "chargeDetail") {
+    const chargeId = getChargeIdFromHash();
+    if (chargeId) {
+      return (
+        <AppFrame>
+          <ChargeDetailPage residentialId={access.residentialId} chargeId={chargeId} role={access.role} />
+        </AppFrame>
+      );
+    }
+    navigateTo("residential");
+  }
+
+  if (isSettingsRoute(currentRoute)) {
+    return (
+      <AppFrame>
+        <SettingsPage residentialId={access.residentialId} />
       </AppFrame>
     );
   }
@@ -175,7 +231,7 @@ export default function App() {
   // Default to dashboard
   return (
     <AppFrame>
-      <ResidentialDashboardPage residentialId={access.residentialId} />
+      <ResidentialDashboardPage residentialId={access.residentialId} role={access.role} />
     </AppFrame>
   );
 }

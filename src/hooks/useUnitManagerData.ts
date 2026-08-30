@@ -11,7 +11,7 @@ import {
   unitTypeService,
   locationService,
   locationTypeService,
-  addonService,
+  addonItemService,
   unitAddonService,
 } from "@/services";
 import type {
@@ -19,14 +19,15 @@ import type {
   UnitType,
   Location,
   LocationTypeDefinition,
-  Addon,
+  AddonItem,
 } from "@/types/unit-wizard.types";
 
 export interface UnitFormPayload {
   name: string;
   unitTypeId: string;
   locationId: string;
-  addonIds: string[];
+  addonItemIds: string[];
+  price: number | null;
 }
 
 export function useUnitManagerData(residentialId: string, open: boolean, showList: boolean) {
@@ -34,18 +35,18 @@ export function useUnitManagerData(residentialId: string, open: boolean, showLis
   const [unitTypes, setUnitTypes] = useState<UnitType[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [locationTypes, setLocationTypes] = useState<LocationTypeDefinition[]>([]);
-  const [addons, setAddons] = useState<Addon[]>([]);
+  const [addonItems, setAddonItems] = useState<AddonItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const reload = useCallback(async () => {
     setIsLoading(true);
 
-    const [typesResult, locationsResult, locationTypesResult, addonsResult] = await Promise.all([
+    const [typesResult, locationsResult, locationTypesResult, addonItemsResult] = await Promise.all([
       unitTypeService.list(residentialId),
       locationService.list(residentialId),
       locationTypeService.list(residentialId),
-      addonService.list(residentialId),
+      addonItemService.listByResidential(residentialId),
     ]);
 
     const unitsResult = showList
@@ -69,7 +70,7 @@ export function useUnitManagerData(residentialId: string, open: boolean, showLis
     if (locationTypesResult.success) {
       setLocationTypes(locationTypesResult.data.filter((t) => t.is_active));
     }
-    if (addonsResult.success) setAddons(addonsResult.data);
+    if (addonItemsResult.success) setAddonItems(addonItemsResult.data);
   }, [residentialId, showList]);
 
   useEffect(() => {
@@ -86,6 +87,7 @@ export function useUnitManagerData(residentialId: string, open: boolean, showLis
         name: payload.name,
         unit_type_id: payload.unitTypeId || null,
         location_id: payload.locationId || null,
+        price: payload.price,
         is_active: true,
       });
 
@@ -99,8 +101,8 @@ export function useUnitManagerData(residentialId: string, open: boolean, showLis
         return false;
       }
 
-      if (payload.addonIds.length > 0) {
-        await unitAddonService.createMany(unitResult.data.id, payload.addonIds);
+      if (payload.addonItemIds.length > 0) {
+        await unitAddonService.createMany(unitResult.data.id, payload.addonItemIds);
       }
 
       toast.success("Unit created successfully");
@@ -119,6 +121,7 @@ export function useUnitManagerData(residentialId: string, open: boolean, showLis
         name: payload.name,
         unit_type_id: payload.unitTypeId || null,
         location_id: payload.locationId || null,
+        price: payload.price,
       });
 
       if (!updateResult.success) {
@@ -128,8 +131,8 @@ export function useUnitManagerData(residentialId: string, open: boolean, showLis
       }
 
       await unitAddonService.deleteByUnitId(id);
-      if (payload.addonIds.length > 0) {
-        await unitAddonService.createMany(id, payload.addonIds);
+      if (payload.addonItemIds.length > 0) {
+        await unitAddonService.createMany(id, payload.addonItemIds);
       }
 
       toast.success("Unit updated successfully");
@@ -175,9 +178,10 @@ export function useUnitManagerData(residentialId: string, open: boolean, showLis
     unitTypes,
     locations,
     locationTypes,
-    addons,
+    addonItems,
     isLoading,
     isSubmitting,
+    reload,
     createUnit,
     updateUnit,
     deleteUnit,

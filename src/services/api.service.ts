@@ -93,7 +93,7 @@ export const residentialService = {
       const rows = await unwrap<ResidentialWithOwner[]>(
         requireSupabase()
           .from("residentials")
-          .select("*, profiles(email)")
+          .select("*, profiles!residentials_owner_user_id_fkey(email)")
           .order("created_at", { ascending: false }),
       );
       return rows ?? [];
@@ -103,7 +103,11 @@ export const residentialService = {
   getById(id: string): Promise<ApiResult<ResidentialWithOwner | null>> {
     return wrapResult("Failed to get residential", () =>
       unwrap<ResidentialWithOwner | null>(
-        requireSupabase().from("residentials").select("*, profiles(email)").eq("id", id).maybeSingle(),
+        requireSupabase()
+          .from("residentials")
+          .select("*, profiles!residentials_owner_user_id_fkey(email)")
+          .eq("id", id)
+          .maybeSingle(),
       ),
     );
   },
@@ -207,8 +211,6 @@ function toUnitWithOwner(
     residential_id: unit.residential_id,
     name: unit.name,
     unit_type_id: unit.unit_type_id,
-    building_id: unit.building_id,
-    floor_id: unit.floor_id,
     location_id: unit.location_id,
     owner_user_id: unit.owner_user_id,
     is_active: unit.is_active,
@@ -224,10 +226,6 @@ function toUnitWithOwner(
 export const unitService = {
   listByResidential(residentialId: string): Promise<ApiResult<UnitWithOwner[]>> {
     return wrapResult("Failed to list units", async () => {
-      if (import.meta.env.DEV) {
-        console.log("📊 unitService.listByResidential called:", { residentialId });
-      }
-
       const units = await unwrap<Record<string, any>[]>( // eslint-disable-line @typescript-eslint/no-explicit-any
         requireSupabase()
           .from("units")
@@ -241,13 +239,6 @@ export const unitService = {
           .eq("residential_id", residentialId)
           .order("name", { ascending: true }),
       );
-
-      if (import.meta.env.DEV) {
-        console.log("📊 unitService.listByResidential result:", {
-          unitsCount: units?.length ?? 0,
-          units: units?.map((u) => ({ id: u.id, name: u.name })),
-        });
-      }
 
       const rows = units ?? [];
       const ownerIds = Array.from(
@@ -338,29 +329,42 @@ export const unitService = {
       const unitIds = unitsData.map((u) => u.id);
       const unitTypeIds = unitsData.map((u) => u.unit_type_id).filter(Boolean) as string[];
       const locationIds = unitsData.map((u) => u.location_id).filter(Boolean) as string[];
+      const ownerIds = Array.from(
+        new Set(unitsData.map((u) => u.owner_user_id).filter(Boolean) as string[]),
+      );
 
-      const [unitTypesResult, locationsResult, unitAddonsResult] = await Promise.all([
+      const [unitTypesResult, locationsResult, unitAddonsResult, profilesResult] = await Promise.all([
         unitTypeIds.length > 0
           ? supabase.from("unit_types").select("*").in("id", unitTypeIds)
           : Promise.resolve({ data: [], error: null }),
         locationIds.length > 0
           ? supabase.from("locations").select("*").in("id", locationIds)
           : Promise.resolve({ data: [], error: null }),
-        supabase.from("unit_addons").select("*, addons(*)").in("unit_id", unitIds),
+        supabase.from("unit_addons").select("*, addon_items(*, addons(*))").in("unit_id", unitIds),
+        ownerIds.length > 0
+          ? supabase.from("profiles").select("user_id,email").in("user_id", ownerIds)
+          : Promise.resolve({ data: [], error: null }),
       ]);
 
       if (unitTypesResult.error) throw unitTypesResult.error;
       if (locationsResult.error) throw locationsResult.error;
       if (unitAddonsResult.error) throw unitAddonsResult.error;
+      if (profilesResult.error) throw profilesResult.error;
 
       const unitTypesMap = new Map((unitTypesResult.data || []).map((ut) => [ut.id, ut]));
       const locationsMap = new Map((locationsResult.data || []).map((loc) => [loc.id, loc]));
+      const profileEmailByUserId = new Map(
+        (profilesResult.data || []).map((p) => [p.user_id, p.email]),
+      );
 
       const unitsWithRelations = unitsData.map((unit) => ({
         ...unit,
         unit_types: unit.unit_type_id ? unitTypesMap.get(unit.unit_type_id) : undefined,
         locations: unit.location_id ? locationsMap.get(unit.location_id) : undefined,
         unit_addons: (unitAddonsResult.data || []).filter((ua) => ua.unit_id === unit.id),
+        profiles: unit.owner_user_id
+          ? { email: profileEmailByUserId.get(unit.owner_user_id) ?? "" }
+          : undefined,
       }));
 
       return unitsWithRelations as unknown as UnitWithWizardData[];

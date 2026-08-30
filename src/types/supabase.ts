@@ -34,6 +34,64 @@ export type Database = {
   }
   public: {
     Tables: {
+      addon_items: {
+        Row: {
+          addon_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          location_id: string | null
+          name: string
+          price: number | null
+          residential_id: string
+          updated_at: string
+        }
+        Insert: {
+          addon_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          location_id?: string | null
+          name: string
+          price?: number | null
+          residential_id: string
+          updated_at?: string
+        }
+        Update: {
+          addon_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          location_id?: string | null
+          name?: string
+          price?: number | null
+          residential_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "addon_items_addon_id_fkey"
+            columns: ["addon_id"]
+            isOneToOne: false
+            referencedRelation: "addons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "addon_items_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "addon_items_residential_id_fkey"
+            columns: ["residential_id"]
+            isOneToOne: false
+            referencedRelation: "residentials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       addon_types: {
         Row: {
           created_at: string
@@ -216,9 +274,61 @@ export type Database = {
           },
         ]
       }
-      buildings: {
+      audit_logs: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          created_at: string
+          id: string
+          new_data: Json | null
+          old_data: Json | null
+          record_id: string | null
+          residential_id: string | null
+          table_name: string
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          created_at?: string
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id?: string | null
+          residential_id?: string | null
+          table_name: string
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          created_at?: string
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id?: string | null
+          residential_id?: string | null
+          table_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_actor_user_id_fkey"
+            columns: ["actor_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "audit_logs_residential_id_fkey"
+            columns: ["residential_id"]
+            isOneToOne: false
+            referencedRelation: "residentials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      charges: {
         Row: {
           created_at: string
+          description: string | null
           id: string
           is_active: boolean
           name: string
@@ -227,6 +337,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          description?: string | null
           id?: string
           is_active?: boolean
           name: string
@@ -235,6 +346,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          description?: string | null
           id?: string
           is_active?: boolean
           name?: string
@@ -243,53 +355,11 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "buildings_residential_id_fkey"
+            foreignKeyName: "charges_residential_id_fkey"
             columns: ["residential_id"]
             isOneToOne: false
             referencedRelation: "residentials"
             referencedColumns: ["id"]
-          },
-        ]
-      }
-      floors: {
-        Row: {
-          building_id: string
-          created_at: string
-          id: string
-          is_active: boolean
-          name: string
-          updated_at: string
-        }
-        Insert: {
-          building_id: string
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          name: string
-          updated_at?: string
-        }
-        Update: {
-          building_id?: string
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          name?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "floors_building_id_fkey"
-            columns: ["building_id"]
-            isOneToOne: false
-            referencedRelation: "buildings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "floors_building_id_fkey"
-            columns: ["building_id"]
-            isOneToOne: false
-            referencedRelation: "unit_locations"
-            referencedColumns: ["building_id"]
           },
         ]
       }
@@ -299,6 +369,7 @@ export type Database = {
           created_at: string
           id: string
           is_active: boolean
+          level: number
           name: string
           residential_id: string
           updated_at: string
@@ -308,6 +379,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          level?: number
           name: string
           residential_id: string
           updated_at?: string
@@ -317,6 +389,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          level?: number
           name?: string
           residential_id?: string
           updated_at?: string
@@ -533,40 +606,88 @@ export type Database = {
       }
       unit_addons: {
         Row: {
-          addon_id: string
+          addon_item_id: string
           created_at: string
           id: string
           unit_id: string
         }
         Insert: {
-          addon_id: string
+          addon_item_id: string
           created_at?: string
           id?: string
           unit_id: string
         }
         Update: {
-          addon_id?: string
+          addon_item_id?: string
           created_at?: string
           id?: string
           unit_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "unit_addons_addon_id_fkey"
-            columns: ["addon_id"]
+            foreignKeyName: "unit_addons_addon_item_id_fkey"
+            columns: ["addon_item_id"]
             isOneToOne: false
-            referencedRelation: "addons"
+            referencedRelation: "addon_items"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "unit_addons_unit_id_fkey"
             columns: ["unit_id"]
             isOneToOne: false
-            referencedRelation: "unit_locations"
-            referencedColumns: ["unit_id"]
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      unit_charges: {
+        Row: {
+          charge_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          price: number
+          residential_id: string
+          unit_id: string
+          updated_at: string
+        }
+        Insert: {
+          charge_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          price: number
+          residential_id: string
+          unit_id: string
+          updated_at?: string
+        }
+        Update: {
+          charge_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          price?: number
+          residential_id?: string
+          unit_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unit_charges_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "unit_addons_unit_id_fkey"
+            foreignKeyName: "unit_charges_residential_id_fkey"
+            columns: ["residential_id"]
+            isOneToOne: false
+            referencedRelation: "residentials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unit_charges_unit_id_fkey"
             columns: ["unit_id"]
             isOneToOne: false
             referencedRelation: "units"
@@ -605,13 +726,6 @@ export type Database = {
             foreignKeyName: "unit_members_unit_id_fkey"
             columns: ["unit_id"]
             isOneToOne: false
-            referencedRelation: "unit_locations"
-            referencedColumns: ["unit_id"]
-          },
-          {
-            foreignKeyName: "unit_members_unit_id_fkey"
-            columns: ["unit_id"]
-            isOneToOne: false
             referencedRelation: "units"
             referencedColumns: ["id"]
           },
@@ -621,6 +735,177 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      unit_rental_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          due_date: string
+          id: string
+          notes: string | null
+          paid_at: string | null
+          rental_id: string
+          residential_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          due_date: string
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          rental_id: string
+          residential_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          due_date?: string
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          rental_id?: string
+          residential_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unit_rental_payments_rental_id_fkey"
+            columns: ["rental_id"]
+            isOneToOne: false
+            referencedRelation: "unit_rentals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unit_rental_payments_residential_id_fkey"
+            columns: ["residential_id"]
+            isOneToOne: false
+            referencedRelation: "residentials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      unit_rentals: {
+        Row: {
+          created_at: string
+          end_date: string | null
+          id: string
+          notes: string | null
+          price: number | null
+          rental_type: string
+          residential_id: string
+          start_date: string
+          status: string
+          tenant_email: string | null
+          tenant_name: string
+          tenant_phone: string | null
+          unit_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          notes?: string | null
+          price?: number | null
+          rental_type?: string
+          residential_id: string
+          start_date: string
+          status?: string
+          tenant_email?: string | null
+          tenant_name: string
+          tenant_phone?: string | null
+          unit_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          notes?: string | null
+          price?: number | null
+          rental_type?: string
+          residential_id?: string
+          start_date?: string
+          status?: string
+          tenant_email?: string | null
+          tenant_name?: string
+          tenant_phone?: string | null
+          unit_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unit_rentals_residential_id_fkey"
+            columns: ["residential_id"]
+            isOneToOne: false
+            referencedRelation: "residentials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unit_rentals_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      unit_residents: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          is_active: boolean
+          phone: string | null
+          residential_id: string
+          unit_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name: string
+          id?: string
+          is_active?: boolean
+          phone?: string | null
+          residential_id: string
+          unit_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          is_active?: boolean
+          phone?: string | null
+          residential_id?: string
+          unit_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unit_residents_residential_id_fkey"
+            columns: ["residential_id"]
+            isOneToOne: false
+            referencedRelation: "residentials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unit_residents_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -661,69 +946,48 @@ export type Database = {
       }
       units: {
         Row: {
-          building_id: string | null
           created_at: string
-          floor_id: string | null
           id: string
           is_active: boolean
           location_id: string | null
           name: string
           owner_user_id: string | null
+          price: number | null
           residential_id: string
           unit_type_id: string | null
+          updated_at: string
         }
         Insert: {
-          building_id?: string | null
           created_at?: string
-          floor_id?: string | null
           id?: string
           is_active?: boolean
           location_id?: string | null
           name: string
           owner_user_id?: string | null
+          price?: number | null
           residential_id: string
           unit_type_id?: string | null
+          updated_at?: string
         }
         Update: {
-          building_id?: string | null
           created_at?: string
-          floor_id?: string | null
           id?: string
           is_active?: boolean
           location_id?: string | null
           name?: string
           owner_user_id?: string | null
+          price?: number | null
           residential_id?: string
           unit_type_id?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "units_building_id_fkey"
-            columns: ["building_id"]
+            foreignKeyName: "units_location_id_fkey"
+            columns: ["location_id"]
             isOneToOne: false
-            referencedRelation: "buildings"
+            referencedRelation: "locations"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "units_building_id_fkey"
-            columns: ["building_id"]
-            isOneToOne: false
-            referencedRelation: "unit_locations"
-            referencedColumns: ["building_id"]
-          },
-          {
-            foreignKeyName: "units_floor_id_fkey"
-            columns: ["floor_id"]
-            isOneToOne: false
-            referencedRelation: "floors"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "units_floor_id_fkey"
-            columns: ["floor_id"]
-            isOneToOne: false
-            referencedRelation: "unit_locations"
-            referencedColumns: ["floor_id"]
           },
           {
             foreignKeyName: "units_owner_user_id_fkey"
@@ -763,27 +1027,6 @@ export type Database = {
         }
         Relationships: []
       }
-      unit_locations: {
-        Row: {
-          building_id: string | null
-          building_name: string | null
-          floor_id: string | null
-          floor_name: string | null
-          full_location: string | null
-          residential_id: string | null
-          unit_id: string | null
-          unit_name: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "units_residential_id_fkey"
-            columns: ["residential_id"]
-            isOneToOne: false
-            referencedRelation: "residentials"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Functions: {
       is_platform_admin: { Args: never; Returns: boolean }
@@ -791,7 +1034,15 @@ export type Database = {
         Args: { _residential_id: string }
         Returns: boolean
       }
+      is_residential_member: {
+        Args: { _residential_id: string }
+        Returns: boolean
+      }
       is_residential_owner: {
+        Args: { _residential_id: string }
+        Returns: boolean
+      }
+      is_residential_security: {
         Args: { _residential_id: string }
         Returns: boolean
       }

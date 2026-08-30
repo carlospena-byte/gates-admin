@@ -13,7 +13,7 @@ import { UnitResidentsPanel } from "@/components/units/UnitResidentsPanel";
 import { UnitRentalsPanel } from "@/components/units/UnitRentalsPanel";
 import { UnitChargesPanel } from "@/components/units/UnitChargesPanel";
 import { LocationCombobox } from "@/components/units/LocationCombobox";
-import { getLocationFullPath } from "@/lib/locationHierarchy";
+import { AddonItemPicker } from "@/components/units/AddonItemPicker";
 import { confirmDeleteToast } from "@/lib/confirmDeleteToast";
 import { authService } from "@/services";
 import { useSession } from "@/state/useSession";
@@ -45,6 +45,7 @@ export function UnitDetailPage({
     locations,
     locationTypes,
     addonItems,
+    addonTypes,
     isLoading,
     isSubmitting,
     updateUnit,
@@ -201,36 +202,16 @@ export function UnitDetailPage({
                   disabled={isSubmitting || !canManage}
                 />
 
-                <div className="border rounded-md p-3 max-h-56 overflow-y-auto">
-                  <label className="text-sm font-medium mb-2 block">Addons</label>
-                  {addonItems.filter((a) => a.is_active).length > 0 ? (
-                    addonItems
-                      .filter((a) => a.is_active)
-                      .map((item) => (
-                        <div key={item.id} className="flex items-center space-x-2 py-1">
-                          <input
-                            type="checkbox"
-                            id={`unit-detail-addon-${item.id}`}
-                            checked={addonItemIds.includes(item.id)}
-                            onChange={() => handleAddonToggle(item.id)}
-                            disabled={isSubmitting || !canManage}
-                            className="h-4 w-4"
-                          />
-                          <label htmlFor={`unit-detail-addon-${item.id}`} className="text-sm cursor-pointer">
-                            {item.addons?.name} — {item.name}
-                            {item.locations && (
-                              <span className="text-muted-foreground">
-                                {" "}
-                                ({getLocationFullPath(item.locations, locations)})
-                              </span>
-                            )}
-                          </label>
-                        </div>
-                      ))
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No addons available</p>
-                  )}
-                </div>
+                <AddonItemPicker
+                  addonItems={addonItems}
+                  addonTypes={addonTypes}
+                  locations={locations}
+                  locationTypes={locationTypes}
+                  selectedIds={addonItemIds}
+                  onToggle={handleAddonToggle}
+                  onSetSelected={setAddonItemIds}
+                  disabled={isSubmitting || !canManage}
+                />
 
                 {canManage && (
                   <Button onClick={handleSave} disabled={isSubmitting || !name.trim()} className="w-full">

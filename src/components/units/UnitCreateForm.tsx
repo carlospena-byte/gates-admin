@@ -10,15 +10,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Spinner } from "@/components/LoadingStates";
 import { PlusIcon } from "@/components/icons";
 import { LocationCombobox } from "@/components/units/LocationCombobox";
-import { getLocationFullPath } from "@/lib/locationHierarchy";
+import { AddonItemPicker } from "@/components/units/AddonItemPicker";
 import type { UnitFormPayload } from "@/hooks/useUnitManagerData";
-import type { UnitType, Location, LocationTypeDefinition, AddonItem } from "@/types/unit-wizard.types";
+import type { UnitType, Location, LocationTypeDefinition, AddonItem, AddonType } from "@/types/unit-wizard.types";
 
 interface UnitCreateFormProps {
   unitTypes: UnitType[];
   locations: Location[];
   locationTypes: LocationTypeDefinition[];
   addonItems: AddonItem[];
+  addonTypes: AddonType[];
   isSubmitting: boolean;
   onCreate: (payload: UnitFormPayload) => Promise<boolean>;
 }
@@ -28,6 +29,7 @@ export function UnitCreateForm({
   locations,
   locationTypes,
   addonItems,
+  addonTypes,
   isSubmitting,
   onCreate,
 }: UnitCreateFormProps) {
@@ -111,36 +113,16 @@ export function UnitCreateForm({
           disabled={isSubmitting}
         />
 
-        <div className="border rounded-md p-3 max-h-48 overflow-y-auto">
-          <label className="text-sm font-medium mb-2 block">Addons (optional)</label>
-          {addonItems.filter((a) => a.is_active).length > 0 ? (
-            addonItems
-              .filter((a) => a.is_active)
-              .map((item) => (
-                <div key={item.id} className="flex items-center space-x-2 py-1">
-                  <input
-                    type="checkbox"
-                    id={`addon-item-new-${item.id}`}
-                    checked={addonItemIds.includes(item.id)}
-                    onChange={() => handleAddonToggle(item.id)}
-                    disabled={isSubmitting}
-                    className="h-4 w-4"
-                  />
-                  <label htmlFor={`addon-item-new-${item.id}`} className="text-sm cursor-pointer">
-                    {item.addons?.name} — {item.name}
-                    {item.locations && (
-                      <span className="text-muted-foreground">
-                        {" "}
-                        ({getLocationFullPath(item.locations, locations)})
-                      </span>
-                    )}
-                  </label>
-                </div>
-              ))
-          ) : (
-            <p className="text-sm text-muted-foreground">No addons available</p>
-          )}
-        </div>
+        <AddonItemPicker
+          addonItems={addonItems}
+          addonTypes={addonTypes}
+          locations={locations}
+          locationTypes={locationTypes}
+          selectedIds={addonItemIds}
+          onToggle={handleAddonToggle}
+          onSetSelected={setAddonItemIds}
+          disabled={isSubmitting}
+        />
 
         <Button
           onClick={handleCreate}

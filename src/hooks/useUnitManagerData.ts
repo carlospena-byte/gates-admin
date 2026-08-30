@@ -12,6 +12,7 @@ import {
   locationService,
   locationTypeService,
   addonItemService,
+  addonTypeService,
   unitAddonService,
 } from "@/services";
 import type {
@@ -20,6 +21,7 @@ import type {
   Location,
   LocationTypeDefinition,
   AddonItem,
+  AddonType,
 } from "@/types/unit-wizard.types";
 
 export interface UnitFormPayload {
@@ -36,18 +38,21 @@ export function useUnitManagerData(residentialId: string, open: boolean, showLis
   const [locations, setLocations] = useState<Location[]>([]);
   const [locationTypes, setLocationTypes] = useState<LocationTypeDefinition[]>([]);
   const [addonItems, setAddonItems] = useState<AddonItem[]>([]);
+  const [addonTypes, setAddonTypes] = useState<AddonType[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const reload = useCallback(async () => {
     setIsLoading(true);
 
-    const [typesResult, locationsResult, locationTypesResult, addonItemsResult] = await Promise.all([
-      unitTypeService.list(residentialId),
-      locationService.list(residentialId),
-      locationTypeService.list(residentialId),
-      addonItemService.listByResidential(residentialId),
-    ]);
+    const [typesResult, locationsResult, locationTypesResult, addonItemsResult, addonTypesResult] =
+      await Promise.all([
+        unitTypeService.list(residentialId),
+        locationService.list(residentialId),
+        locationTypeService.list(residentialId),
+        addonItemService.listByResidential(residentialId),
+        addonTypeService.list(residentialId),
+      ]);
 
     const unitsResult = showList
       ? await unitService.listWithRelations(residentialId)
@@ -71,6 +76,7 @@ export function useUnitManagerData(residentialId: string, open: boolean, showLis
       setLocationTypes(locationTypesResult.data.filter((t) => t.is_active));
     }
     if (addonItemsResult.success) setAddonItems(addonItemsResult.data);
+    if (addonTypesResult.success) setAddonTypes(addonTypesResult.data);
   }, [residentialId, showList]);
 
   useEffect(() => {
@@ -179,6 +185,7 @@ export function useUnitManagerData(residentialId: string, open: boolean, showLis
     locations,
     locationTypes,
     addonItems,
+    addonTypes,
     isLoading,
     isSubmitting,
     reload,

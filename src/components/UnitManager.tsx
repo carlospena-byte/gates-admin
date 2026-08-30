@@ -40,6 +40,7 @@ export function UnitManager({
     locations,
     locationTypes,
     addonItems,
+    addonTypes,
     isLoading,
     isSubmitting,
     createUnit,
@@ -73,6 +74,7 @@ export function UnitManager({
             locations={locations}
             locationTypes={locationTypes}
             addonItems={addonItems}
+            addonTypes={addonTypes}
             isSubmitting={isSubmitting}
             onCreate={handleCreate}
           />

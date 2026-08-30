@@ -86,6 +86,20 @@ export function AddonItemPicker({
       </div>
 
       <div className="grid gap-2 sm:grid-cols-3">
+        <Select value={addonTypeId} onValueChange={setAddonTypeId} disabled={disabled}>
+          <SelectTrigger label="Addon Type">
+            <SelectValue placeholder="All addon types" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>All addon types</SelectItem>
+            {addonTypes.map((type) => (
+              <SelectItem key={type.id} value={type.id}>
+                {type.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
         <Select
           value={locationTypeCode}
           onValueChange={(v) => {
@@ -94,8 +108,8 @@ export function AddonItemPicker({
           }}
           disabled={disabled}
         >
-          <SelectTrigger className="h-9">
-            <SelectValue placeholder="Location type" />
+          <SelectTrigger label="Location Type">
+            <SelectValue placeholder="All location types" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ALL}>All location types</SelectItem>
@@ -108,28 +122,14 @@ export function AddonItemPicker({
         </Select>
 
         <Select value={effectiveLocationId} onValueChange={setLocationId} disabled={disabled}>
-          <SelectTrigger className="h-9">
-            <SelectValue placeholder="Location" />
+          <SelectTrigger label="Location">
+            <SelectValue placeholder="All locations" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ALL}>All locations</SelectItem>
             {locationOptions.map((location) => (
               <SelectItem key={location.id} value={location.id}>
                 {getLocationFullPath(location, locations)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={addonTypeId} onValueChange={setAddonTypeId} disabled={disabled}>
-          <SelectTrigger className="h-9">
-            <SelectValue placeholder="Addon type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>All addon types</SelectItem>
-            {addonTypes.map((type) => (
-              <SelectItem key={type.id} value={type.id}>
-                {type.name}
               </SelectItem>
             ))}
           </SelectContent>

@@ -4,12 +4,13 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/LoadingStates";
 import { PlusIcon } from "@/components/icons";
+import type { AddonFormPayload } from "@/hooks/useAddonManagerData";
 import type { AddonType } from "@/types/unit-wizard.types";
 
 interface AddonCreateFormProps {
   addonTypes: AddonType[];
   isSubmitting: boolean;
-  onCreate: (name: string, addonTypeId: string) => Promise<boolean>;
+  onCreate: (payload: AddonFormPayload) => Promise<boolean>;
 }
 
 export function AddonCreateForm({ addonTypes, isSubmitting, onCreate }: AddonCreateFormProps) {
@@ -18,7 +19,7 @@ export function AddonCreateForm({ addonTypes, isSubmitting, onCreate }: AddonCre
 
   const handleCreate = async () => {
     if (!name.trim() || !typeId) return;
-    const ok = await onCreate(name.trim(), typeId);
+    const ok = await onCreate({ name: name.trim(), addonTypeId: typeId });
     if (ok) {
       setName("");
       setTypeId("");
@@ -30,13 +31,14 @@ export function AddonCreateForm({ addonTypes, isSubmitting, onCreate }: AddonCre
       <label className="text-sm font-medium">Add New Addon</label>
       <div className="space-y-2">
         <Input
+          label="Addon Name"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g., Covered Parking, Storage Unit..."
           disabled={isSubmitting}
         />
         <Select value={typeId} onValueChange={setTypeId} disabled={isSubmitting}>
-          <SelectTrigger>
+          <SelectTrigger label="Addon Type">
             <SelectValue placeholder="Select addon type" />
           </SelectTrigger>
           <SelectContent>

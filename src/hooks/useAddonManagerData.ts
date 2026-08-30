@@ -9,6 +9,11 @@ import { toast } from "sonner";
 import { addonService, addonTypeService } from "@/services";
 import type { Addon, AddonType, UpdateAddonDto } from "@/types/unit-wizard.types";
 
+export interface AddonFormPayload {
+  name: string;
+  addonTypeId: string;
+}
+
 export function useAddonManagerData(residentialId: string, open: boolean) {
   const [addons, setAddons] = useState<Addon[]>([]);
   const [addonTypes, setAddonTypes] = useState<AddonType[]>([]);
@@ -42,12 +47,12 @@ export function useAddonManagerData(residentialId: string, open: boolean) {
   }, [open, reload]);
 
   const createAddon = useCallback(
-    async (name: string, addonTypeId: string): Promise<boolean> => {
+    async (payload: AddonFormPayload): Promise<boolean> => {
       setIsSubmitting(true);
       const result = await addonService.create({
         residential_id: residentialId,
-        addon_type_id: addonTypeId,
-        name,
+        addon_type_id: payload.addonTypeId,
+        name: payload.name,
       });
       setIsSubmitting(false);
 

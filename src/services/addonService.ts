@@ -8,7 +8,7 @@ import { unwrap, wrapResult, type ApiResult } from "./apiResult";
 import { createCrudService } from "./createCrudService";
 import type { Addon, CreateAddonDto, UpdateAddonDto } from "@/types/unit-wizard.types";
 
-const SELECT_WITH_TYPE = "*, addon_types (*)";
+const SELECT_WITH_TYPE = "*, addon_types (*), item_count:addon_items(count), items:addon_items(id, unit_addons(count))";
 
 const base = createCrudService<Addon, CreateAddonDto, UpdateAddonDto>("addons", {
   selectClause: SELECT_WITH_TYPE,

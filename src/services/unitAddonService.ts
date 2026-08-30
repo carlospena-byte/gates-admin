@@ -6,8 +6,8 @@
 import { requireSupabase } from "@/lib/supabaseClient";
 import { unwrap, wrapResult, type ApiResult } from "./apiResult";
 
-async function createMany(unitId: string, addonIds: string[]): Promise<ApiResult<void>> {
-  if (addonIds.length === 0) {
+async function createMany(unitId: string, addonItemIds: string[]): Promise<ApiResult<void>> {
+  if (addonItemIds.length === 0) {
     return { success: true, data: undefined };
   }
 
@@ -15,7 +15,7 @@ async function createMany(unitId: string, addonIds: string[]): Promise<ApiResult
     unwrap<void>(
       requireSupabase()
         .from("unit_addons")
-        .insert(addonIds.map((addonId) => ({ unit_id: unitId, addon_id: addonId }))),
+        .insert(addonItemIds.map((addonItemId) => ({ unit_id: unitId, addon_item_id: addonItemId }))),
     ),
   );
 }

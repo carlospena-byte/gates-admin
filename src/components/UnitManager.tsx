@@ -16,29 +16,42 @@ import {
 } from "@/components/ui/sheet";
 import { UnitCreateForm } from "@/components/units/UnitCreateForm";
 import { UnitTable } from "@/components/units/UnitTable";
-import { useUnitManagerData } from "@/hooks/useUnitManagerData";
+import { useUnitManagerData, type UnitFormPayload } from "@/hooks/useUnitManagerData";
 
 interface UnitManagerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   residentialId: string;
   showList?: boolean;
+  /** Called after a unit is created here, so a unit list rendered elsewhere can refresh. */
+  onUnitCreated?: () => void;
 }
 
-export function UnitManager({ open, onOpenChange, residentialId, showList = true }: UnitManagerProps) {
+export function UnitManager({
+  open,
+  onOpenChange,
+  residentialId,
+  showList = true,
+  onUnitCreated,
+}: UnitManagerProps) {
   const {
     units,
     unitTypes,
     locations,
     locationTypes,
-    addons,
+    addonItems,
     isLoading,
     isSubmitting,
     createUnit,
-    updateUnit,
     deleteUnit,
     toggleActive,
   } = useUnitManagerData(residentialId, open, showList);
+
+  const handleCreate = async (payload: UnitFormPayload) => {
+    const ok = await createUnit(payload);
+    if (ok) onUnitCreated?.();
+    return ok;
+  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -57,22 +70,20 @@ export function UnitManager({ open, onOpenChange, residentialId, showList = true
         <div className="space-y-4 py-6">
           <UnitCreateForm
             unitTypes={unitTypes}
-            locationTypes={locationTypes}
             locations={locations}
-            addons={addons}
+            locationTypes={locationTypes}
+            addonItems={addonItems}
             isSubmitting={isSubmitting}
-            onCreate={createUnit}
+            onCreate={handleCreate}
           />
 
           {showList ? (
             <UnitTable
               units={units}
-              unitTypes={unitTypes}
               locations={locations}
-              addons={addons}
               isLoading={isLoading}
               isSubmitting={isSubmitting}
-              onUpdate={updateUnit}
+              canManage
               onDelete={deleteUnit}
               onToggleActive={toggleActive}
             />

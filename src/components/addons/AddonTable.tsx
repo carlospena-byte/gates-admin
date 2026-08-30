@@ -1,36 +1,30 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Spinner } from "@/components/LoadingStates";
 import { Pagination } from "@/components/Pagination";
 import { SortableTableHead } from "@/components/SortableTableHead";
 import { usePaginatedSortedData } from "@/hooks/usePaginatedSortedData";
 import { confirmDeleteToast } from "@/lib/confirmDeleteToast";
-import { EditIcon, TrashIcon } from "@/components/icons";
-import type { Addon, AddonType, UpdateAddonDto } from "@/types/unit-wizard.types";
+import { navigateToAddonDetail } from "@/config/routes";
+import { EditIcon, DeleteIcon } from "@/components/icons";
+import type { Addon } from "@/types/unit-wizard.types";
 
 interface AddonTableProps {
   addons: Addon[];
-  addonTypes: AddonType[];
   isLoading: boolean;
   isSubmitting: boolean;
-  onUpdate: (id: string, dto: UpdateAddonDto) => Promise<boolean>;
   onDelete: (id: string) => Promise<boolean>;
   onToggleActive: (id: string, currentStatus: boolean) => Promise<void>;
 }
 
-export function AddonTable({
-  addons,
-  addonTypes,
-  isLoading,
-  isSubmitting,
-  onUpdate,
-  onDelete,
-  onToggleActive,
-}: AddonTableProps) {
+function unitsLinkedCount(addon: Addon): number {
+  return (addon.items ?? []).reduce((sum, item) => sum + (item.unit_addons?.[0]?.count ?? 0), 0);
+}
+
+export function AddonTable({ addons, isLoading, isSubmitting, onDelete, onToggleActive }: AddonTableProps) {
   const {
     paginatedData: paginatedAddons,
     totalItems,
@@ -55,28 +49,6 @@ export function AddonTable({
     resetPage();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [addons]);
-
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingName, setEditingName] = useState("");
-  const [editingTypeId, setEditingTypeId] = useState("");
-
-  const startEditing = (id: string, name: string, typeId: string) => {
-    setEditingId(id);
-    setEditingName(name);
-    setEditingTypeId(typeId);
-  };
-
-  const cancelEditing = () => {
-    setEditingId(null);
-    setEditingName("");
-    setEditingTypeId("");
-  };
-
-  const handleUpdate = async (id: string) => {
-    if (!editingName.trim() || !editingTypeId) return;
-    const ok = await onUpdate(id, { name: editingName.trim(), addon_type_id: editingTypeId });
-    if (ok) cancelEditing();
-  };
 
   const handleDelete = (id: string, name: string) => {
     confirmDeleteToast(name, async () => {
@@ -108,12 +80,14 @@ export function AddonTable({
                     currentSortField={sortField}
                     sortOrder={sortOrder}
                     onSort={handleSort}
-                    className="w-1/3"
+                    className="w-1/4"
                   >
                     Name
                   </SortableTableHead>
-                  <TableHead className="w-1/3">Type</TableHead>
-                  <TableHead className="w-[110px]">Active</TableHead>
+                  <TableHead className="w-1/4">Type</TableHead>
+                  <TableHead className="w-[110px]">Internal count</TableHead>
+                  <TableHead className="w-[90px]">Units</TableHead>
+                  <TableHead className="w-[100px]">Active</TableHead>
                   <TableHead className="w-[140px] text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -121,81 +95,50 @@ export function AddonTable({
                 {paginatedAddons.map((addon) => (
                   <TableRow key={addon.id}>
                     <TableCell className="font-medium">
-                      {editingId === addon.id ? (
-                        <Input
-                          value={editingName}
-                          onChange={(e) => setEditingName(e.target.value)}
-                          placeholder="Addon name"
-                          className="h-8"
-                          autoFocus
-                          disabled={isSubmitting}
-                        />
-                      ) : (
-                        <span className="truncate">{addon.name}</span>
-                      )}
+                      <span className="truncate">{addon.name}</span>
                     </TableCell>
                     <TableCell>
-                      {editingId === addon.id ? (
-                        <Select value={editingTypeId} onValueChange={setEditingTypeId} disabled={isSubmitting}>
-                          <SelectTrigger className="h-8">
-                            <SelectValue placeholder="Select type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {addonTypes.map((type) => (
-                              <SelectItem key={type.id} value={type.id}>
-                                {type.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <span className="text-sm text-muted-foreground truncate">
-                          {addon.addon_types?.name || "No type"}
-                        </span>
-                      )}
+                      <span className="text-sm text-muted-foreground truncate">
+                        {addon.addon_types?.name || "No type"}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="cursor-default">
+                        {addon.item_count?.[0]?.count ?? 0}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="cursor-default">
+                        {unitsLinkedCount(addon)}
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       <Switch
                         checked={addon.is_active}
                         onCheckedChange={() => onToggleActive(addon.id, addon.is_active)}
-                        disabled={isSubmitting || editingId === addon.id}
+                        disabled={isSubmitting}
                         aria-label={`Set ${addon.name} ${addon.is_active ? "inactive" : "active"}`}
                       />
                     </TableCell>
                     <TableCell className="text-right">
-                      {editingId === addon.id ? (
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            size="sm"
-                            onClick={() => handleUpdate(addon.id)}
-                            disabled={isSubmitting || !editingName.trim() || !editingTypeId}
-                          >
-                            {isSubmitting ? <Spinner size="sm" /> : "Save"}
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={cancelEditing} disabled={isSubmitting}>
-                            Cancel
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => startEditing(addon.id, addon.name, addon.addon_type_id)}
-                            disabled={isSubmitting}
-                          >
-                            <EditIcon />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleDelete(addon.id, addon.name)}
-                            disabled={isSubmitting}
-                          >
-                            <TrashIcon />
-                          </Button>
-                        </div>
-                      )}
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => navigateToAddonDetail(addon.id)}
+                          disabled={isSubmitting}
+                        >
+                          <EditIcon />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDelete(addon.id, addon.name)}
+                          disabled={isSubmitting}
+                        >
+                          <DeleteIcon />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

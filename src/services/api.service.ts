@@ -196,6 +196,18 @@ export const residentialUserService = {
       ),
     );
   },
+
+  /**
+   * Looks up a user_id by email via the find_profile_id_by_email RPC —
+   * only finds people who've signed in at least once, and only when the
+   * caller is themselves an owner/admin of some residential (or platform
+   * admin); see the migration for the full explanation.
+   */
+  findUserIdByEmail(email: string): Promise<ApiResult<string | null>> {
+    return wrapResult("Failed to look up user", () =>
+      unwrap<string | null>(requireSupabase().rpc("find_profile_id_by_email", { _email: email })),
+    );
+  },
 };
 
 // ============================================================================

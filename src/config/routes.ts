@@ -25,7 +25,8 @@ export type RouteType =
   | "settingsLocationTypes"
   | "settingsAddonTypes"
   | "settingsLocations"
-  | "settingsAddons";
+  | "settingsAddons"
+  | "settingsUsers";
 
 /** Route ids that belong to the App Settings area, in the order they should be listed. */
 export const SETTINGS_ROUTES: RouteType[] = [
@@ -34,6 +35,7 @@ export const SETTINGS_ROUTES: RouteType[] = [
   "settingsAddonTypes",
   "settingsLocations",
   "settingsAddons",
+  "settingsUsers",
 ];
 
 export interface RouteConfig {
@@ -157,6 +159,12 @@ export const ROUTES: Record<RouteType, RouteConfig> = {
   settingsAddons: {
     id: "settingsAddons",
     hash: "#settings/addons",
+    requiresAuth: true,
+    requiresResidentialAccess: true,
+  },
+  settingsUsers: {
+    id: "settingsUsers",
+    hash: "#settings/users",
     requiresAuth: true,
     requiresResidentialAccess: true,
   },

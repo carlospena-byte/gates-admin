@@ -5,10 +5,12 @@ import { LocationTypeSettingsPanel } from "@/components/LocationTypeManager";
 import { AddonTypeSettingsPanel } from "@/components/AddonTypeManager";
 import { LocationSettingsPanel } from "@/components/LocationManager";
 import { AddonSettingsPanel } from "@/components/AddonManager";
+import { UserRoleSettingsPanel } from "@/components/settings/UserRoleManager";
 import { authService } from "@/services";
 import { useSession } from "@/state/useSession";
 import { cn } from "@/lib/utils";
 import { getCurrentRoute, ROUTES, type RouteType } from "@/config/routes";
+import type { ResidentialRole } from "@/types/database.types";
 
 const SECTIONS = [
   {
@@ -36,9 +38,22 @@ const SECTIONS = [
     label: "Addons",
     description: "Create and manage addons available for units.",
   },
+  {
+    route: "settingsUsers" as RouteType,
+    label: "Users",
+    description: "Manage who has admin, security, or member access to this residential.",
+  },
 ];
 
-function SettingsSectionPanel({ route, residentialId }: { route: RouteType; residentialId: string }) {
+function SettingsSectionPanel({
+  route,
+  residentialId,
+  role,
+}: {
+  route: RouteType;
+  residentialId: string;
+  role: ResidentialRole;
+}) {
   switch (route) {
     case "settingsUnitTypes":
       return <UnitTypeSettingsPanel residentialId={residentialId} />;
@@ -50,12 +65,14 @@ function SettingsSectionPanel({ route, residentialId }: { route: RouteType; resi
       return <LocationSettingsPanel residentialId={residentialId} />;
     case "settingsAddons":
       return <AddonSettingsPanel residentialId={residentialId} />;
+    case "settingsUsers":
+      return <UserRoleSettingsPanel residentialId={residentialId} currentRole={role} />;
     default:
       return null;
   }
 }
 
-export function SettingsPage({ residentialId }: { residentialId: string }) {
+export function SettingsPage({ residentialId, role }: { residentialId: string; role: ResidentialRole }) {
   const { session } = useSession();
   const currentRoute = getCurrentRoute();
   const active = SECTIONS.find((section) => section.route === currentRoute) ?? SECTIONS[0];
@@ -106,7 +123,7 @@ export function SettingsPage({ residentialId }: { residentialId: string }) {
                 <CardDescription>{active.description}</CardDescription>
               </CardHeader>
               <CardContent>
-                <SettingsSectionPanel route={active.route} residentialId={residentialId} />
+                <SettingsSectionPanel route={active.route} residentialId={residentialId} role={role} />
               </CardContent>
             </Card>
           </div>

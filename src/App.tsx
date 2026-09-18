@@ -259,7 +259,7 @@ export default function App() {
   if (isSettingsRoute(currentRoute)) {
     return (
       <AppFrame>
-        <SettingsPage residentialId={access.residentialId} />
+        <SettingsPage residentialId={access.residentialId} role={access.role} />
       </AppFrame>
     );
   }

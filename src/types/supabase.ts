@@ -1376,6 +1376,7 @@ export type Database = {
       }
     }
     Functions: {
+      find_profile_id_by_email: { Args: { _email: string }; Returns: string }
       is_platform_admin: { Args: never; Returns: boolean }
       is_residential_admin: {
         Args: { _residential_id: string }
@@ -1390,6 +1391,10 @@ export type Database = {
         Returns: boolean
       }
       is_residential_security: {
+        Args: { _residential_id: string }
+        Returns: boolean
+      }
+      is_residential_true_owner: {
         Args: { _residential_id: string }
         Returns: boolean
       }

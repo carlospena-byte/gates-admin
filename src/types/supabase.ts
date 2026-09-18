@@ -428,6 +428,135 @@ export type Database = {
           },
         ]
       }
+      incident_attachments: {
+        Row: {
+          created_at: string
+          id: string
+          incident_id: string
+          residential_id: string
+          storage_path: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          incident_id: string
+          residential_id: string
+          storage_path: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          incident_id?: string
+          residential_id?: string
+          storage_path?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_attachments_incident_id_fkey"
+            columns: ["incident_id"]
+            isOneToOne: false
+            referencedRelation: "incidents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_attachments_residential_id_fkey"
+            columns: ["residential_id"]
+            isOneToOne: false
+            referencedRelation: "residentials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incident_attachments_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      incidents: {
+        Row: {
+          assigned_to: string | null
+          category: string | null
+          created_at: string
+          description: string | null
+          id: string
+          location: string | null
+          priority: string
+          reported_by: string | null
+          residential_id: string
+          resolved_at: string | null
+          status: string
+          title: string
+          unit_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          location?: string | null
+          priority?: string
+          reported_by?: string | null
+          residential_id: string
+          resolved_at?: string | null
+          status?: string
+          title: string
+          unit_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          location?: string | null
+          priority?: string
+          reported_by?: string | null
+          residential_id?: string
+          resolved_at?: string | null
+          status?: string
+          title?: string
+          unit_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incidents_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "incidents_reported_by_fkey"
+            columns: ["reported_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "incidents_residential_id_fkey"
+            columns: ["residential_id"]
+            isOneToOne: false
+            referencedRelation: "residentials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incidents_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       location_types: {
         Row: {
           code: string

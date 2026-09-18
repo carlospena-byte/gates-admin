@@ -18,6 +18,8 @@ export { auditLogService } from "./auditLogService";
 export { vehicleService } from "./vehicleService";
 export { visitorService } from "./visitorService";
 export { accessLogService } from "./accessLogService";
+export { incidentService } from "./incidentService";
+export { incidentAttachmentService } from "./incidentAttachmentService";
 
 // Re-export commonly used types
 export type { TablesUpdate, TablesInsert } from "../types/database.types";

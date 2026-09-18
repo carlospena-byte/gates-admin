@@ -1,5 +1,6 @@
 import { useState, type ComponentType } from "react";
 import {
+  IconAlertTriangle,
   IconBuildings,
   IconLayoutDashboard,
   IconLogout,
@@ -264,6 +265,7 @@ export function AppSidebar({
     { label: "Dashboard", href: "#residential", icon: IconLayoutDashboard, active: currentRoute === "residential" },
     { label: "Units", href: "#units", icon: IconBuildings, active: currentRoute === "units" },
     { label: "Visitors", href: "#visitors", icon: IconUserCheck, active: currentRoute === "visitors" },
+    { label: "Incidents", href: "#incidents", icon: IconAlertTriangle, active: currentRoute === "incidents" },
     { label: "Settings", href: ROUTES.settingsUnitTypes.hash, icon: IconSettings, active: isSettingsRoute(currentRoute) },
   ];
 

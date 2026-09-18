@@ -9,6 +9,7 @@ import {
   IconSettings,
   IconUser,
   IconUserCheck,
+  IconUsers,
   type IconProps,
 } from "@tabler/icons-react";
 
@@ -265,6 +266,7 @@ export function AppSidebar({
   const navItems: NavItem[] = [
     { label: "Dashboard", href: "#residential", icon: IconLayoutDashboard, active: currentRoute === "residential" },
     { label: "Units", href: "#units", icon: IconBuildings, active: currentRoute === "units" },
+    { label: "Residents", href: "#residents", icon: IconUsers, active: currentRoute === "residents" },
     { label: "Visitors", href: "#visitors", icon: IconUserCheck, active: currentRoute === "visitors" },
     { label: "Incidents", href: "#incidents", icon: IconAlertTriangle, active: currentRoute === "incidents" },
     { label: "Reservations", href: "#reservations", icon: IconCalendarEvent, active: currentRoute === "reservations" },

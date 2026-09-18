@@ -108,6 +108,12 @@ export interface UnitResident {
   updated_at: string;
 }
 
+// Resident joined with its owning unit's name, for the residential-wide
+// Residents page — same join-on-select shape as VisitorWithInviter.
+export type ResidentWithUnit = UnitResident & {
+  units: { name: string } | null;
+};
+
 export type RentalType = "monthly" | "short_term";
 export type RentalStatus = "pending" | "active" | "completed" | "cancelled";
 export type RentalPaymentStatus = "pending" | "paid" | "overdue" | "cancelled" | "rejected";

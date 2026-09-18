@@ -9,6 +9,7 @@ import { ResidentialDashboardPage } from "@/pages/ResidentialDashboardPage";
 import { ResidentialSignupPage } from "@/pages/ResidentialSignupPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { UnitsPage } from "@/pages/UnitsPage";
+import { ResidentsPage } from "@/pages/ResidentsPage";
 import { VisitorsPage } from "@/pages/VisitorsPage";
 import { IncidentsPage } from "@/pages/IncidentsPage";
 import { ReservationsPage } from "@/pages/ReservationsPage";
@@ -183,6 +184,14 @@ export default function App() {
     return (
       <AppFrame>
         <UnitsPage residentialId={access.residentialId} role={access.role} />
+      </AppFrame>
+    );
+  }
+
+  if (currentRoute === "residents") {
+    return (
+      <AppFrame>
+        <ResidentsPage residentialId={access.residentialId} role={access.role} />
       </AppFrame>
     );
   }

@@ -110,7 +110,7 @@ export interface UnitResident {
 
 export type RentalType = "monthly" | "short_term";
 export type RentalStatus = "pending" | "active" | "completed" | "cancelled";
-export type RentalPaymentStatus = "pending" | "paid" | "overdue" | "cancelled";
+export type RentalPaymentStatus = "pending" | "paid" | "overdue" | "cancelled" | "rejected";
 
 // A rental period for a unit — either the ongoing 'monthly' tenancy (the
 // person responsible for the unit) or a 'short_term' Airbnb-style stay.
@@ -143,6 +143,9 @@ export interface UnitRentalPayment {
   paid_at: string | null;
   status: RentalPaymentStatus;
   notes: string | null;
+  proof_url: string | null;
+  validated_by: string | null;
+  validated_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -318,6 +321,9 @@ export interface UpdateUnitRentalPaymentDto {
   paid_at?: string | null;
   status?: RentalPaymentStatus;
   notes?: string | null;
+  proof_url?: string | null;
+  validated_by?: string | null;
+  validated_at?: string | null;
 }
 
 export interface CreateChargeDto {

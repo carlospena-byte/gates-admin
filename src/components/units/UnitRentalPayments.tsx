@@ -1,10 +1,14 @@
 /**
  * Payment installments for a single rental — a short_term rental typically
- * has one row, a monthly rental gets one per period.
+ * has one row, a monthly rental gets one per period. Pending payments can
+ * either be marked paid directly (cash/manual entry) or go through a
+ * proof-of-payment flow: upload a receipt, then approve (-> paid) or
+ * reject it.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { IconPaperclip } from "@tabler/icons-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +24,105 @@ const STATUS_VARIANT: Record<RentalPaymentStatus, "secondary" | "default" | "des
   paid: "default",
   overdue: "destructive",
   cancelled: "secondary",
+  rejected: "destructive",
 };
+
+function PaymentProofActions({
+  payment,
+  residentialId,
+  isSubmitting,
+  onBusyChange,
+  onReload,
+}: {
+  payment: UnitRentalPayment;
+  residentialId: string;
+  isSubmitting: boolean;
+  onBusyChange: (busy: boolean) => void;
+  onReload: () => Promise<void>;
+}) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    onBusyChange(true);
+    const result = await unitRentalPaymentService.uploadProof(payment.id, residentialId, file);
+    onBusyChange(false);
+
+    if (!result.success) {
+      toast.error(result.error.message);
+      return;
+    }
+
+    toast.success("Proof uploaded");
+    await onReload();
+  };
+
+  const handleViewProof = async () => {
+    if (!payment.proof_url) return;
+    const result = await unitRentalPaymentService.getSignedProofUrl(payment.proof_url);
+    if (!result.success) {
+      toast.error(result.error.message);
+      return;
+    }
+    window.open(result.data, "_blank", "noopener,noreferrer");
+  };
+
+  const handleApprove = async () => {
+    onBusyChange(true);
+    const result = await unitRentalPaymentService.approve(payment.id);
+    onBusyChange(false);
+    if (!result.success) {
+      toast.error(result.error.message);
+      return;
+    }
+    toast.success("Payment approved");
+    await onReload();
+  };
+
+  const handleReject = async () => {
+    onBusyChange(true);
+    const result = await unitRentalPaymentService.reject(payment.id);
+    onBusyChange(false);
+    if (!result.success) {
+      toast.error(result.error.message);
+      return;
+    }
+    toast.success("Payment rejected");
+    await onReload();
+  };
+
+  if (!payment.proof_url) {
+    return (
+      <>
+        <input ref={fileInputRef} type="file" accept="image/*,.pdf" className="hidden" onChange={handleFileSelected} />
+        <Button size="sm" variant="outline" disabled={isSubmitting} onClick={() => fileInputRef.current?.click()}>
+          <IconPaperclip className="h-4 w-4" /> <span className="ml-1">Attach proof</span>
+        </Button>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <Button size="sm" variant="outline" disabled={isSubmitting} onClick={handleViewProof}>
+        View proof
+      </Button>
+      {payment.status === "pending" && (
+        <>
+          <Button size="sm" variant="default" disabled={isSubmitting} onClick={handleApprove}>
+            Approve
+          </Button>
+          <Button size="sm" variant="destructive" disabled={isSubmitting} onClick={handleReject}>
+            Reject
+          </Button>
+        </>
+      )}
+    </>
+  );
+}
 
 export function UnitRentalPayments({
   rentalId,
@@ -115,29 +217,43 @@ export function UnitRentalPayments({
       ) : (
         <div className="space-y-1.5">
           {payments.map((payment) => (
-            <div key={payment.id} className="flex items-center justify-between gap-2 rounded-md border p-2">
-              <div className="min-w-0 text-sm">
-                <span className="font-medium">{formatCurrency(payment.amount)}</span>{" "}
-                <span className="text-muted-foreground">due {payment.due_date}</span>
-                {payment.paid_at && (
-                  <span className="text-muted-foreground"> · paid {payment.paid_at.slice(0, 10)}</span>
-                )}
-              </div>
-              <div className="flex shrink-0 items-center gap-2">
-                <Badge variant={STATUS_VARIANT[payment.status]}>{payment.status}</Badge>
-                {canManage && (
-                  <>
-                    {payment.status === "pending" && (
-                      <Button size="sm" variant="outline" onClick={() => handleMarkPaid(payment.id)}>
-                        Mark Paid
+            <div key={payment.id} className="space-y-2 rounded-md border p-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0 text-sm">
+                  <span className="font-medium">{formatCurrency(payment.amount)}</span>{" "}
+                  <span className="text-muted-foreground">due {payment.due_date}</span>
+                  {payment.paid_at && (
+                    <span className="text-muted-foreground"> · paid {payment.paid_at.slice(0, 10)}</span>
+                  )}
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <Badge variant={STATUS_VARIANT[payment.status]}>{payment.status}</Badge>
+                  {canManage && (
+                    <>
+                      {payment.status === "pending" && !payment.proof_url && (
+                        <Button size="sm" variant="outline" onClick={() => handleMarkPaid(payment.id)}>
+                          Mark Paid
+                        </Button>
+                      )}
+                      <Button size="sm" variant="ghost" onClick={() => handleDelete(payment.id)}>
+                        <DeleteIcon />
                       </Button>
-                    )}
-                    <Button size="sm" variant="ghost" onClick={() => handleDelete(payment.id)}>
-                      <DeleteIcon />
-                    </Button>
-                  </>
-                )}
+                    </>
+                  )}
+                </div>
               </div>
+
+              {canManage && (payment.status === "pending" || payment.status === "rejected") && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <PaymentProofActions
+                    payment={payment}
+                    residentialId={residentialId}
+                    isSubmitting={isSubmitting}
+                    onBusyChange={setIsSubmitting}
+                    onReload={load}
+                  />
+                </div>
+              )}
             </div>
           ))}
         </div>

@@ -811,10 +811,13 @@ export type Database = {
           id: string
           notes: string | null
           paid_at: string | null
+          proof_url: string | null
           rental_id: string
           residential_id: string
           status: string
           updated_at: string
+          validated_at: string | null
+          validated_by: string | null
         }
         Insert: {
           amount: number
@@ -823,10 +826,13 @@ export type Database = {
           id?: string
           notes?: string | null
           paid_at?: string | null
+          proof_url?: string | null
           rental_id: string
           residential_id: string
           status?: string
           updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
         }
         Update: {
           amount?: number
@@ -835,10 +841,13 @@ export type Database = {
           id?: string
           notes?: string | null
           paid_at?: string | null
+          proof_url?: string | null
           rental_id?: string
           residential_id?: string
           status?: string
           updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
         }
         Relationships: [
           {
@@ -854,6 +863,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "residentials"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unit_rental_payments_validated_by_fkey"
+            columns: ["validated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
           },
         ]
       }

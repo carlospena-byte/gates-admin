@@ -20,6 +20,7 @@ export { visitorService } from "./visitorService";
 export { accessLogService } from "./accessLogService";
 export { incidentService } from "./incidentService";
 export { incidentAttachmentService } from "./incidentAttachmentService";
+export { amenityBookingService } from "./amenityBookingService";
 
 // Re-export commonly used types
 export type { TablesUpdate, TablesInsert } from "../types/database.types";

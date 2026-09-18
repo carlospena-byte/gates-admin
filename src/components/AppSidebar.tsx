@@ -2,6 +2,7 @@ import { useState, type ComponentType } from "react";
 import {
   IconAlertTriangle,
   IconBuildings,
+  IconCalendarEvent,
   IconLayoutDashboard,
   IconLogout,
   IconMenu2,
@@ -266,6 +267,7 @@ export function AppSidebar({
     { label: "Units", href: "#units", icon: IconBuildings, active: currentRoute === "units" },
     { label: "Visitors", href: "#visitors", icon: IconUserCheck, active: currentRoute === "visitors" },
     { label: "Incidents", href: "#incidents", icon: IconAlertTriangle, active: currentRoute === "incidents" },
+    { label: "Reservations", href: "#reservations", icon: IconCalendarEvent, active: currentRoute === "reservations" },
     { label: "Settings", href: ROUTES.settingsUnitTypes.hash, icon: IconSettings, active: isSettingsRoute(currentRoute) },
   ];
 

@@ -32,6 +32,8 @@ export interface UpdateAmenity {
   requires_booking?: boolean;
 }
 
+export type AmenityBookingStatus = 'pending' | 'confirmed' | 'cancelled';
+
 export interface AmenityBooking {
   id: string;
   amenity_id: string;
@@ -39,7 +41,30 @@ export interface AmenityBooking {
   user_id: string;
   start_time: string;
   end_time: string;
-  status: 'pending' | 'confirmed' | 'cancelled';
+  status: AmenityBookingStatus;
   notes: string | null;
   created_at: string;
 }
+
+export interface CreateAmenityBookingDto {
+  amenity_id: string;
+  residential_id: string;
+  user_id: string;
+  start_time: string;
+  end_time: string;
+  status?: AmenityBookingStatus;
+  notes?: string | null;
+}
+
+export interface UpdateAmenityBookingDto {
+  start_time?: string;
+  end_time?: string;
+  status?: AmenityBookingStatus;
+  notes?: string | null;
+}
+
+// Booking joined with the booking user's email, same join-on-select shape
+// as VisitorWithInviter.
+export type AmenityBookingWithUser = AmenityBooking & {
+  profiles: { email: string | null } | null;
+};

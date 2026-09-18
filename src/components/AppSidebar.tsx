@@ -26,6 +26,8 @@ import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
+  SidebarGroup,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -59,6 +61,12 @@ interface NavItem {
   active: boolean;
 }
 
+/** `label: null` renders as an ungrouped section (just Dashboard, at the top). */
+interface NavGroup {
+  label: string | null;
+  items: NavItem[];
+}
+
 const BrandMark = () => (
   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-600/20">
     <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -74,7 +82,7 @@ const BrandMark = () => (
 
 interface SidebarBodyProps {
   showUserMenu: boolean;
-  navItems: NavItem[];
+  navGroups: NavGroup[];
   locale: Locale;
   onLocaleChange: (locale: Locale) => void;
   labelEn: string;
@@ -91,7 +99,7 @@ interface SidebarBodyProps {
 
 function SidebarBody({
   showUserMenu,
-  navItems,
+  navGroups,
   locale,
   onLocaleChange,
   labelEn,
@@ -118,19 +126,24 @@ function SidebarBody({
       </SidebarHeader>
 
       {showUserMenu && (
-        <SidebarContent>
-          <SidebarMenu>
-            {navItems.map((item) => (
-              <SidebarMenuItem key={item.href}>
-                <SidebarMenuButton asChild isActive={item.active} onClick={onNavigate}>
-                  <a href={item.href}>
-                    <item.icon className="h-4 w-4" />
-                    {item.label}
-                  </a>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
+        <SidebarContent className="space-y-4">
+          {navGroups.map((group, index) => (
+            <SidebarGroup key={group.label ?? `ungrouped-${index}`} className="px-0">
+              {group.label && <SidebarGroupLabel>{group.label}</SidebarGroupLabel>}
+              <SidebarMenu>
+                {group.items.map((item) => (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton asChild isActive={item.active} onClick={onNavigate}>
+                      <a href={item.href}>
+                        <item.icon className="h-4 w-4" />
+                        {item.label}
+                      </a>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroup>
+          ))}
         </SidebarContent>
       )}
 
@@ -263,19 +276,39 @@ export function AppSidebar({
     return "User";
   };
 
-  const navItems: NavItem[] = [
-    { label: "Dashboard", href: "#residential", icon: IconLayoutDashboard, active: currentRoute === "residential" },
-    { label: "Units", href: "#units", icon: IconBuildings, active: currentRoute === "units" },
-    { label: "Residents", href: "#residents", icon: IconUsers, active: currentRoute === "residents" },
-    { label: "Visitors", href: "#visitors", icon: IconUserCheck, active: currentRoute === "visitors" },
-    { label: "Incidents", href: "#incidents", icon: IconAlertTriangle, active: currentRoute === "incidents" },
-    { label: "Reservations", href: "#reservations", icon: IconCalendarEvent, active: currentRoute === "reservations" },
-    { label: "Settings", href: ROUTES.settingsUnitTypes.hash, icon: IconSettings, active: isSettingsRoute(currentRoute) },
+  const navGroups: NavGroup[] = [
+    {
+      label: null,
+      items: [
+        { label: "Dashboard", href: "#residential", icon: IconLayoutDashboard, active: currentRoute === "residential" },
+      ],
+    },
+    {
+      label: "Gestión",
+      items: [
+        { label: "Units", href: "#units", icon: IconBuildings, active: currentRoute === "units" },
+        { label: "Residents", href: "#residents", icon: IconUsers, active: currentRoute === "residents" },
+        { label: "Visitors", href: "#visitors", icon: IconUserCheck, active: currentRoute === "visitors" },
+        { label: "Reservations", href: "#reservations", icon: IconCalendarEvent, active: currentRoute === "reservations" },
+      ],
+    },
+    {
+      label: "Operación",
+      items: [
+        { label: "Incidents", href: "#incidents", icon: IconAlertTriangle, active: currentRoute === "incidents" },
+      ],
+    },
+    {
+      label: "System",
+      items: [
+        { label: "Settings", href: ROUTES.settingsUnitTypes.hash, icon: IconSettings, active: isSettingsRoute(currentRoute) },
+      ],
+    },
   ];
 
   const sharedProps = {
     showUserMenu,
-    navItems,
+    navGroups,
     locale,
     onLocaleChange: setLocale,
     labelEn: t("language.en"),

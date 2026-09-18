@@ -17,11 +17,13 @@ import { LocationManager } from "@/components/LocationManager";
 import { AddonManager } from "@/components/AddonManager";
 import { ChargeManager } from "@/components/ChargeManager";
 import { ActivityLogManager } from "@/components/ActivityLogManager";
-import { amenitiesService, authService, residentialUserService } from "@/services";
+import { amenitiesService, authService, dashboardMetricsService, residentialUserService } from "@/services";
 import { useQuery } from "@/hooks";
 import { useUnitManagerData } from "@/hooks/useUnitManagerData";
 import { useSession } from "@/state/useSession";
 import { canManageResidential } from "@/state/useAccess";
+import { OperationalMetricsRow } from "@/components/dashboard/OperationalMetricsRow";
+import { RecentActivityCard } from "@/components/dashboard/RecentActivityCard";
 import type { ResidentialRole } from "@/types/database.types";
 
 export function ResidentialDashboardPage({
@@ -53,6 +55,11 @@ export function ResidentialDashboardPage({
 
   const { data: amenities, isLoading: amenitiesLoading, error: amenitiesError, refetch: refetchAmenities } = useQuery(
     () => amenitiesService.listByResidential(residentialId),
+    { enabled: isQueryEnabled },
+  );
+
+  const { data: metrics, refetch: refetchMetrics } = useQuery(
+    () => dashboardMetricsService.getOperationalMetrics(residentialId),
     { enabled: isQueryEnabled },
   );
 
@@ -102,7 +109,7 @@ export function ResidentialDashboardPage({
   };
 
   const handleRefresh = async () => {
-    await Promise.all([reloadUnits(), refetchUsers(), refetchAmenities()]);
+    await Promise.all([reloadUnits(), refetchUsers(), refetchAmenities(), refetchMetrics()]);
   };
 
   return (
@@ -141,6 +148,10 @@ export function ResidentialDashboardPage({
               </Button>
             </div>
           </div>
+
+          <OperationalMetricsRow metrics={metrics ?? null} />
+
+          <RecentActivityCard residentialId={residentialId} />
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">

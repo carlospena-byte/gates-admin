@@ -21,6 +21,8 @@ export { accessLogService } from "./accessLogService";
 export { incidentService } from "./incidentService";
 export { incidentAttachmentService } from "./incidentAttachmentService";
 export { amenityBookingService } from "./amenityBookingService";
+export { dashboardMetricsService } from "./dashboardMetricsService";
+export type { OperationalMetrics } from "./dashboardMetricsService";
 
 // Re-export commonly used types
 export type { TablesUpdate, TablesInsert } from "../types/database.types";

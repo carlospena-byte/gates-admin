@@ -21,6 +21,6 @@ export interface AuditLog {
 
 export interface AuditLogWithActor extends AuditLog {
   profiles?: {
-    email: string;
+    email: string | null;
   } | null;
 }

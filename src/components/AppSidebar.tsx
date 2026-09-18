@@ -6,6 +6,7 @@ import {
   IconMenu2,
   IconSettings,
   IconUser,
+  IconUserCheck,
   type IconProps,
 } from "@tabler/icons-react";
 
@@ -262,6 +263,7 @@ export function AppSidebar({
   const navItems: NavItem[] = [
     { label: "Dashboard", href: "#residential", icon: IconLayoutDashboard, active: currentRoute === "residential" },
     { label: "Units", href: "#units", icon: IconBuildings, active: currentRoute === "units" },
+    { label: "Visitors", href: "#visitors", icon: IconUserCheck, active: currentRoute === "visitors" },
     { label: "Settings", href: ROUTES.settingsUnitTypes.hash, icon: IconSettings, active: isSettingsRoute(currentRoute) },
   ];
 

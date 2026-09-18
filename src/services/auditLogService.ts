@@ -9,14 +9,17 @@ import { unwrap, wrapResult, type ApiResult } from "./apiResult";
 export const auditLogService = {
   listByResidential(residentialId: string, limit = 200): Promise<ApiResult<AuditLogWithActor[]>> {
     return wrapResult("Failed to list audit logs", async () => {
-      const rows = await unwrap<AuditLogWithActor[]>(
-        requireSupabase()
-          .from("audit_logs")
-          .select("*, profiles:actor_user_id(email)")
-          .eq("residential_id", residentialId)
-          .order("created_at", { ascending: false })
-          .limit(limit),
-      );
+      // audit_logs.action is CHECK-constrained to INSERT/UPDATE/DELETE in
+      // SQL, but the generator only sees `text` — cast the generic query
+      // builder response to the narrower AuditAction union we actually get.
+      const query = requireSupabase()
+        .from("audit_logs")
+        .select("*, profiles:actor_user_id(email)")
+        .eq("residential_id", residentialId)
+        .order("created_at", { ascending: false })
+        .limit(limit) as unknown as PromiseLike<{ data: AuditLogWithActor[] | null; error: unknown }>;
+
+      const rows = await unwrap<AuditLogWithActor[]>(query);
       return rows ?? [];
     });
   },

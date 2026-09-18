@@ -34,6 +34,71 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_logs: {
+        Row: {
+          checked_in_at: string | null
+          checked_in_by: string | null
+          checked_out_at: string | null
+          checked_out_by: string | null
+          created_at: string
+          gate_name: string | null
+          id: string
+          residential_id: string
+          visitor_id: string
+        }
+        Insert: {
+          checked_in_at?: string | null
+          checked_in_by?: string | null
+          checked_out_at?: string | null
+          checked_out_by?: string | null
+          created_at?: string
+          gate_name?: string | null
+          id?: string
+          residential_id: string
+          visitor_id: string
+        }
+        Update: {
+          checked_in_at?: string | null
+          checked_in_by?: string | null
+          checked_out_at?: string | null
+          checked_out_by?: string | null
+          created_at?: string
+          gate_name?: string | null
+          id?: string
+          residential_id?: string
+          visitor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "access_logs_checked_in_by_fkey"
+            columns: ["checked_in_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "access_logs_checked_out_by_fkey"
+            columns: ["checked_out_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "access_logs_residential_id_fkey"
+            columns: ["residential_id"]
+            isOneToOne: false
+            referencedRelation: "residentials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "access_logs_visitor_id_fkey"
+            columns: ["visitor_id"]
+            isOneToOne: false
+            referencedRelation: "visitors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       addon_items: {
         Row: {
           addon_id: string
@@ -1008,6 +1073,143 @@ export type Database = {
             columns: ["unit_type_id"]
             isOneToOne: false
             referencedRelation: "unit_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vehicles: {
+        Row: {
+          brand: string | null
+          color: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          model: string | null
+          plate: string
+          resident_id: string | null
+          residential_id: string
+          unit_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          brand?: string | null
+          color?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          model?: string | null
+          plate: string
+          resident_id?: string | null
+          residential_id: string
+          unit_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          brand?: string | null
+          color?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          model?: string | null
+          plate?: string
+          resident_id?: string | null
+          residential_id?: string
+          unit_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicles_resident_id_fkey"
+            columns: ["resident_id"]
+            isOneToOne: false
+            referencedRelation: "unit_residents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicles_residential_id_fkey"
+            columns: ["residential_id"]
+            isOneToOne: false
+            referencedRelation: "residentials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicles_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      visitors: {
+        Row: {
+          access_code: string | null
+          created_at: string
+          id: string
+          invited_by: string | null
+          name: string
+          notes: string | null
+          phone: string | null
+          plate: string | null
+          residential_id: string
+          status: string
+          unit_id: string | null
+          updated_at: string
+          valid_from: string
+          valid_until: string
+        }
+        Insert: {
+          access_code?: string | null
+          created_at?: string
+          id?: string
+          invited_by?: string | null
+          name: string
+          notes?: string | null
+          phone?: string | null
+          plate?: string | null
+          residential_id: string
+          status?: string
+          unit_id?: string | null
+          updated_at?: string
+          valid_from?: string
+          valid_until: string
+        }
+        Update: {
+          access_code?: string | null
+          created_at?: string
+          id?: string
+          invited_by?: string | null
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          plate?: string | null
+          residential_id?: string
+          status?: string
+          unit_id?: string | null
+          updated_at?: string
+          valid_from?: string
+          valid_until?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visitors_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "visitors_residential_id_fkey"
+            columns: ["residential_id"]
+            isOneToOne: false
+            referencedRelation: "residentials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visitors_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
             referencedColumns: ["id"]
           },
         ]

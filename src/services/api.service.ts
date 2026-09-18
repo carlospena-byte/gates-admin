@@ -213,8 +213,10 @@ function toUnitWithOwner(
     unit_type_id: unit.unit_type_id,
     location_id: unit.location_id,
     owner_user_id: unit.owner_user_id,
+    price: unit.price,
     is_active: unit.is_active,
     created_at: unit.created_at,
+    updated_at: unit.updated_at,
     profiles: email ? { email } : null,
     unit_type: unit.unit_types ? { id: unit.unit_types.id, name: unit.unit_types.name } : null,
     location: unit.locations

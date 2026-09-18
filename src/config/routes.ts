@@ -17,6 +17,7 @@ export type RouteType =
   | "unitDetail"
   | "addonDetail"
   | "chargeDetail"
+  | "visitors"
   | "settingsUnitTypes"
   | "settingsLocationTypes"
   | "settingsAddonTypes"
@@ -75,6 +76,12 @@ export const ROUTES: Record<RouteType, RouteConfig> = {
   units: {
     id: "units",
     hash: "#units",
+    requiresAuth: true,
+    requiresResidentialAccess: true,
+  },
+  visitors: {
+    id: "visitors",
+    hash: "#visitors",
     requiresAuth: true,
     requiresResidentialAccess: true,
   },

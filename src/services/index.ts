@@ -15,6 +15,9 @@ export { unitRentalPaymentService } from "./unitRentalPaymentService";
 export { chargeService } from "./chargeService";
 export { unitChargeService } from "./unitChargeService";
 export { auditLogService } from "./auditLogService";
+export { vehicleService } from "./vehicleService";
+export { visitorService } from "./visitorService";
+export { accessLogService } from "./accessLogService";
 
 // Re-export commonly used types
 export type { TablesUpdate, TablesInsert } from "../types/database.types";

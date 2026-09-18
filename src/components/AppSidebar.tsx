@@ -7,6 +7,7 @@ import {
   IconLogout,
   IconMenu2,
   IconSettings,
+  IconSpeakerphone,
   IconUser,
   IconUserCheck,
   IconUsers,
@@ -296,6 +297,7 @@ export function AppSidebar({
       label: "Operación",
       items: [
         { label: "Incidents", href: "#incidents", icon: IconAlertTriangle, active: currentRoute === "incidents" },
+        { label: "Announcements", href: "#announcements", icon: IconSpeakerphone, active: currentRoute === "announcements" },
       ],
     },
     {

@@ -20,6 +20,7 @@ export type RouteType =
   | "residents"
   | "visitors"
   | "incidents"
+  | "announcements"
   | "reservations"
   | "settingsUnitTypes"
   | "settingsLocationTypes"
@@ -99,6 +100,12 @@ export const ROUTES: Record<RouteType, RouteConfig> = {
   incidents: {
     id: "incidents",
     hash: "#incidents",
+    requiresAuth: true,
+    requiresResidentialAccess: true,
+  },
+  announcements: {
+    id: "announcements",
+    hash: "#announcements",
     requiresAuth: true,
     requiresResidentialAccess: true,
   },

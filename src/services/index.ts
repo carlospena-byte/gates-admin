@@ -22,6 +22,7 @@ export { incidentService } from "./incidentService";
 export { incidentAttachmentService } from "./incidentAttachmentService";
 export { amenityBookingService } from "./amenityBookingService";
 export { dashboardMetricsService } from "./dashboardMetricsService";
+export { announcementService } from "./announcementService";
 export type { OperationalMetrics } from "./dashboardMetricsService";
 
 // Re-export commonly used types

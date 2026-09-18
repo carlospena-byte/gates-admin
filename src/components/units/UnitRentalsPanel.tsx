@@ -1,35 +1,29 @@
 /**
  * Rental periods for a unit — the ongoing 'monthly' tenancy (the person
  * responsible for the unit) and/or any number of 'short_term' Airbnb-style
- * stays. Tenant/guest is contact info only, like UnitResidentsPanel.
+ * stays. New rentals are added via a side sheet (AddRentalSheet); clicking
+ * a rental opens its detail (status, payments, delete) in RentalDetailSheet.
+ * Completed/cancelled rentals move out of the main list into
+ * RentalHistorySheet, reached via "View rental history".
  */
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { IconCalendarEvent, IconChevronRight, IconHistory } from "@tabler/icons-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Spinner } from "@/components/LoadingStates";
-import { DeleteIcon, PlusIcon } from "@/components/icons";
+import { PlusIcon } from "@/components/icons";
+import { AddRentalSheet, type NewRentalFields } from "@/components/units/AddRentalSheet";
+import { RentalDetailSheet } from "@/components/units/RentalDetailSheet";
+import { RentalHistorySheet } from "@/components/units/RentalHistorySheet";
+import { SectionEmptyState } from "@/components/units/SectionEmptyState";
 import { confirmDeleteToast } from "@/lib/confirmDeleteToast";
+import { ACTIVE_RENTAL_STATUSES, RENTAL_STATUS_VARIANT, RENTAL_TYPE_LABEL, getInitials } from "@/lib/rentalDisplay";
 import { formatCurrency } from "@/lib/utils";
 import { unitRentalService } from "@/services";
-import { UnitRentalPayments } from "@/components/units/UnitRentalPayments";
-import type { RentalStatus, RentalType, UnitRental } from "@/types/unit-wizard.types";
-
-const STATUS_VARIANT: Record<RentalStatus, "secondary" | "default" | "destructive" | "outline"> = {
-  pending: "outline",
-  active: "default",
-  completed: "secondary",
-  cancelled: "destructive",
-};
-
-const RENTAL_TYPE_LABEL: Record<RentalType, string> = {
-  monthly: "Monthly",
-  short_term: "Short-term",
-};
+import type { RentalStatus, UnitRental } from "@/types/unit-wizard.types";
 
 export function UnitRentalsPanel({
   unitId,
@@ -43,15 +37,9 @@ export function UnitRentalsPanel({
   const [rentals, setRentals] = useState<UnitRental[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-
-  const [rentalType, setRentalType] = useState<RentalType>("monthly");
-  const [tenantName, setTenantName] = useState("");
-  const [tenantEmail, setTenantEmail] = useState("");
-  const [tenantPhone, setTenantPhone] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [price, setPrice] = useState("");
+  const [addOpen, setAddOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [selectedRental, setSelectedRental] = useState<UnitRental | null>(null);
 
   const load = async () => {
     setIsLoading(true);
@@ -69,45 +57,30 @@ export function UnitRentalsPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unitId]);
 
-  const resetForm = () => {
-    setRentalType("monthly");
-    setTenantName("");
-    setTenantEmail("");
-    setTenantPhone("");
-    setStartDate("");
-    setEndDate("");
-    setPrice("");
-  };
-
-  const handleAdd = async () => {
-    if (!tenantName.trim() || !startDate) {
-      toast.error("Tenant name and start date are required");
-      return;
-    }
-
+  const handleAdd = async (fields: NewRentalFields): Promise<boolean> => {
     setIsSubmitting(true);
     const result = await unitRentalService.create({
       residential_id: residentialId,
       unit_id: unitId,
-      rental_type: rentalType,
-      tenant_name: tenantName.trim(),
-      tenant_email: tenantEmail.trim() || null,
-      tenant_phone: tenantPhone.trim() || null,
-      start_date: startDate,
-      end_date: endDate || null,
-      price: price.trim() ? Number(price) : null,
+      rental_type: fields.rentalType,
+      tenant_name: fields.tenantName.trim(),
+      tenant_email: fields.tenantEmail.trim() || null,
+      tenant_phone: fields.tenantPhone.trim() || null,
+      start_date: fields.startDate,
+      end_date: fields.endDate || null,
+      price: fields.price.trim() ? Number(fields.price) : null,
       status: "active",
     });
     setIsSubmitting(false);
 
     if (!result.success) {
       toast.error(result.error.message);
-      return;
+      return false;
     }
 
     toast.success("Rental added");
-    resetForm();
     await load();
+    return true;
   };
 
   const handleStatusChange = async (id: string, status: RentalStatus) => {
@@ -117,6 +90,7 @@ export function UnitRentalsPanel({
       return;
     }
     await load();
+    setSelectedRental((prev) => (prev && prev.id === id ? { ...prev, status } : prev));
   };
 
   const handleDelete = (id: string, tenantName: string) => {
@@ -130,159 +104,100 @@ export function UnitRentalsPanel({
     });
   };
 
+  const currentRentals = rentals.filter((r) => ACTIVE_RENTAL_STATUSES.includes(r.status));
+  const historyRentals = rentals.filter((r) => !ACTIVE_RENTAL_STATUSES.includes(r.status));
+
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Rentals</CardTitle>
-        <CardDescription>
-          Who's responsible for this unit (monthly tenant or owner) and any short-term stays.
-        </CardDescription>
+      <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0">
+        <div>
+          <p className="text-sm font-medium">Rentals</p>
+          <p className="text-xs text-muted-foreground">Manage current and upcoming rentals.</p>
+        </div>
+        {canManage && (
+          <Button variant="outline" size="sm" onClick={() => setAddOpen(true)}>
+            <PlusIcon /> <span className="ml-2">Add rental</span>
+          </Button>
+        )}
       </CardHeader>
       <CardContent className="space-y-4">
-        {canManage && (
-          <div className="space-y-2 border-b pb-4">
-            <div className="grid gap-2 sm:grid-cols-2">
-              <Select value={rentalType} onValueChange={(v) => setRentalType(v as RentalType)} disabled={isSubmitting}>
-                <SelectTrigger label="Rental Type">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="monthly">Monthly (responsible tenant)</SelectItem>
-                  <SelectItem value="short_term">Short-term (Airbnb-style)</SelectItem>
-                </SelectContent>
-              </Select>
-              <Input
-                label="Price (optional)"
-                type="number"
-                min="0"
-                step="0.01"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                disabled={isSubmitting}
-              />
-            </div>
-            <Input
-              label="Tenant / Guest Name"
-              value={tenantName}
-              onChange={(e) => setTenantName(e.target.value)}
-              disabled={isSubmitting}
-            />
-            <div className="grid gap-2 sm:grid-cols-2">
-              <Input
-                label="Email (optional)"
-                type="email"
-                value={tenantEmail}
-                onChange={(e) => setTenantEmail(e.target.value)}
-                disabled={isSubmitting}
-              />
-              <Input
-                label="Phone (optional)"
-                value={tenantPhone}
-                onChange={(e) => setTenantPhone(e.target.value)}
-                disabled={isSubmitting}
-              />
-            </div>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <Input
-                label="Start Date"
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                disabled={isSubmitting}
-              />
-              <Input
-                label="End Date (optional)"
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                disabled={isSubmitting}
-              />
-            </div>
-            <Button
-              onClick={handleAdd}
-              disabled={isSubmitting || !tenantName.trim() || !startDate}
-              className="w-full"
-            >
-              {isSubmitting ? (
-                <Spinner size="sm" />
-              ) : (
-                <>
-                  <PlusIcon /> <span className="ml-2">Add Rental</span>
-                </>
-              )}
-            </Button>
-          </div>
-        )}
-
         {isLoading ? (
           <div className="flex justify-center py-4">
             <Spinner />
           </div>
-        ) : rentals.length === 0 ? (
-          <p className="text-center py-4 text-sm text-muted-foreground">No rentals yet.</p>
+        ) : currentRentals.length === 0 ? (
+          <SectionEmptyState
+            icon={IconCalendarEvent}
+            title="No active rentals."
+            description="Add a rental to get started."
+          />
         ) : (
-          <div className="space-y-3">
-            {rentals.map((rental) => (
-              <div key={rental.id} className="rounded-md border p-3 space-y-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-sm font-medium truncate">{rental.tenant_name}</p>
-                      <Badge variant="outline">{RENTAL_TYPE_LABEL[rental.rental_type]}</Badge>
-                      <Badge variant={STATUS_VARIANT[rental.status]}>{rental.status}</Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {rental.start_date} → {rental.end_date || "ongoing"}
-                      {rental.price !== null && <span> · {formatCurrency(rental.price)}</span>}
-                    </p>
-                    {rental.tenant_email && (
-                      <p className="text-xs text-muted-foreground truncate">{rental.tenant_email}</p>
-                    )}
-                  </div>
-                  <div className="flex shrink-0 items-center gap-1">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setExpandedId((prev) => (prev === rental.id ? null : rental.id))}
-                    >
-                      {expandedId === rental.id ? "Hide payments" : "Payments"}
-                    </Button>
-                    {canManage && (
-                      <>
-                        <Select
-                          value={rental.status}
-                          onValueChange={(v) => handleStatusChange(rental.id, v as RentalStatus)}
-                        >
-                          <SelectTrigger className="h-8 w-[110px]">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="pending">Pending</SelectItem>
-                            <SelectItem value="active">Active</SelectItem>
-                            <SelectItem value="completed">Completed</SelectItem>
-                            <SelectItem value="cancelled">Cancelled</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleDelete(rental.id, rental.tenant_name)}
-                        >
-                          <DeleteIcon />
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {expandedId === rental.id && (
-                  <UnitRentalPayments rentalId={rental.id} residentialId={residentialId} canManage={canManage} />
-                )}
-              </div>
+          <div className="space-y-2">
+            {currentRentals.map((rental) => (
+              <button
+                key={rental.id}
+                type="button"
+                onClick={() => setSelectedRental(rental)}
+                className="flex w-full items-center gap-3 rounded-md border p-3 text-left hover:bg-accent"
+              >
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
+                  {getInitials(rental.tenant_name)}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex flex-wrap items-center gap-2">
+                    <span className="truncate text-sm font-medium">{rental.tenant_name}</span>
+                    <Badge variant={RENTAL_STATUS_VARIANT[rental.status]}>{rental.status}</Badge>
+                  </span>
+                  <span className="block truncate text-xs text-muted-foreground">
+                    {RENTAL_TYPE_LABEL[rental.rental_type]}
+                  </span>
+                </span>
+                <span className="shrink-0 text-right text-xs text-muted-foreground">
+                  <span className="block">
+                    {rental.start_date} → {rental.end_date || "ongoing"}
+                  </span>
+                  {rental.price !== null && (
+                    <span className="block font-medium text-foreground">{formatCurrency(rental.price)} / month</span>
+                  )}
+                </span>
+                <IconChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+              </button>
             ))}
           </div>
         )}
+
+        <button
+          type="button"
+          onClick={() => setHistoryOpen(true)}
+          className="flex w-full items-center justify-between gap-2 rounded-md border border-dashed p-3 text-sm text-muted-foreground hover:bg-accent"
+        >
+          <span className="flex items-center gap-2">
+            <IconHistory className="h-4 w-4" /> View rental history
+          </span>
+          <IconChevronRight className="h-4 w-4" />
+        </button>
       </CardContent>
+
+      <AddRentalSheet open={addOpen} onOpenChange={setAddOpen} isSubmitting={isSubmitting} onCreate={handleAdd} />
+
+      <RentalHistorySheet
+        open={historyOpen}
+        onOpenChange={setHistoryOpen}
+        rentals={historyRentals}
+        onSelect={(rental) => {
+          setHistoryOpen(false);
+          setSelectedRental(rental);
+        }}
+      />
+
+      <RentalDetailSheet
+        rental={selectedRental}
+        residentialId={residentialId}
+        canManage={canManage}
+        onOpenChange={(open) => !open && setSelectedRental(null)}
+        onStatusChange={handleStatusChange}
+        onDelete={handleDelete}
+      />
     </Card>
   );
 }

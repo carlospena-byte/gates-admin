@@ -22,6 +22,7 @@ import type {
   LocationTypeDefinition,
   AddonItem,
   AddonType,
+  UpdateAddonItemDto,
 } from "@/types/unit-wizard.types";
 
 export interface UnitFormPayload {
@@ -179,6 +180,24 @@ export function useUnitManagerData(residentialId: string, open: boolean, showLis
     [reload],
   );
 
+  const updateAddonItem = useCallback(
+    async (id: string, dto: UpdateAddonItemDto): Promise<boolean> => {
+      setIsSubmitting(true);
+      const result = await addonItemService.update(id, dto);
+      setIsSubmitting(false);
+
+      if (!result.success) {
+        toast.error(result.error?.message || "Failed to update addon item");
+        return false;
+      }
+
+      toast.success("Addon item updated successfully");
+      await reload();
+      return true;
+    },
+    [reload],
+  );
+
   return {
     units,
     unitTypes,
@@ -193,5 +212,6 @@ export function useUnitManagerData(residentialId: string, open: boolean, showLis
     updateUnit,
     deleteUnit,
     toggleActive,
+    updateAddonItem,
   };
 }

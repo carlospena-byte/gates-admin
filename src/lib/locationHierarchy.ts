@@ -23,6 +23,20 @@ export function getLocationFullPath(
   return parts.join(" → ");
 }
 
+/** Ancestor chain for a location, root-first (e.g. [Torre A, Piso 1]) — for rendering one badge per hierarchy level. */
+export function getLocationChain(location: Location | null | undefined, locations: Location[]): Location[] {
+  if (!location) return [];
+
+  const chain: Location[] = [];
+  let current: Location | undefined = location;
+  while (current) {
+    chain.unshift(current);
+    const parentId: string | null = current.parent_id;
+    current = parentId ? locations.find((l) => l.id === parentId) : undefined;
+  }
+  return chain;
+}
+
 export function locationHasChildren(locationId: string, locations: Location[]): boolean {
   return locations.some((l) => l.parent_id === locationId);
 }

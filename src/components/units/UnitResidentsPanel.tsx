@@ -1,15 +1,19 @@
 /**
- * Residents authorized to be in a unit — contact info only (name, email,
- * phone), not tied to a registered app account.
+ * Residents authorized to live in a unit — contact info only (name, email,
+ * phone), not tied to a registered app account. New residents are added via
+ * a side sheet (AddResidentSheet) rather than an always-visible inline
+ * form, matching the Add-ons assignment flow.
  */
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { IconUsers } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Spinner } from "@/components/LoadingStates";
 import { DeleteIcon, PlusIcon } from "@/components/icons";
+import { AddResidentSheet, type NewResidentFields } from "@/components/units/AddResidentSheet";
+import { SectionEmptyState } from "@/components/units/SectionEmptyState";
 import { confirmDeleteToast } from "@/lib/confirmDeleteToast";
 import { unitResidentService } from "@/services";
 import type { UnitResident } from "@/types/unit-wizard.types";
@@ -26,9 +30,7 @@ export function UnitResidentsPanel({
   const [residents, setResidents] = useState<UnitResident[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const load = async () => {
     setIsLoading(true);
@@ -46,32 +48,25 @@ export function UnitResidentsPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unitId]);
 
-  const handleAdd = async () => {
-    if (!fullName.trim() || !email.trim()) {
-      toast.error("Name and email are required");
-      return;
-    }
-
+  const handleAdd = async (fields: NewResidentFields): Promise<boolean> => {
     setIsSubmitting(true);
     const result = await unitResidentService.create({
       unit_id: unitId,
       residential_id: residentialId,
-      full_name: fullName.trim(),
-      email: email.trim(),
-      phone: phone.trim() || null,
+      full_name: fields.fullName.trim(),
+      email: fields.email.trim(),
+      phone: fields.phone.trim() || null,
     });
     setIsSubmitting(false);
 
     if (!result.success) {
       toast.error(result.error.message);
-      return;
+      return false;
     }
 
     toast.success("Resident added");
-    setFullName("");
-    setEmail("");
-    setPhone("");
     await load();
+    return true;
   };
 
   const handleDelete = (id: string, name: string) => {
@@ -86,70 +81,36 @@ export function UnitResidentsPanel({
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Residents</CardTitle>
-        <CardDescription>People authorized to be in this unit.</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <Card className="h-full">
+      <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0">
+        <div>
+          <p className="text-sm font-medium">Residents</p>
+          <p className="text-xs text-muted-foreground">People authorized to live in this unit.</p>
+        </div>
         {canManage && (
-          <div className="space-y-2 border-b pb-4">
-            <Input
-              label="Full Name"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              disabled={isSubmitting}
-            />
-            <Input
-              label="Email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={isSubmitting}
-            />
-            <Input
-              label="Phone"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              disabled={isSubmitting}
-            />
-            <Button
-              onClick={handleAdd}
-              disabled={isSubmitting || !fullName.trim() || !email.trim()}
-              className="w-full"
-            >
-              {isSubmitting ? (
-                <Spinner size="sm" />
-              ) : (
-                <>
-                  <PlusIcon /> <span className="ml-2">Add Resident</span>
-                </>
-              )}
-            </Button>
-          </div>
+          <Button variant="outline" size="sm" onClick={() => setSheetOpen(true)}>
+            <PlusIcon /> <span className="ml-2">Add resident</span>
+          </Button>
         )}
-
+      </CardHeader>
+      <CardContent>
         {isLoading ? (
           <div className="flex justify-center py-4">
             <Spinner />
           </div>
         ) : residents.length === 0 ? (
-          <p className="text-center py-4 text-sm text-muted-foreground">No residents yet.</p>
+          <SectionEmptyState icon={IconUsers} title="No residents yet." description="Add a resident to get started." />
         ) : (
           <div className="space-y-2">
             {residents.map((resident) => (
               <div key={resident.id} className="flex items-start justify-between gap-2 rounded-md border p-3">
                 <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">{resident.full_name}</p>
-                  <p className="text-xs text-muted-foreground truncate">{resident.email}</p>
-                  {resident.phone && <p className="text-xs text-muted-foreground truncate">{resident.phone}</p>}
+                  <p className="truncate text-sm font-medium">{resident.full_name}</p>
+                  <p className="truncate text-xs text-muted-foreground">{resident.email}</p>
+                  {resident.phone && <p className="truncate text-xs text-muted-foreground">{resident.phone}</p>}
                 </div>
                 {canManage && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleDelete(resident.id, resident.full_name)}
-                  >
+                  <Button size="sm" variant="ghost" onClick={() => handleDelete(resident.id, resident.full_name)}>
                     <DeleteIcon />
                   </Button>
                 )}
@@ -158,6 +119,8 @@ export function UnitResidentsPanel({
           </div>
         )}
       </CardContent>
+
+      <AddResidentSheet open={sheetOpen} onOpenChange={setSheetOpen} isSubmitting={isSubmitting} onCreate={handleAdd} />
     </Card>
   );
 }

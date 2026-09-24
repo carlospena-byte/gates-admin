@@ -11,12 +11,14 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Spinner } from "@/components/LoadingStates";
+import { useI18n } from "@/i18n/useI18n";
 import type { UnitWithOwner } from "@/services";
+import type { IncidentType } from "@/types/incidentType.types";
 
 export interface NewIncidentFields {
   title: string;
   description: string;
-  category: string;
+  incidentTypeId: string;
   location: string;
   unitId: string;
 }
@@ -25,15 +27,15 @@ interface AddIncidentSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   units: UnitWithOwner[];
+  incidentTypes: IncidentType[];
   isSubmitting: boolean;
   onCreate: (fields: NewIncidentFields) => Promise<boolean>;
 }
 
-const CATEGORIES = ["Maintenance", "Security", "Noise", "Cleanliness", "Other"];
+const EMPTY: NewIncidentFields = { title: "", description: "", incidentTypeId: "", location: "", unitId: "" };
 
-const EMPTY: NewIncidentFields = { title: "", description: "", category: "", location: "", unitId: "" };
-
-export function AddIncidentSheet({ open, onOpenChange, units, isSubmitting, onCreate }: AddIncidentSheetProps) {
+export function AddIncidentSheet({ open, onOpenChange, units, incidentTypes, isSubmitting, onCreate }: AddIncidentSheetProps) {
+  const { t } = useI18n();
   const [fields, setFields] = useState<NewIncidentFields>(EMPTY);
   const set = <K extends keyof NewIncidentFields>(key: K, value: NewIncidentFields[K]) =>
     setFields((prev) => ({ ...prev, [key]: value }));
@@ -56,45 +58,49 @@ export function AddIncidentSheet({ open, onOpenChange, units, isSubmitting, onCr
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
         <SheetHeader>
-          <SheetTitle>Report an incident</SheetTitle>
-          <SheetDescription>Describe the problem — an admin will triage it.</SheetDescription>
+          <SheetTitle>{t("incidents.create.title")}</SheetTitle>
+          <SheetDescription>{t("incidents.create.description")}</SheetDescription>
         </SheetHeader>
 
         <div className="space-y-4 py-6">
           <Input
-            label="Title"
+            label={t("incidents.create.titleLabel")}
             value={fields.title}
             onChange={(e) => set("title", e.target.value)}
             disabled={isSubmitting}
           />
           <Input
-            label="Description (optional)"
+            label={t("incidents.create.descriptionLabel")}
             value={fields.description}
             onChange={(e) => set("description", e.target.value)}
             disabled={isSubmitting}
           />
 
-          <div className="grid gap-2 sm:grid-cols-2">
-            <Select value={fields.category || "none"} onValueChange={(v) => set("category", v === "none" ? "" : v)} disabled={isSubmitting}>
-              <SelectTrigger label="Category (optional)">
-                <SelectValue placeholder="Select category" />
+          <div className="grid gap-2 grid-cols-1">
+            <Select
+              value={fields.incidentTypeId || "none"}
+              onValueChange={(v) => set("incidentTypeId", v === "none" ? "" : v)}
+              disabled={isSubmitting}
+            >
+              <SelectTrigger label={t("incidents.create.categoryLabel")}>
+                <SelectValue placeholder={t("incidents.create.categoryPlaceholder")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">None</SelectItem>
-                {CATEGORIES.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    {c}
+                <SelectItem value="none">{t("common.none")}</SelectItem>
+                {incidentTypes.map((it) => (
+                  <SelectItem key={it.id} value={it.id}>
+                    {it.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
 
             <Select value={fields.unitId || "none"} onValueChange={(v) => set("unitId", v === "none" ? "" : v)} disabled={isSubmitting}>
-              <SelectTrigger label="Unit (optional)">
-                <SelectValue placeholder="No specific unit" />
+              <SelectTrigger label={t("incidents.create.unitLabel")}>
+                <SelectValue placeholder={t("incidents.create.noSpecificUnit")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">No specific unit</SelectItem>
+                <SelectItem value="none">{t("incidents.create.noSpecificUnit")}</SelectItem>
                 {units.map((unit) => (
                   <SelectItem key={unit.id} value={unit.id}>
                     {unit.name}
@@ -105,8 +111,8 @@ export function AddIncidentSheet({ open, onOpenChange, units, isSubmitting, onCr
           </div>
 
           <Input
-            label="Location (optional)"
-            placeholder="e.g., Parking level 1"
+            label={t("incidents.create.locationLabel")}
+            placeholder={t("incidents.create.locationPlaceholder")}
             value={fields.location}
             onChange={(e) => set("location", e.target.value)}
             disabled={isSubmitting}
@@ -115,10 +121,10 @@ export function AddIncidentSheet({ open, onOpenChange, units, isSubmitting, onCr
 
         <SheetFooter>
           <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={isSubmitting}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button onClick={handleAdd} disabled={isSubmitting || !fields.title.trim()}>
-            {isSubmitting ? <Spinner size="sm" /> : "Report incident"}
+            {isSubmitting ? <Spinner size="sm" /> : t("incidents.create.submit")}
           </Button>
         </SheetFooter>
       </SheetContent>

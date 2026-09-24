@@ -12,8 +12,24 @@ import { SortableTableHead } from "@/components/SortableTableHead";
 import { DeleteIcon } from "@/components/icons";
 import { confirmDeleteToast } from "@/lib/confirmDeleteToast";
 import { usePaginatedSortedData } from "@/hooks/usePaginatedSortedData";
+import { useI18n } from "@/i18n/useI18n";
+import type { MessageKey } from "@/i18n/messages";
 import { cn } from "@/lib/utils";
 import type { IncidentPriority, IncidentStatus, IncidentWithRelations } from "@/types/incident.types";
+
+const PRIORITY_LABEL_KEYS: Record<IncidentPriority, MessageKey> = {
+  low: "incidents.priority.low",
+  medium: "incidents.priority.medium",
+  high: "incidents.priority.high",
+  urgent: "incidents.priority.urgent",
+};
+
+const STATUS_LABEL_KEYS: Record<IncidentStatus, MessageKey> = {
+  new: "incidents.status.new",
+  in_progress: "incidents.status.inProgress",
+  resolved: "incidents.status.resolved",
+  closed: "incidents.status.closed",
+};
 
 const PRIORITY_STYLES: Record<IncidentPriority, string> = {
   low: "bg-secondary text-secondary-foreground",
@@ -48,6 +64,7 @@ export function IncidentTable({
   onOpen,
   onDelete,
 }: IncidentTableProps) {
+  const { t } = useI18n();
   const {
     paginatedData: paginatedIncidents,
     totalItems,
@@ -91,22 +108,22 @@ export function IncidentTable({
           <TableHeader>
             <TableRow>
               <SortableTableHead field="title" currentSortField={sortField} sortOrder={sortOrder} onSort={handleSort}>
-                Title
+                {t("incidents.table.title")}
               </SortableTableHead>
-              <TableHead>Unit</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Priority</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Assigned To</TableHead>
+              <TableHead>{t("common.unit")}</TableHead>
+              <TableHead>{t("incidents.table.category")}</TableHead>
+              <TableHead>{t("incidents.table.priority")}</TableHead>
+              <TableHead>{t("common.status")}</TableHead>
+              <TableHead>{t("incidents.table.assignedTo")}</TableHead>
               <SortableTableHead
                 field="created_at"
                 currentSortField={sortField}
                 sortOrder={sortOrder}
                 onSort={handleSort}
               >
-                Created
+                {t("incidents.table.created")}
               </SortableTableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead className="text-right">{t("common.actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -114,25 +131,27 @@ export function IncidentTable({
               <TableRow key={incident.id}>
                 <TableCell className="font-medium">{incident.title}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">{incident.units?.name ?? "—"}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">{incident.category ?? "—"}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">{incident.incident_types?.name ?? "—"}</TableCell>
                 <TableCell>
                   <Badge className={cn("border-transparent capitalize", PRIORITY_STYLES[incident.priority])}>
-                    {incident.priority}
+                    {t(PRIORITY_LABEL_KEYS[incident.priority])}
                   </Badge>
                 </TableCell>
                 <TableCell>
                   <Badge className={cn("border-transparent capitalize", STATUS_STYLES[incident.status])}>
-                    {incident.status.replace("_", " ")}
+                    {t(STATUS_LABEL_KEYS[incident.status])}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-sm text-muted-foreground">{incident.assignee?.email ?? "Unassigned"}</TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  {incident.assignee?.email ?? t("incidents.unassigned")}
+                </TableCell>
                 <TableCell className="text-sm text-muted-foreground">
                   {new Date(incident.created_at).toLocaleDateString()}
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
                     <Button size="sm" variant="outline" onClick={() => onOpen(incident)} disabled={isSubmitting}>
-                      Open
+                      {t("incidents.table.open")}
                     </Button>
                     {canManage && (
                       <Button

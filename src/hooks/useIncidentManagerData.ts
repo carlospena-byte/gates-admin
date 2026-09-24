@@ -8,17 +8,19 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   incidentService,
+  incidentTypeService,
   residentialUserService,
   unitService,
   type ResidentialUserWithProfile,
   type UnitWithOwner,
 } from "@/services";
 import type { CreateIncidentDto, IncidentPriority, IncidentStatus, IncidentWithRelations } from "@/types/incident.types";
+import type { IncidentType } from "@/types/incidentType.types";
 
 export interface IncidentFormPayload {
   title: string;
   description: string;
-  category: string;
+  incidentTypeId: string;
   location: string;
   unitId: string;
   reportedBy: string | null;
@@ -27,6 +29,7 @@ export interface IncidentFormPayload {
 export function useIncidentManagerData(residentialId: string) {
   const [incidents, setIncidents] = useState<IncidentWithRelations[]>([]);
   const [units, setUnits] = useState<UnitWithOwner[]>([]);
+  const [incidentTypes, setIncidentTypes] = useState<IncidentType[]>([]);
   const [assignableUsers, setAssignableUsers] = useState<ResidentialUserWithProfile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -34,10 +37,11 @@ export function useIncidentManagerData(residentialId: string) {
   const reload = useCallback(async () => {
     setIsLoading(true);
 
-    const [incidentsResult, unitsResult, usersResult] = await Promise.all([
+    const [incidentsResult, unitsResult, usersResult, incidentTypesResult] = await Promise.all([
       incidentService.list(residentialId),
       unitService.listByResidential(residentialId),
       residentialUserService.listByResidential(residentialId),
+      incidentTypeService.list(residentialId),
     ]);
 
     setIsLoading(false);
@@ -51,6 +55,9 @@ export function useIncidentManagerData(residentialId: string) {
     if (unitsResult.success) setUnits(unitsResult.data);
     if (usersResult.success) {
       setAssignableUsers(usersResult.data.filter((u) => u.role === "owner" || u.role === "admin" || u.role === "security"));
+    }
+    if (incidentTypesResult.success) {
+      setIncidentTypes(incidentTypesResult.data.filter((it) => it.is_active));
     }
   }, [residentialId]);
 
@@ -68,7 +75,7 @@ export function useIncidentManagerData(residentialId: string) {
         reported_by: payload.reportedBy,
         title: payload.title,
         description: payload.description || null,
-        category: payload.category || null,
+        incident_type_id: payload.incidentTypeId || null,
         location: payload.location || null,
       };
 
@@ -157,6 +164,7 @@ export function useIncidentManagerData(residentialId: string) {
   return {
     incidents,
     units,
+    incidentTypes,
     assignableUsers,
     isLoading,
     isSubmitting,

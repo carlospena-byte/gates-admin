@@ -1,7 +1,8 @@
 /**
  * Incident Service
  * Flat CRUD via createCrudService, same composition as visitorService.ts.
- * selectClause joins reporter/assignee emails and the unit name.
+ * selectClause joins reporter/assignee emails, the unit name and the
+ * incident type's name.
  */
 
 import { createCrudService } from "./createCrudService";
@@ -12,6 +13,6 @@ export const incidentService = createCrudService<IncidentWithRelations, CreateIn
   {
     parentColumn: "residential_id",
     orderBy: "created_at",
-    selectClause: "*, reporter:reported_by(email), assignee:assigned_to(email), units(name)",
+    selectClause: "*, reporter:reported_by(email), assignee:assigned_to(email), units(name), incident_types(name)",
   },
 );

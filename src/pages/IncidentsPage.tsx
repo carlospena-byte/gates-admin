@@ -17,10 +17,12 @@ import { authService } from "@/services";
 import { useSession } from "@/state/useSession";
 import { canManageResidential } from "@/state/useAccess";
 import { useIncidentManagerData, type IncidentFormPayload } from "@/hooks/useIncidentManagerData";
+import { useI18n } from "@/i18n/useI18n";
 import type { ResidentialRole } from "@/types/database.types";
 import type { IncidentWithRelations } from "@/types/incident.types";
 
 export function IncidentsPage({ residentialId, role }: { residentialId: string; role: ResidentialRole }) {
+  const { t } = useI18n();
   const { session } = useSession();
   const canManage = canManageResidential(role);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -29,6 +31,7 @@ export function IncidentsPage({ residentialId, role }: { residentialId: string; 
   const {
     incidents,
     units,
+    incidentTypes,
     assignableUsers,
     isLoading,
     isSubmitting,
@@ -52,7 +55,7 @@ export function IncidentsPage({ residentialId, role }: { residentialId: string; 
     const payload: IncidentFormPayload = {
       title: fields.title.trim(),
       description: fields.description.trim(),
-      category: fields.category,
+      incidentTypeId: fields.incidentTypeId,
       location: fields.location.trim(),
       unitId: fields.unitId,
       reportedBy: session?.user?.id ?? null,
@@ -74,43 +77,55 @@ export function IncidentsPage({ residentialId, role }: { residentialId: string; 
 
   return (
     <div className="min-h-screen">
-      <AppSidebar userEmail={session?.user?.email} onSignOut={() => authService.signOut()} showUserMenu />
+      <AppSidebar userEmail={session?.user?.email} residentialId={residentialId} role={role} onSignOut={() => authService.signOut()} showUserMenu />
 
       <div className="lg:pl-64">
         <div className="mx-auto max-w-7xl px-6 py-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle>Incidents</CardTitle>
-                <CardDescription>Report and triage issues</CardDescription>
+                <CardTitle>{t("incidents.page.title")}</CardTitle>
+                <CardDescription>{t("incidents.page.description")}</CardDescription>
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={reload} disabled={isLoading}>
                   <IconRefresh className="h-4 w-4" />
                 </Button>
-                <Button onClick={() => setSheetOpen(true)}>Report Incident</Button>
+                <Button onClick={() => setSheetOpen(true)}>{t("incidents.page.reportIncident")}</Button>
               </div>
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="new">
                 <TabsList>
-                  <TabsTrigger value="new">New ({buckets.new.length})</TabsTrigger>
-                  <TabsTrigger value="in_progress">In Progress ({buckets.in_progress.length})</TabsTrigger>
-                  <TabsTrigger value="resolved">Resolved ({buckets.resolved.length})</TabsTrigger>
-                  <TabsTrigger value="closed">Closed ({buckets.closed.length})</TabsTrigger>
+                  <TabsTrigger value="new">{t("incidents.tabs.new", { count: buckets.new.length })}</TabsTrigger>
+                  <TabsTrigger value="in_progress">
+                    {t("incidents.tabs.inProgress", { count: buckets.in_progress.length })}
+                  </TabsTrigger>
+                  <TabsTrigger value="resolved">
+                    {t("incidents.tabs.resolved", { count: buckets.resolved.length })}
+                  </TabsTrigger>
+                  <TabsTrigger value="closed">{t("incidents.tabs.closed", { count: buckets.closed.length })}</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="new" className="pt-4">
-                  <IncidentTable incidents={buckets.new} emptyMessage="No new incidents." {...tableProps} />
+                  <IncidentTable incidents={buckets.new} emptyMessage={t("incidents.empty.new")} {...tableProps} />
                 </TabsContent>
                 <TabsContent value="in_progress" className="pt-4">
-                  <IncidentTable incidents={buckets.in_progress} emptyMessage="Nothing in progress." {...tableProps} />
+                  <IncidentTable
+                    incidents={buckets.in_progress}
+                    emptyMessage={t("incidents.empty.inProgress")}
+                    {...tableProps}
+                  />
                 </TabsContent>
                 <TabsContent value="resolved" className="pt-4">
-                  <IncidentTable incidents={buckets.resolved} emptyMessage="No resolved incidents yet." {...tableProps} />
+                  <IncidentTable
+                    incidents={buckets.resolved}
+                    emptyMessage={t("incidents.empty.resolved")}
+                    {...tableProps}
+                  />
                 </TabsContent>
                 <TabsContent value="closed" className="pt-4">
-                  <IncidentTable incidents={buckets.closed} emptyMessage="No closed incidents." {...tableProps} />
+                  <IncidentTable incidents={buckets.closed} emptyMessage={t("incidents.empty.closed")} {...tableProps} />
                 </TabsContent>
               </Tabs>
             </CardContent>
@@ -122,6 +137,7 @@ export function IncidentsPage({ residentialId, role }: { residentialId: string; 
         open={sheetOpen}
         onOpenChange={setSheetOpen}
         units={units}
+        incidentTypes={incidentTypes}
         isSubmitting={isSubmitting}
         onCreate={handleCreate}
       />

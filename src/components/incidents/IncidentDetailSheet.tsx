@@ -13,11 +13,27 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Spinner } from "@/components/LoadingStates";
+import { useI18n } from "@/i18n/useI18n";
+import type { MessageKey } from "@/i18n/messages";
 import { incidentAttachmentService, type ResidentialUserWithProfile } from "@/services";
 import type { IncidentPriority, IncidentStatus, IncidentWithRelations } from "@/types/incident.types";
 
 const PRIORITIES: IncidentPriority[] = ["low", "medium", "high", "urgent"];
 const STATUSES: IncidentStatus[] = ["new", "in_progress", "resolved", "closed"];
+
+const PRIORITY_LABEL_KEYS: Record<IncidentPriority, MessageKey> = {
+  low: "incidents.priority.low",
+  medium: "incidents.priority.medium",
+  high: "incidents.priority.high",
+  urgent: "incidents.priority.urgent",
+};
+
+const STATUS_LABEL_KEYS: Record<IncidentStatus, MessageKey> = {
+  new: "incidents.status.new",
+  in_progress: "incidents.status.inProgress",
+  resolved: "incidents.status.resolved",
+  closed: "incidents.status.closed",
+};
 
 interface IncidentDetailSheetProps {
   incident: IncidentWithRelations | null;
@@ -42,6 +58,7 @@ export function IncidentDetailSheet({
   onSetStatus,
   onAssign,
 }: IncidentDetailSheetProps) {
+  const { t } = useI18n();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [attachments, setAttachments] = useState<{ id: string; storage_path: string }[]>([]);
   const [isLoadingAttachments, setIsLoadingAttachments] = useState(false);
@@ -79,7 +96,7 @@ export function IncidentDetailSheet({
     }
 
     setAttachments((prev) => [...prev, result.data]);
-    toast.success("Photo attached");
+    toast.success(t("incidents.detail.photoAttached"));
   };
 
   const handleViewAttachment = async (path: string) => {
@@ -97,7 +114,10 @@ export function IncidentDetailSheet({
         <SheetHeader>
           <SheetTitle>{incident.title}</SheetTitle>
           <SheetDescription>
-            Reported by {incident.reporter?.email ?? "unknown"} · {new Date(incident.created_at).toLocaleString()}
+            {t("incidents.detail.reportedBy", {
+              email: incident.reporter?.email ?? t("incidents.detail.unknownReporter"),
+              date: new Date(incident.created_at).toLocaleString(),
+            })}
           </SheetDescription>
         </SheetHeader>
 
@@ -106,24 +126,24 @@ export function IncidentDetailSheet({
 
           <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
             {incident.units?.name && <Badge variant="secondary">{incident.units.name}</Badge>}
-            {incident.category && <Badge variant="secondary">{incident.category}</Badge>}
+            {incident.incident_types?.name && <Badge variant="secondary">{incident.incident_types.name}</Badge>}
             {incident.location && <Badge variant="secondary">{incident.location}</Badge>}
           </div>
 
           {canManage ? (
-            <div className="grid gap-2 sm:grid-cols-2">
+            <div className="grid gap-2 grid-cols-1">
               <Select
                 value={incident.priority}
                 onValueChange={(v) => onSetPriority(incident.id, v as IncidentPriority)}
                 disabled={isSubmitting}
               >
-                <SelectTrigger label="Priority">
+                <SelectTrigger label={t("incidents.detail.priorityLabel")}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {PRIORITIES.map((p) => (
                     <SelectItem key={p} value={p} className="capitalize">
-                      {p}
+                      {t(PRIORITY_LABEL_KEYS[p])}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -134,13 +154,13 @@ export function IncidentDetailSheet({
                 onValueChange={(v) => onSetStatus(incident.id, v as IncidentStatus)}
                 disabled={isSubmitting}
               >
-                <SelectTrigger label="Status">
+                <SelectTrigger label={t("common.status")}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {STATUSES.map((s) => (
                     <SelectItem key={s} value={s} className="capitalize">
-                      {s.replace("_", " ")}
+                      {t(STATUS_LABEL_KEYS[s])}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -151,11 +171,11 @@ export function IncidentDetailSheet({
                 onValueChange={(v) => onAssign(incident.id, v === "none" ? null : v)}
                 disabled={isSubmitting}
               >
-                <SelectTrigger label="Assign to" className="sm:col-span-2">
-                  <SelectValue placeholder="Unassigned" />
+                <SelectTrigger label={t("incidents.detail.assignToLabel")} className="sm:col-span-2">
+                  <SelectValue placeholder={t("incidents.unassigned")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Unassigned</SelectItem>
+                  <SelectItem value="none">{t("incidents.unassigned")}</SelectItem>
                   {assignableUsers.map((u) => (
                     <SelectItem key={u.user_id} value={u.user_id}>
                       {u.profiles?.email ?? u.user_id}
@@ -167,23 +187,23 @@ export function IncidentDetailSheet({
           ) : (
             <div className="flex items-center gap-2">
               <Badge variant="secondary" className="capitalize">
-                {incident.status.replace("_", " ")}
+                {t(STATUS_LABEL_KEYS[incident.status])}
               </Badge>
               {incident.status === "new" && (
                 <Button size="sm" variant="outline" disabled={isSubmitting} onClick={() => onSetStatus(incident.id, "in_progress")}>
-                  Move to In Progress
+                  {t("incidents.detail.moveToInProgress")}
                 </Button>
               )}
             </div>
           )}
 
           <div className="space-y-2 border-t pt-4">
-            <p className="text-xs font-medium text-muted-foreground">Photos</p>
+            <p className="text-xs font-medium text-muted-foreground">{t("incidents.detail.photosLabel")}</p>
 
             {isLoadingAttachments ? (
               <Spinner size="sm" />
             ) : attachments.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No photos attached.</p>
+              <p className="text-sm text-muted-foreground">{t("incidents.detail.noPhotos")}</p>
             ) : (
               <div className="flex flex-col gap-1">
                 {attachments.map((a, i) => (
@@ -194,7 +214,7 @@ export function IncidentDetailSheet({
                     className="w-fit"
                     onClick={() => handleViewAttachment(a.storage_path)}
                   >
-                    View photo {i + 1}
+                    {t("incidents.detail.viewPhoto", { index: i + 1 })}
                   </Button>
                 ))}
               </div>
@@ -202,7 +222,7 @@ export function IncidentDetailSheet({
 
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelected} />
             <Button size="sm" variant="outline" disabled={isUploading} onClick={() => fileInputRef.current?.click()}>
-              <IconPaperclip className="h-4 w-4" /> <span className="ml-1">Attach photo</span>
+              <IconPaperclip className="h-4 w-4" /> <span className="ml-1">{t("incidents.detail.attachPhoto")}</span>
             </Button>
           </div>
         </div>

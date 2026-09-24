@@ -11,7 +11,7 @@ export interface Incident {
   residential_id: string;
   unit_id: string | null;
   reported_by: string | null;
-  category: string | null;
+  incident_type_id: string | null;
   title: string;
   description: string | null;
   location: string | null;
@@ -27,7 +27,7 @@ export interface CreateIncidentDto {
   residential_id: string;
   unit_id?: string | null;
   reported_by?: string | null;
-  category?: string | null;
+  incident_type_id?: string | null;
   title: string;
   description?: string | null;
   location?: string | null;
@@ -37,7 +37,7 @@ export interface CreateIncidentDto {
 
 export interface UpdateIncidentDto {
   unit_id?: string | null;
-  category?: string | null;
+  incident_type_id?: string | null;
   title?: string;
   description?: string | null;
   location?: string | null;
@@ -47,12 +47,13 @@ export interface UpdateIncidentDto {
   resolved_at?: string | null;
 }
 
-// Incident joined with reporter/assignee emails and the unit name, same
-// join-on-select shape as VisitorWithInviter/UnitWithOwner.
+// Incident joined with reporter/assignee emails, the unit name and the
+// incident type's name, same join-on-select shape as VisitorWithInviter/UnitWithOwner.
 export type IncidentWithRelations = Incident & {
   reporter: { email: string | null } | null;
   assignee: { email: string | null } | null;
   units: { name: string } | null;
+  incident_types: { name: string } | null;
 };
 
 export interface IncidentAttachment {

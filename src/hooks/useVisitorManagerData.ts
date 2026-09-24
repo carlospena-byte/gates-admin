@@ -8,16 +8,48 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { accessLogService, unitService, visitorService, type UnitWithOwner } from "@/services";
-import type { CreateVisitorDto, VisitorWithInviter } from "@/types/visitor.types";
+import type {
+  CreateVisitorDto,
+  NotificationChannel,
+  ProviderKind,
+  Recurrence,
+  RecurrenceDay,
+  ScheduleType,
+  VisitorRole,
+  VisitorWithInviter,
+} from "@/types/visitor.types";
 
-export interface VisitorFormPayload {
+export interface FrequentVisitFormPayload {
   name: string;
   phone: string;
   plate: string;
   unitId: string;
-  validFrom: string;
-  validUntil: string;
+  visitorRole: VisitorRole;
+  recurrence: Recurrence;
+  recurrenceDays: RecurrenceDay[];
+  scheduleType: ScheduleType;
+  scheduleStart: string;
+  scheduleEnd: string;
+  notes: string;
   invitedBy: string | null;
+}
+
+export interface DeliveryVisitFormPayload {
+  name: string;
+  phone: string;
+  plate: string;
+  unitId: string;
+  providerKind: ProviderKind;
+  visitDate: string;
+  notes: string;
+  invitedBy: string | null;
+}
+
+export interface FastlaneVisitFormPayload {
+  unitId: string;
+  phone: string;
+  visitDate: string;
+  notes: string;
 }
 
 export function useVisitorManagerData(residentialId: string) {
@@ -49,8 +81,8 @@ export function useVisitorManagerData(residentialId: string) {
     void reload();
   }, [reload]);
 
-  const createVisitor = useCallback(
-    async (payload: VisitorFormPayload): Promise<boolean> => {
+  const createFrequentVisit = useCallback(
+    async (payload: FrequentVisitFormPayload): Promise<boolean> => {
       setIsSubmitting(true);
 
       const dto: CreateVisitorDto = {
@@ -60,8 +92,19 @@ export function useVisitorManagerData(residentialId: string) {
         name: payload.name,
         phone: payload.phone || null,
         plate: payload.plate || null,
-        valid_from: payload.validFrom,
-        valid_until: payload.validUntil,
+        // Frequent visits are open-ended (active until cancelled), not tied
+        // to a single date/window — a wide window keeps them out of the
+        // Today/Upcoming date-based buckets and into the general list.
+        valid_from: new Date().toISOString(),
+        valid_until: new Date("2099-12-31").toISOString(),
+        visit_type: "frequent",
+        visitor_role: payload.visitorRole,
+        recurrence: payload.recurrence,
+        recurrence_days: payload.recurrence === "custom" ? payload.recurrenceDays : null,
+        schedule_type: payload.scheduleType,
+        schedule_start: payload.scheduleType === "custom" ? payload.scheduleStart : null,
+        schedule_end: payload.scheduleType === "custom" ? payload.scheduleEnd : null,
+        notes: payload.notes || null,
       };
 
       const result = await visitorService.create(dto);
@@ -72,11 +115,83 @@ export function useVisitorManagerData(residentialId: string) {
         return false;
       }
 
-      toast.success("Visitor scheduled");
+      toast.success("Frequent visit authorized");
       await reload();
       return true;
     },
     [residentialId, reload],
+  );
+
+  const createDeliveryVisit = useCallback(
+    async (payload: DeliveryVisitFormPayload): Promise<boolean> => {
+      setIsSubmitting(true);
+
+      const dayStart = new Date(`${payload.visitDate}T00:00:00`);
+      const dayEnd = new Date(`${payload.visitDate}T23:59:59`);
+
+      const dto: CreateVisitorDto = {
+        residential_id: residentialId,
+        unit_id: payload.unitId || null,
+        invited_by: payload.invitedBy,
+        name: payload.name,
+        phone: payload.phone || null,
+        plate: payload.plate || null,
+        valid_from: dayStart.toISOString(),
+        valid_until: dayEnd.toISOString(),
+        visit_type: "delivery",
+        provider_kind: payload.providerKind,
+        notes: payload.notes || null,
+      };
+
+      const result = await visitorService.create(dto);
+      setIsSubmitting(false);
+
+      if (!result.success) {
+        toast.error(result.error.message);
+        return false;
+      }
+
+      toast.success("Delivery visit scheduled");
+      await reload();
+      return true;
+    },
+    [residentialId, reload],
+  );
+
+  const createFastlaneVisit = useCallback(
+    async (payload: FastlaneVisitFormPayload): Promise<VisitorWithInviter | null> => {
+      setIsSubmitting(true);
+
+      const result = await visitorService.createFastlane({
+        residentialId,
+        unitId: payload.unitId,
+        phone: payload.phone,
+        visitDate: payload.visitDate,
+        notes: payload.notes || null,
+      });
+
+      setIsSubmitting(false);
+
+      if (!result.success) {
+        toast.error(result.error.message);
+        return null;
+      }
+
+      await reload();
+      return result.data;
+    },
+    [residentialId, reload],
+  );
+
+  const sendFastlaneNotification = useCallback(
+    async (visitId: string, channel: NotificationChannel) => {
+      const result = await visitorService.sendNotification({ visitId, channel });
+      if (!result.success) {
+        return { notificationSent: false, error: result.error.message };
+      }
+      return result.data;
+    },
+    [],
   );
 
   const deleteVisitor = useCallback(
@@ -146,7 +261,10 @@ export function useVisitorManagerData(residentialId: string) {
     isLoading,
     isSubmitting,
     reload,
-    createVisitor,
+    createFrequentVisit,
+    createDeliveryVisit,
+    createFastlaneVisit,
+    sendFastlaneNotification,
     deleteVisitor,
     cancelVisitor,
     checkIn,

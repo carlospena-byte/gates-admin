@@ -14,17 +14,36 @@ import { SortableTableHead } from "@/components/SortableTableHead";
 import { DeleteIcon } from "@/components/icons";
 import { confirmDeleteToast } from "@/lib/confirmDeleteToast";
 import { usePaginatedSortedData } from "@/hooks/usePaginatedSortedData";
+import { useI18n } from "@/i18n/useI18n";
+import type { MessageKey } from "@/i18n/messages";
 import { cn } from "@/lib/utils";
 import type { UnitWithOwner } from "@/services";
-import type { VisitorStatus, VisitorWithInviter } from "@/types/visitor.types";
+import type { VisitorStatus, VisitorWithInviter, VisitType } from "@/types/visitor.types";
 
 const STATUS_STYLES: Record<VisitorStatus, string> = {
+  pending_registration: "bg-amber-100 text-amber-700",
   scheduled: "bg-secondary text-secondary-foreground",
   active: "bg-blue-100 text-blue-700",
   inside: "bg-green-100 text-green-700",
   completed: "bg-secondary text-secondary-foreground",
   cancelled: "bg-red-100 text-red-700",
   rejected: "bg-red-100 text-red-700",
+};
+
+const STATUS_LABEL_KEYS: Record<VisitorStatus, MessageKey> = {
+  pending_registration: "visitors.status.pendingRegistration",
+  scheduled: "visitors.status.scheduled",
+  active: "visitors.status.active",
+  inside: "visitors.status.inside",
+  completed: "visitors.status.completed",
+  cancelled: "visitors.status.cancelled",
+  rejected: "visitors.status.rejected",
+};
+
+const VISIT_TYPE_LABEL_KEYS: Record<VisitType, MessageKey> = {
+  frequent: "visitors.type.frequent",
+  delivery: "visitors.type.delivery",
+  fastlane: "visitors.type.fastlane",
 };
 
 interface VisitorTableProps {
@@ -54,6 +73,7 @@ export function VisitorTable({
   onCheckOut,
   onDelete,
 }: VisitorTableProps) {
+  const { t } = useI18n();
   const {
     paginatedData: paginatedVisitors,
     totalItems,
@@ -73,8 +93,8 @@ export function VisitorTable({
 
   const unitNameById = new Map(units.map((unit) => [unit.id, unit.name]));
 
-  const handleDelete = (id: string, name: string) => {
-    confirmDeleteToast(name, async () => {
+  const handleDelete = (id: string, name: string | null) => {
+    confirmDeleteToast(name ?? t("visitors.table.pendingRegistration"), async () => {
       await onDelete(id);
     });
   };
@@ -98,27 +118,35 @@ export function VisitorTable({
           <TableHeader>
             <TableRow>
               <SortableTableHead field="name" currentSortField={sortField} sortOrder={sortOrder} onSort={handleSort}>
-                Visitor
+                {t("visitors.table.visitor")}
               </SortableTableHead>
-              <TableHead>Unit</TableHead>
-              <TableHead>Invited By</TableHead>
-              <TableHead>Plate</TableHead>
+              <TableHead>{t("visitors.table.type")}</TableHead>
+              <TableHead>{t("common.unit")}</TableHead>
+              <TableHead>{t("visitors.table.invitedBy")}</TableHead>
+              <TableHead>{t("visitors.table.plate")}</TableHead>
               <SortableTableHead
                 field="valid_until"
                 currentSortField={sortField}
                 sortOrder={sortOrder}
                 onSort={handleSort}
               >
-                Valid Until
+                {t("visitors.table.validUntil")}
               </SortableTableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>{t("common.status")}</TableHead>
+              <TableHead className="text-right">{t("common.actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {paginatedVisitors.map((visitor) => (
               <TableRow key={visitor.id}>
-                <TableCell className="font-medium">{visitor.name}</TableCell>
+                <TableCell className="font-medium">
+                  {visitor.name ?? (
+                    <span className="italic text-muted-foreground">{t("visitors.table.pendingRegistration")}</span>
+                  )}
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  {t(VISIT_TYPE_LABEL_KEYS[visitor.visit_type])}
+                </TableCell>
                 <TableCell className="text-sm text-muted-foreground">
                   {visitor.unit_id ? unitNameById.get(visitor.unit_id) ?? "—" : "—"}
                 </TableCell>
@@ -131,19 +159,19 @@ export function VisitorTable({
                 </TableCell>
                 <TableCell>
                   <Badge className={cn("border-transparent capitalize", STATUS_STYLES[visitor.status])}>
-                    {visitor.status}
+                    {t(STATUS_LABEL_KEYS[visitor.status])}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
                     {canCheckInOut && visitor.status !== "inside" && visitor.status !== "completed" && (
                       <Button size="sm" variant="outline" onClick={() => onCheckIn(visitor.id)} disabled={isSubmitting}>
-                        Check in
+                        {t("visitors.table.checkIn")}
                       </Button>
                     )}
                     {canCheckInOut && visitor.status === "inside" && (
                       <Button size="sm" variant="outline" onClick={() => onCheckOut(visitor.id)} disabled={isSubmitting}>
-                        Check out
+                        {t("visitors.table.checkOut")}
                       </Button>
                     )}
                     {canManage && (

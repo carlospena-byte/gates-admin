@@ -4,16 +4,32 @@
  * deriving from the generated Database type, matching the rest of the app.
  */
 
-export type VisitorStatus = "scheduled" | "active" | "inside" | "completed" | "cancelled" | "rejected";
+export type VisitorStatus =
+  | "pending_registration"
+  | "scheduled"
+  | "active"
+  | "inside"
+  | "completed"
+  | "cancelled"
+  | "rejected";
+
+export type VisitType = "frequent" | "delivery" | "fastlane";
+export type VisitorRole = "familiar" | "entrenador" | "empleado" | "proveedor" | "visitante" | "invitado";
+export type ProviderKind = "proveedor" | "delivery" | "paqueteria";
+export type Recurrence = "mon_fri" | "mon_sat" | "daily" | "custom";
+export type ScheduleType = "all_day" | "custom";
+export type RecurrenceDay = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
+export type NotificationChannel = "sms" | "whatsapp";
 
 // Someone on-site for a bounded window (guest, delivery, contractor...).
 // unit_id is nullable — a visitor isn't always tied to a specific unit yet.
+// name is nullable only for visit_type "fastlane" before self-registration.
 export interface Visitor {
   id: string;
   residential_id: string;
   unit_id: string | null;
   invited_by: string | null;
-  name: string;
+  name: string | null;
   phone: string | null;
   plate: string | null;
   valid_from: string;
@@ -21,6 +37,17 @@ export interface Visitor {
   access_code: string | null;
   status: VisitorStatus;
   notes: string | null;
+  visit_type: VisitType;
+  visitor_role: VisitorRole | null;
+  provider_kind: ProviderKind | null;
+  recurrence: Recurrence | null;
+  recurrence_days: RecurrenceDay[] | null;
+  schedule_type: ScheduleType;
+  schedule_start: string | null;
+  schedule_end: string | null;
+  registration_channel: NotificationChannel | null;
+  id_photo_path: string | null;
+  registered_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -37,6 +64,14 @@ export interface CreateVisitorDto {
   access_code?: string | null;
   status?: VisitorStatus;
   notes?: string | null;
+  visit_type?: VisitType;
+  visitor_role?: VisitorRole | null;
+  provider_kind?: ProviderKind | null;
+  recurrence?: Recurrence | null;
+  recurrence_days?: RecurrenceDay[] | null;
+  schedule_type?: ScheduleType;
+  schedule_start?: string | null;
+  schedule_end?: string | null;
 }
 
 export interface UpdateVisitorDto {
@@ -49,6 +84,13 @@ export interface UpdateVisitorDto {
   access_code?: string | null;
   status?: VisitorStatus;
   notes?: string | null;
+  visitor_role?: VisitorRole | null;
+  provider_kind?: ProviderKind | null;
+  recurrence?: Recurrence | null;
+  recurrence_days?: RecurrenceDay[] | null;
+  schedule_type?: ScheduleType;
+  schedule_start?: string | null;
+  schedule_end?: string | null;
 }
 
 // Visitor joined with the inviting profile's email, for the "Invited By"

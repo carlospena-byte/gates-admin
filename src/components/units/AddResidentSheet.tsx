@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Spinner } from "@/components/LoadingStates";
+import { useI18n } from "@/i18n/useI18n";
 import type { UnitWithOwner } from "@/services";
 
 export interface NewResidentFields {
@@ -36,6 +37,7 @@ interface AddResidentSheetProps {
 const EMPTY: NewResidentFields = { fullName: "", email: "", phone: "", unitId: "" };
 
 export function AddResidentSheet({ open, onOpenChange, isSubmitting, onCreate, units }: AddResidentSheetProps) {
+  const { t } = useI18n();
   const [fields, setFields] = useState<NewResidentFields>(EMPTY);
   const set = <K extends keyof NewResidentFields>(key: K, value: NewResidentFields[K]) =>
     setFields((prev) => ({ ...prev, [key]: value }));
@@ -61,15 +63,15 @@ export function AddResidentSheet({ open, onOpenChange, isSubmitting, onCreate, u
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
         <SheetHeader>
-          <SheetTitle>Add resident</SheetTitle>
-          <SheetDescription>Add someone authorized to live in a unit.</SheetDescription>
+          <SheetTitle>{t("residents.create.title")}</SheetTitle>
+          <SheetDescription>{t("residents.create.description")}</SheetDescription>
         </SheetHeader>
 
         <div className="space-y-4 py-6">
           {units && (
             <Select value={fields.unitId} onValueChange={(v) => set("unitId", v)} disabled={isSubmitting}>
-              <SelectTrigger label="Unit">
-                <SelectValue placeholder="Select a unit" />
+              <SelectTrigger label={t("common.unit")}>
+                <SelectValue placeholder={t("residents.create.selectUnitPlaceholder")} />
               </SelectTrigger>
               <SelectContent>
                 {units.map((unit) => (
@@ -82,20 +84,20 @@ export function AddResidentSheet({ open, onOpenChange, isSubmitting, onCreate, u
           )}
 
           <Input
-            label="Full Name"
+            label={t("residents.create.fullNameLabel")}
             value={fields.fullName}
             onChange={(e) => set("fullName", e.target.value)}
             disabled={isSubmitting}
           />
           <Input
-            label="Email"
+            label={t("common.email")}
             type="email"
             value={fields.email}
             onChange={(e) => set("email", e.target.value)}
             disabled={isSubmitting}
           />
           <Input
-            label="Phone (optional)"
+            label={t("residents.create.phoneLabel")}
             value={fields.phone}
             onChange={(e) => set("phone", e.target.value)}
             disabled={isSubmitting}
@@ -104,10 +106,10 @@ export function AddResidentSheet({ open, onOpenChange, isSubmitting, onCreate, u
 
         <SheetFooter>
           <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={isSubmitting}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button onClick={handleAdd} disabled={isSubmitting || !isValid}>
-            {isSubmitting ? <Spinner size="sm" /> : "Add resident"}
+            {isSubmitting ? <Spinner size="sm" /> : t("residents.create.submit")}
           </Button>
         </SheetFooter>
       </SheetContent>

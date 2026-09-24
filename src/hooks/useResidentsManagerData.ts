@@ -6,12 +6,14 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { unitResidentService, unitService, type UnitWithOwner } from "@/services";
+import { inviteOrLinkResident, unitResidentService, unitService, type UnitWithOwner } from "@/services";
 import type { NewResidentFields } from "@/components/units/AddResidentSheet";
-import type { ResidentWithUnit } from "@/types/unit-wizard.types";
+import type { ResidentWithStatus, UnitResident } from "@/types/unit-wizard.types";
+import { useI18n } from "@/i18n/useI18n";
 
 export function useResidentsManagerData(residentialId: string) {
-  const [residents, setResidents] = useState<ResidentWithUnit[]>([]);
+  const { t } = useI18n();
+  const [residents, setResidents] = useState<ResidentWithStatus[]>([]);
   const [units, setUnits] = useState<UnitWithOwner[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -20,7 +22,7 @@ export function useResidentsManagerData(residentialId: string) {
     setIsLoading(true);
 
     const [residentsResult, unitsResult] = await Promise.all([
-      unitResidentService.listByResidential(residentialId),
+      unitResidentService.listByResidentialWithStatus(residentialId),
       unitService.listByResidential(residentialId),
     ]);
 
@@ -39,7 +41,40 @@ export function useResidentsManagerData(residentialId: string) {
     void reload();
   }, [reload]);
 
-  const createResident = useCallback(
+  // Shared by createResidentAndInvite (new contact) and the manual
+  // "reinvite" action (existing contact whose invitation expired or was
+  // never sent) — either way, invites-or-links the given unit_residents row.
+  const inviteResident = useCallback(
+    async (resident: UnitResident): Promise<void> => {
+      if (!resident.email.trim()) {
+        toast.error(t("residents.invite.needsEmail"));
+        return;
+      }
+
+      setIsSubmitting(true);
+      const result = await inviteOrLinkResident(resident);
+      setIsSubmitting(false);
+
+      if (!result.success) {
+        toast.error(result.error.message);
+        return;
+      }
+
+      if (result.data.kind === "linked_existing") {
+        toast.success(t("residents.invite.linkedExisting", { name: resident.full_name }));
+      } else if (result.data.emailSent) {
+        toast.success(t("residents.invite.sentWithEmail", { email: resident.email, code: result.data.code }));
+      } else {
+        toast.success(t("residents.invite.sentNoEmail", { name: resident.full_name, code: result.data.code }));
+      }
+      await reload();
+    },
+    [t, reload],
+  );
+
+  // Creates the contact row and immediately invites (or links, if the email
+  // already has an account) — a single admin action instead of two.
+  const createResidentAndInvite = useCallback(
     async (fields: NewResidentFields): Promise<boolean> => {
       setIsSubmitting(true);
       const result = await unitResidentService.create({
@@ -56,17 +91,16 @@ export function useResidentsManagerData(residentialId: string) {
         return false;
       }
 
-      toast.success("Resident added");
-      await reload();
+      await inviteResident(result.data);
       return true;
     },
-    [residentialId, reload],
+    [residentialId, inviteResident],
   );
 
   const deleteResident = useCallback(
     async (id: string): Promise<boolean> => {
       setIsSubmitting(true);
-      const result = await unitResidentService.delete(id);
+      const result = await unitResidentService.removeResident(id);
       setIsSubmitting(false);
 
       if (!result.success) {
@@ -74,11 +108,11 @@ export function useResidentsManagerData(residentialId: string) {
         return false;
       }
 
-      toast.success("Resident removed");
+      toast.success(result.data ? t("residents.remove.revokedAccess") : t("residents.remove.success"));
       await reload();
       return true;
     },
-    [reload],
+    [reload, t],
   );
 
   const toggleActive = useCallback(
@@ -93,5 +127,15 @@ export function useResidentsManagerData(residentialId: string) {
     [reload],
   );
 
-  return { residents, units, isLoading, isSubmitting, reload, createResident, deleteResident, toggleActive };
+  return {
+    residents,
+    units,
+    isLoading,
+    isSubmitting,
+    reload,
+    createResidentAndInvite,
+    deleteResident,
+    toggleActive,
+    inviteResident,
+  };
 }

@@ -114,6 +114,14 @@ export type ResidentWithUnit = UnitResident & {
   units: { name: string } | null;
 };
 
+// Derived from unit_residents_with_status: whether the resident already has
+// real app access (unit_members), a live/expired invitation, or neither.
+export type ResidentStatus = "active" | "invited" | "expired" | "not_invited";
+
+export type ResidentWithStatus = ResidentWithUnit & {
+  status: ResidentStatus;
+};
+
 export type RentalType = "monthly" | "short_term";
 export type RentalStatus = "pending" | "active" | "completed" | "cancelled";
 export type RentalPaymentStatus = "pending" | "paid" | "overdue" | "cancelled" | "rejected";

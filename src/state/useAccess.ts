@@ -12,6 +12,11 @@ export function canManageResidential(role: ResidentialRole): boolean {
   return role === "owner" || role === "admin";
 }
 
+/** Owner/admin/member can book amenities for themselves — security has no unit and cannot reserve. */
+export function canCreateReservation(role: ResidentialRole): boolean {
+  return role !== "security";
+}
+
 export function useAccess({
   enabled = true,
   refreshKey,

@@ -4,6 +4,8 @@
  * Centralized routing configuration for the Gates Admin application.
  */
 
+import type { ResidentialRole } from "@/types/database.types";
+
 // ============================================================================
 // Route Types
 // ============================================================================
@@ -19,6 +21,7 @@ export type RouteType =
   | "chargeDetail"
   | "residents"
   | "visitors"
+  | "fastlanePublic"
   | "incidents"
   | "announcements"
   | "reservations"
@@ -27,6 +30,7 @@ export type RouteType =
   | "settingsAddonTypes"
   | "settingsLocations"
   | "settingsAddons"
+  | "settingsIncidentTypes"
   | "settingsUsers";
 
 /** Route ids that belong to the App Settings area, in the order they should be listed. */
@@ -36,6 +40,7 @@ export const SETTINGS_ROUTES: RouteType[] = [
   "settingsAddonTypes",
   "settingsLocations",
   "settingsAddons",
+  "settingsIncidentTypes",
   "settingsUsers",
 ];
 
@@ -96,6 +101,14 @@ export const ROUTES: Record<RouteType, RouteConfig> = {
     hash: "#visitors",
     requiresAuth: true,
     requiresResidentialAccess: true,
+  },
+  // Public, no session at all — the visitor opens this from an SMS/WhatsApp
+  // link. Dynamic route ("#fastlane/<code>"); see getCurrentRoute()/
+  // getFastlaneCodeFromHash(). hash here is a placeholder only.
+  fastlanePublic: {
+    id: "fastlanePublic",
+    hash: "#fastlane/:code",
+    requiresAuth: false,
   },
   incidents: {
     id: "incidents",
@@ -169,6 +182,12 @@ export const ROUTES: Record<RouteType, RouteConfig> = {
     requiresAuth: true,
     requiresResidentialAccess: true,
   },
+  settingsIncidentTypes: {
+    id: "settingsIncidentTypes",
+    hash: "#settings/incident-types",
+    requiresAuth: true,
+    requiresResidentialAccess: true,
+  },
   settingsUsers: {
     id: "settingsUsers",
     hash: "#settings/users",
@@ -184,6 +203,7 @@ export const ROUTES: Record<RouteType, RouteConfig> = {
 const UNIT_DETAIL_HASH_PREFIX = "#units/";
 const ADDON_DETAIL_HASH_PREFIX = "#addons/";
 const CHARGE_DETAIL_HASH_PREFIX = "#charges/";
+const FASTLANE_PUBLIC_HASH_PREFIX = "#fastlane/";
 
 /**
  * Get the current route based on the URL hash
@@ -201,6 +221,10 @@ export function getCurrentRoute(): RouteType {
 
   if (hash.startsWith(CHARGE_DETAIL_HASH_PREFIX) && hash.length > CHARGE_DETAIL_HASH_PREFIX.length) {
     return "chargeDetail";
+  }
+
+  if (hash.startsWith(FASTLANE_PUBLIC_HASH_PREFIX) && hash.length > FASTLANE_PUBLIC_HASH_PREFIX.length) {
+    return "fastlanePublic";
   }
 
   // Find matching route by hash
@@ -238,6 +262,16 @@ export function getChargeIdFromHash(): string | null {
   const hash = window.location.hash;
   if (!hash.startsWith(CHARGE_DETAIL_HASH_PREFIX)) return null;
   return decodeURIComponent(hash.slice(CHARGE_DETAIL_HASH_PREFIX.length)) || null;
+}
+
+/**
+ * Extract the FastLane access code from a "#fastlane/<code>" hash. Returns
+ * null when the current route isn't fastlanePublic.
+ */
+export function getFastlaneCodeFromHash(): string | null {
+  const hash = window.location.hash;
+  if (!hash.startsWith(FASTLANE_PUBLIC_HASH_PREFIX)) return null;
+  return decodeURIComponent(hash.slice(FASTLANE_PUBLIC_HASH_PREFIX.length)) || null;
 }
 
 /**
@@ -301,4 +335,31 @@ export function requiresResidentialAccess(route: RouteType): boolean {
  */
 export function isSettingsRoute(route: RouteType): boolean {
   return SETTINGS_ROUTES.includes(route);
+}
+
+// ============================================================================
+// Role-based Access
+// ============================================================================
+
+/** Routes the "security" role is allowed to access. Every other residential role can access every route. */
+const SECURITY_ROLE_ROUTES: RouteType[] = ["visitors", "reservations", "incidents", "announcements"];
+
+/**
+ * Check if a route is allowed for a given residential role.
+ */
+export function isRouteAllowedForRole(route: RouteType, role: ResidentialRole): boolean {
+  if (role === "security") {
+    return SECURITY_ROLE_ROUTES.includes(route);
+  }
+  return true;
+}
+
+/**
+ * Get the route a role should land on when its current route isn't allowed.
+ */
+export function getDefaultRouteForRole(role: ResidentialRole): RouteType {
+  if (role === "security") {
+    return "visitors";
+  }
+  return "residential";
 }

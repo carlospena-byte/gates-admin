@@ -239,37 +239,67 @@ export type Database = {
       }
       amenities: {
         Row: {
+          available_days: string[]
+          booking_duration_minutes: number | null
           capacity: number | null
+          cleanup_minutes: number | null
+          closing_time: string | null
           created_at: string
           description: string | null
           id: string
           is_active: boolean
           location: string | null
           name: string
+          opening_time: string | null
+          payment_methods: string[]
+          price: number | null
           requires_booking: boolean
+          requires_cleaning: boolean
+          requires_payment: boolean
           residential_id: string
+          terms: string | null
         }
         Insert: {
+          available_days?: string[]
+          booking_duration_minutes?: number | null
           capacity?: number | null
+          cleanup_minutes?: number | null
+          closing_time?: string | null
           created_at?: string
           description?: string | null
           id?: string
           is_active?: boolean
           location?: string | null
           name: string
+          opening_time?: string | null
+          payment_methods?: string[]
+          price?: number | null
           requires_booking?: boolean
+          requires_cleaning?: boolean
+          requires_payment?: boolean
           residential_id: string
+          terms?: string | null
         }
         Update: {
+          available_days?: string[]
+          booking_duration_minutes?: number | null
           capacity?: number | null
+          cleanup_minutes?: number | null
+          closing_time?: string | null
           created_at?: string
           description?: string | null
           id?: string
           is_active?: boolean
           location?: string | null
           name?: string
+          opening_time?: string | null
+          payment_methods?: string[]
+          price?: number | null
           requires_booking?: boolean
+          requires_cleaning?: boolean
+          requires_payment?: boolean
           residential_id?: string
+          terms?: string | null
         }
         Relationships: [
           {
@@ -277,6 +307,38 @@ export type Database = {
             columns: ["residential_id"]
             isOneToOne: false
             referencedRelation: "residentials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      amenity_booking_limits: {
+        Row: {
+          amenity_id: string
+          created_at: string
+          id: string
+          max_count: number
+          period: string
+        }
+        Insert: {
+          amenity_id: string
+          created_at?: string
+          id?: string
+          max_count: number
+          period: string
+        }
+        Update: {
+          amenity_id?: string
+          created_at?: string
+          id?: string
+          max_count?: number
+          period?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "amenity_booking_limits_amenity_id_fkey"
+            columns: ["amenity_id"]
+            isOneToOne: false
+            referencedRelation: "amenities"
             referencedColumns: ["id"]
           },
         ]
@@ -291,6 +353,7 @@ export type Database = {
           residential_id: string
           start_time: string
           status: string
+          unit_id: string | null
           user_id: string
         }
         Insert: {
@@ -302,6 +365,7 @@ export type Database = {
           residential_id: string
           start_time: string
           status?: string
+          unit_id?: string | null
           user_id: string
         }
         Update: {
@@ -313,6 +377,7 @@ export type Database = {
           residential_id?: string
           start_time?: string
           status?: string
+          unit_id?: string | null
           user_id?: string
         }
         Relationships: [
@@ -331,11 +396,96 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "amenity_bookings_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "amenity_bookings_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      amenity_images: {
+        Row: {
+          amenity_id: string
+          created_at: string
+          id: string
+          is_primary: boolean
+          residential_id: string
+          sort_order: number
+          storage_path: string
+        }
+        Insert: {
+          amenity_id: string
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          residential_id: string
+          sort_order?: number
+          storage_path: string
+        }
+        Update: {
+          amenity_id?: string
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          residential_id?: string
+          sort_order?: number
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "amenity_images_amenity_id_fkey"
+            columns: ["amenity_id"]
+            isOneToOne: false
+            referencedRelation: "amenities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "amenity_images_residential_id_fkey"
+            columns: ["residential_id"]
+            isOneToOne: false
+            referencedRelation: "residentials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      amenity_services: {
+        Row: {
+          amenity_id: string
+          is_featured: boolean
+          service_id: string
+        }
+        Insert: {
+          amenity_id: string
+          is_featured?: boolean
+          service_id: string
+        }
+        Update: {
+          amenity_id?: string
+          is_featured?: boolean
+          service_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "amenity_services_amenity_id_fkey"
+            columns: ["amenity_id"]
+            isOneToOne: false
+            referencedRelation: "amenities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "amenity_services_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -567,13 +717,71 @@ export type Database = {
           },
         ]
       }
+      incident_type_roles: {
+        Row: {
+          incident_type_id: string
+          role: string
+        }
+        Insert: {
+          incident_type_id: string
+          role: string
+        }
+        Update: {
+          incident_type_id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_type_roles_incident_type_id_fkey"
+            columns: ["incident_type_id"]
+            isOneToOne: false
+            referencedRelation: "incident_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      incident_types: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          residential_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          residential_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          residential_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incident_types_residential_id_fkey"
+            columns: ["residential_id"]
+            isOneToOne: false
+            referencedRelation: "residentials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       incidents: {
         Row: {
           assigned_to: string | null
-          category: string | null
           created_at: string
           description: string | null
           id: string
+          incident_type_id: string | null
           location: string | null
           priority: string
           reported_by: string | null
@@ -586,10 +794,10 @@ export type Database = {
         }
         Insert: {
           assigned_to?: string | null
-          category?: string | null
           created_at?: string
           description?: string | null
           id?: string
+          incident_type_id?: string | null
           location?: string | null
           priority?: string
           reported_by?: string | null
@@ -602,10 +810,10 @@ export type Database = {
         }
         Update: {
           assigned_to?: string | null
-          category?: string | null
           created_at?: string
           description?: string | null
           id?: string
+          incident_type_id?: string | null
           location?: string | null
           priority?: string
           reported_by?: string | null
@@ -623,6 +831,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "incidents_incident_type_id_fkey"
+            columns: ["incident_type_id"]
+            isOneToOne: false
+            referencedRelation: "incident_types"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "incidents_reported_by_fkey"
@@ -888,6 +1103,41 @@ export type Database = {
           },
         ]
       }
+      services: {
+        Row: {
+          created_at: string
+          icon: string | null
+          id: string
+          is_active: boolean
+          name: string
+          residential_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          residential_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          residential_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "services_residential_id_fkey"
+            columns: ["residential_id"]
+            isOneToOne: false
+            referencedRelation: "residentials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       unit_addons: {
         Row: {
           addon_item_id: string
@@ -975,6 +1225,97 @@ export type Database = {
             columns: ["unit_id"]
             isOneToOne: false
             referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      unit_invitations: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          code: string
+          created_at: string
+          created_by: string | null
+          email: string
+          expires_at: string
+          id: string
+          phone: string | null
+          residential_id: string
+          status: string
+          unit_id: string
+          unit_resident_id: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          code: string
+          created_at?: string
+          created_by?: string | null
+          email: string
+          expires_at?: string
+          id?: string
+          phone?: string | null
+          residential_id: string
+          status?: string
+          unit_id: string
+          unit_resident_id?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          email?: string
+          expires_at?: string
+          id?: string
+          phone?: string | null
+          residential_id?: string
+          status?: string
+          unit_id?: string
+          unit_resident_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unit_invitations_accepted_by_fkey"
+            columns: ["accepted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "unit_invitations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "unit_invitations_residential_id_fkey"
+            columns: ["residential_id"]
+            isOneToOne: false
+            referencedRelation: "residentials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unit_invitations_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unit_invitations_unit_resident_id_fkey"
+            columns: ["unit_resident_id"]
+            isOneToOne: false
+            referencedRelation: "unit_residents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unit_invitations_unit_resident_id_fkey"
+            columns: ["unit_resident_id"]
+            isOneToOne: false
+            referencedRelation: "unit_residents_with_status"
             referencedColumns: ["id"]
           },
         ]
@@ -1361,6 +1702,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "vehicles_resident_id_fkey"
+            columns: ["resident_id"]
+            isOneToOne: false
+            referencedRelation: "unit_residents_with_status"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "vehicles_residential_id_fkey"
             columns: ["residential_id"]
             isOneToOne: false
@@ -1381,49 +1729,82 @@ export type Database = {
           access_code: string | null
           created_at: string
           id: string
+          id_photo_path: string | null
           invited_by: string | null
-          name: string
+          name: string | null
           notes: string | null
           phone: string | null
           plate: string | null
+          provider_kind: string | null
+          recurrence: string | null
+          recurrence_days: string[] | null
+          registered_at: string | null
+          registration_channel: string | null
           residential_id: string
+          schedule_end: string | null
+          schedule_start: string | null
+          schedule_type: string
           status: string
           unit_id: string | null
           updated_at: string
           valid_from: string
           valid_until: string
+          visit_type: string
+          visitor_role: string | null
         }
         Insert: {
           access_code?: string | null
           created_at?: string
           id?: string
+          id_photo_path?: string | null
           invited_by?: string | null
-          name: string
+          name?: string | null
           notes?: string | null
           phone?: string | null
           plate?: string | null
+          provider_kind?: string | null
+          recurrence?: string | null
+          recurrence_days?: string[] | null
+          registered_at?: string | null
+          registration_channel?: string | null
           residential_id: string
+          schedule_end?: string | null
+          schedule_start?: string | null
+          schedule_type?: string
           status?: string
           unit_id?: string | null
           updated_at?: string
           valid_from?: string
           valid_until: string
+          visit_type?: string
+          visitor_role?: string | null
         }
         Update: {
           access_code?: string | null
           created_at?: string
           id?: string
+          id_photo_path?: string | null
           invited_by?: string | null
-          name?: string
+          name?: string | null
           notes?: string | null
           phone?: string | null
           plate?: string | null
+          provider_kind?: string | null
+          recurrence?: string | null
+          recurrence_days?: string[] | null
+          registered_at?: string | null
+          registration_channel?: string | null
           residential_id?: string
+          schedule_end?: string | null
+          schedule_start?: string | null
+          schedule_type?: string
           status?: string
           unit_id?: string | null
           updated_at?: string
           valid_from?: string
           valid_until?: string
+          visit_type?: string
+          visitor_role?: string | null
         }
         Relationships: [
           {
@@ -1464,8 +1845,125 @@ export type Database = {
         }
         Relationships: []
       }
+      unit_residents_with_status: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          full_name: string | null
+          id: string | null
+          is_active: boolean | null
+          phone: string | null
+          residential_id: string | null
+          status: string | null
+          unit_id: string | null
+          units: Json | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unit_residents_residential_id_fkey"
+            columns: ["residential_id"]
+            isOneToOne: false
+            referencedRelation: "residentials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unit_residents_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      accept_unit_invitation: {
+        Args: { _code: string }
+        Returns: {
+          created_at: string
+          residential_id: string
+          unit_id: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "unit_members"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      create_fastlane_visit: {
+        Args: {
+          _notes?: string
+          _phone: string
+          _residential_id: string
+          _unit_id: string
+          _visit_date: string
+        }
+        Returns: {
+          access_code: string | null
+          created_at: string
+          id: string
+          id_photo_path: string | null
+          invited_by: string | null
+          name: string | null
+          notes: string | null
+          phone: string | null
+          plate: string | null
+          provider_kind: string | null
+          recurrence: string | null
+          recurrence_days: string[] | null
+          registered_at: string | null
+          registration_channel: string | null
+          residential_id: string
+          schedule_end: string | null
+          schedule_start: string | null
+          schedule_type: string
+          status: string
+          unit_id: string | null
+          updated_at: string
+          valid_from: string
+          valid_until: string
+          visit_type: string
+          visitor_role: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "visitors"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      create_unit_invitation: {
+        Args: {
+          _email: string
+          _phone?: string
+          _unit_id: string
+          _unit_resident_id?: string
+        }
+        Returns: {
+          accepted_at: string | null
+          accepted_by: string | null
+          code: string
+          created_at: string
+          created_by: string | null
+          email: string
+          expires_at: string
+          id: string
+          phone: string | null
+          residential_id: string
+          status: string
+          unit_id: string
+          unit_resident_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "unit_invitations"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       find_profile_id_by_email: { Args: { _email: string }; Returns: string }
       is_platform_admin: { Args: never; Returns: boolean }
       is_residential_admin: {
@@ -1487,6 +1985,19 @@ export type Database = {
       is_residential_true_owner: {
         Args: { _residential_id: string }
         Returns: boolean
+      }
+      remove_unit_resident: { Args: { _id: string }; Returns: boolean }
+      revoke_unit_invitation: { Args: { _id: string }; Returns: undefined }
+      unit_resident_status: {
+        Args: { _email: string; _unit_id: string; _unit_resident_id: string }
+        Returns: string
+      }
+      validate_unit_invitation: {
+        Args: { _code: string; _email: string }
+        Returns: {
+          residential_name: string
+          unit_name: string
+        }[]
       }
     }
     Enums: {

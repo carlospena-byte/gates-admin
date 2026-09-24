@@ -209,8 +209,11 @@ content_path = "./supabase/templates/magic_link.html"
 # content_path = "./templates/password_changed_notification.html"
 
 [auth.sms]
-# Allow/disallow new user signups via SMS to your project.
-enable_signup = false
+# Allow/disallow new user signups via SMS to your project. Residents are
+# passwordless (email or phone OTP only), so a resident who chooses "Usar
+# mi teléfono" during registration needs this enabled to create their
+# account — not just sign in to an existing one.
+enable_signup = true
 # If enabled, users need to confirm their phone number before signing in.
 enable_confirmations = false
 # Template for sending OTP to users
@@ -324,6 +327,11 @@ enabled = false
 authorization_url_path = "/oauth/consent"
 # Allow dynamic client registration
 allow_dynamic_registration = false
+
+[functions.fastlane-submit]
+# The visitor opens this link with no Supabase session at all — the
+# access_code inside the request body is the only credential.
+verify_jwt = false
 
 [edge_runtime]
 enabled = true

@@ -375,6 +375,29 @@ BEGIN
   ON CONFLICT (residential_id, name) DO UPDATE SET
     location_id = EXCLUDED.location_id;
 
+  -- ============================================================================
+  -- STEP 10: Create default incident types
+  -- Security gets extra visibility on Seguridad/Ruido (sees + manages every
+  -- incident of that type, not just ones it reported), matching the example
+  -- from the Ajustes > Tipos de incidencia feature. Owner/admin always have
+  -- full access and don't need a row in incident_type_roles.
+  -- ============================================================================
+
+  INSERT INTO public.incident_types (id, residential_id, name)
+  VALUES
+    ('880e8400-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440000', 'Mantenimiento'),
+    ('880e8400-e29b-41d4-a716-446655440002', '550e8400-e29b-41d4-a716-446655440000', 'Seguridad'),
+    ('880e8400-e29b-41d4-a716-446655440003', '550e8400-e29b-41d4-a716-446655440000', 'Ruido'),
+    ('880e8400-e29b-41d4-a716-446655440004', '550e8400-e29b-41d4-a716-446655440000', 'Limpieza'),
+    ('880e8400-e29b-41d4-a716-446655440005', '550e8400-e29b-41d4-a716-446655440000', 'Otro')
+  ON CONFLICT (residential_id, name) DO UPDATE SET name = EXCLUDED.name;
+
+  INSERT INTO public.incident_type_roles (incident_type_id, role)
+  VALUES
+    ('880e8400-e29b-41d4-a716-446655440002', 'security'),
+    ('880e8400-e29b-41d4-a716-446655440003', 'security')
+  ON CONFLICT (incident_type_id, role) DO NOTHING;
+
   RAISE NOTICE '✅ Seed data created successfully!';
   RAISE NOTICE '';
   RAISE NOTICE '📋 Test Credentials (Password & OTP):';
@@ -384,7 +407,7 @@ BEGIN
   RAISE NOTICE '  - Security:       security@residential.com / test123';
   RAISE NOTICE '';
   RAISE NOTICE '🏢 Demo Residential: "Demo Residential Complex"';
-  RAISE NOTICE '📦 Sample Data: 4 unit types, 8 location types, 5 amenities, 3 locations (Torre 1 > Piso 1, Pasaje El Carao), 6 units';
+  RAISE NOTICE '📦 Sample Data: 4 unit types, 8 location types, 5 amenities, 3 locations (Torre 1 > Piso 1, Pasaje El Carao), 6 units, 5 incident types';
   RAISE NOTICE '';
   RAISE NOTICE '🔗 Mailpit (view OTP emails): http://localhost:8025';
 

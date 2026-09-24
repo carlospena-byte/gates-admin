@@ -16,7 +16,7 @@ export const amenityBookingService = createCrudService<
   CreateAmenityBookingDto,
   UpdateAmenityBookingDto
 >("amenity_bookings", {
-  parentColumn: "amenity_id",
+  parentColumn: "residential_id",
   orderBy: "start_time",
-  selectClause: "*, profiles:user_id(email)",
+  selectClause: "*, profiles:user_id(email), units:unit_id(name), amenities:amenity_id(name)",
 });

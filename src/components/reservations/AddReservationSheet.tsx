@@ -7,19 +7,36 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Spinner } from "@/components/LoadingStates";
+import { useI18n } from "@/i18n/useI18n";
+
+const MAX_HOURS = 6;
+
+export interface UnitOption {
+  id: string;
+  name: string;
+}
+
+export interface AmenityOption {
+  id: string;
+  name: string;
+}
 
 export interface NewReservationFields {
+  amenityId: string;
+  unitId: string;
   startTime: string;
-  endTime: string;
+  hours: number;
   notes: string;
 }
 
 interface AddReservationSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  amenityName: string;
+  amenities: AmenityOption[];
+  units: UnitOption[];
   isSubmitting: boolean;
   onCreate: (fields: NewReservationFields) => Promise<boolean>;
 }
@@ -33,11 +50,11 @@ function defaultFields(): NewReservationFields {
   const now = new Date();
   now.setMinutes(0, 0, 0);
   now.setHours(now.getHours() + 1);
-  const later = new Date(now.getTime() + 60 * 60 * 1000);
-  return { startTime: toDatetimeLocalValue(now), endTime: toDatetimeLocalValue(later), notes: "" };
+  return { amenityId: "", unitId: "", startTime: toDatetimeLocalValue(now), hours: 1, notes: "" };
 }
 
-export function AddReservationSheet({ open, onOpenChange, amenityName, isSubmitting, onCreate }: AddReservationSheetProps) {
+export function AddReservationSheet({ open, onOpenChange, amenities, units, isSubmitting, onCreate }: AddReservationSheetProps) {
+  const { t } = useI18n();
   const [fields, setFields] = useState<NewReservationFields>(defaultFields);
   const set = <K extends keyof NewReservationFields>(key: K, value: NewReservationFields[K]) =>
     setFields((prev) => ({ ...prev, [key]: value }));
@@ -47,7 +64,12 @@ export function AddReservationSheet({ open, onOpenChange, amenityName, isSubmitt
     onOpenChange(nextOpen);
   };
 
-  const isValid = fields.startTime && fields.endTime && fields.endTime > fields.startTime;
+  const isValid =
+    Boolean(fields.amenityId) &&
+    Boolean(fields.unitId) &&
+    Boolean(fields.startTime) &&
+    fields.hours > 0 &&
+    fields.hours <= MAX_HOURS;
 
   const handleAdd = async () => {
     if (!isValid) return;
@@ -62,30 +84,62 @@ export function AddReservationSheet({ open, onOpenChange, amenityName, isSubmitt
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
         <SheetHeader>
-          <SheetTitle>Book {amenityName}</SheetTitle>
-          <SheetDescription>Choose a time window — overlapping bookings are rejected automatically.</SheetDescription>
+          <SheetTitle>{t("reservations.add.title")}</SheetTitle>
+          <SheetDescription>{t("reservations.add.description", { hours: MAX_HOURS })}</SheetDescription>
         </SheetHeader>
 
         <div className="space-y-4 py-6">
-          <div className="grid gap-2 sm:grid-cols-2">
+          <Select value={fields.amenityId} onValueChange={(value) => set("amenityId", value)}>
+            <SelectTrigger label={t("reservations.add.amenity.label")}>
+              <SelectValue placeholder={t("reservations.add.amenity.placeholder")} />
+            </SelectTrigger>
+            <SelectContent>
+              {amenities.map((amenity) => (
+                <SelectItem key={amenity.id} value={amenity.id}>
+                  {amenity.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={fields.unitId} onValueChange={(value) => set("unitId", value)}>
+            <SelectTrigger label={t("reservations.add.unit.label")}>
+              <SelectValue placeholder={t("reservations.add.unit.placeholder")} />
+            </SelectTrigger>
+            <SelectContent>
+              {units.map((unit) => (
+                <SelectItem key={unit.id} value={unit.id}>
+                  {unit.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <div className="grid gap-2 grid-cols-1">
             <Input
-              label="Start"
+              label={t("reservations.add.start.label")}
               type="datetime-local"
               value={fields.startTime}
               onChange={(e) => set("startTime", e.target.value)}
               disabled={isSubmitting}
             />
             <Input
-              label="End"
-              type="datetime-local"
-              value={fields.endTime}
-              onChange={(e) => set("endTime", e.target.value)}
+              label={t("reservations.add.hours.label", { hours: MAX_HOURS })}
+              type="number"
+              min={1}
+              max={MAX_HOURS}
+              step={0.5}
+              value={fields.hours}
+              onChange={(e) => set("hours", Number(e.target.value))}
               disabled={isSubmitting}
             />
           </div>
+          {fields.hours > MAX_HOURS ? (
+            <p className="text-sm text-destructive">{t("reservations.add.hours.error", { hours: MAX_HOURS })}</p>
+          ) : null}
 
           <Input
-            label="Notes (optional)"
+            label={t("reservations.add.notes.label")}
             value={fields.notes}
             onChange={(e) => set("notes", e.target.value)}
             disabled={isSubmitting}
@@ -94,10 +148,10 @@ export function AddReservationSheet({ open, onOpenChange, amenityName, isSubmitt
 
         <SheetFooter>
           <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={isSubmitting}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button onClick={handleAdd} disabled={isSubmitting || !isValid}>
-            {isSubmitting ? <Spinner size="sm" /> : "Book"}
+            {isSubmitting ? <Spinner size="sm" /> : t("reservations.add.submit")}
           </Button>
         </SheetFooter>
       </SheetContent>

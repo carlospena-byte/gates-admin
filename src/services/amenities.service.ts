@@ -1,6 +1,9 @@
 import { requireSupabase } from "../lib/supabaseClient";
-import type { Amenity, InsertAmenity, UpdateAmenity } from "../types/amenities.types";
+import type { Amenity, AmenityWithDetails, InsertAmenity, UpdateAmenity } from "../types/amenities.types";
 import { unwrap, wrapResult, type ApiResult } from "./apiResult";
+
+const WITH_DETAILS_SELECT =
+  "*, amenity_images(*), amenity_services(*, services(*)), amenity_booking_limits(*)";
 
 // ============================================================================
 // Amenities Service
@@ -24,6 +27,14 @@ export const amenitiesService = {
     return wrapResult("Failed to get amenity", () =>
       unwrap<Amenity | null>(
         requireSupabase().from("amenities").select("*").eq("id", id).maybeSingle(),
+      ),
+    );
+  },
+
+  getByIdWithDetails(id: string): Promise<ApiResult<AmenityWithDetails | null>> {
+    return wrapResult("Failed to get amenity", () =>
+      unwrap<AmenityWithDetails | null>(
+        requireSupabase().from("amenities").select(WITH_DETAILS_SELECT).eq("id", id).maybeSingle(),
       ),
     );
   },

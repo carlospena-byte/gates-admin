@@ -12,6 +12,7 @@ import { Pagination } from "@/components/Pagination";
 import { SortableTableHead } from "@/components/SortableTableHead";
 import { cn } from "@/lib/utils";
 import { usePaginatedSortedData } from "@/hooks/usePaginatedSortedData";
+import { useI18n } from "@/i18n/useI18n";
 import type { AmenityBookingStatus, AmenityBookingWithUser } from "@/types/amenities.types";
 
 const STATUS_STYLES: Record<AmenityBookingStatus, string> = {
@@ -30,6 +31,7 @@ interface ReservationTableProps {
 }
 
 export function ReservationTable({ bookings, isLoading, isSubmitting, currentUserId, canManage, onCancel }: ReservationTableProps) {
+  const { t } = useI18n();
   const {
     paginatedData: paginatedBookings,
     totalItems,
@@ -56,7 +58,7 @@ export function ReservationTable({ bookings, isLoading, isSubmitting, currentUse
   }
 
   if (bookings.length === 0) {
-    return <div className="py-8 text-center text-sm text-muted-foreground">No reservations for this amenity yet.</div>;
+    return <div className="py-8 text-center text-sm text-muted-foreground">{t("reservations.table.empty")}</div>;
   }
 
   return (
@@ -65,14 +67,16 @@ export function ReservationTable({ bookings, isLoading, isSubmitting, currentUse
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>{t("reservations.table.amenity")}</TableHead>
               <SortableTableHead field="start_time" currentSortField={sortField} sortOrder={sortOrder} onSort={handleSort}>
-                Start
+                {t("reservations.table.start")}
               </SortableTableHead>
-              <TableHead>End</TableHead>
-              <TableHead>Booked By</TableHead>
-              <TableHead>Notes</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>{t("reservations.table.end")}</TableHead>
+              <TableHead>{t("common.unit")}</TableHead>
+              <TableHead>{t("reservations.table.bookedBy")}</TableHead>
+              <TableHead>{t("common.notes")}</TableHead>
+              <TableHead>{t("common.status")}</TableHead>
+              <TableHead className="text-right">{t("common.actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -80,10 +84,12 @@ export function ReservationTable({ bookings, isLoading, isSubmitting, currentUse
               const canCancel = booking.status !== "cancelled" && (canManage || booking.user_id === currentUserId);
               return (
                 <TableRow key={booking.id}>
+                  <TableCell className="text-sm font-medium">{booking.amenities?.name ?? "—"}</TableCell>
                   <TableCell className="text-sm">{new Date(booking.start_time).toLocaleString()}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {new Date(booking.end_time).toLocaleString()}
                   </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{booking.units?.name ?? "—"}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{booking.profiles?.email ?? "—"}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{booking.notes ?? "—"}</TableCell>
                   <TableCell>
@@ -94,7 +100,7 @@ export function ReservationTable({ bookings, isLoading, isSubmitting, currentUse
                   <TableCell className="text-right">
                     {canCancel && (
                       <Button size="sm" variant="ghost" disabled={isSubmitting} onClick={() => onCancel(booking.id)}>
-                        Cancel
+                        {t("common.cancel")}
                       </Button>
                     )}
                   </TableCell>

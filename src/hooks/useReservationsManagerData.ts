@@ -1,22 +1,24 @@
 /**
  * Data fetching and mutations for the Reservations page. Loads the
- * residential's amenities once, then bookings for whichever amenity is
- * currently selected — same "reload on mount / on selection change"
- * convention as every other Manager hook.
+ * residential's amenities, units, and all its bookings (across every
+ * amenity) up front — the amenity picker lives in the booking sheet, not
+ * as a page-level filter.
  */
 
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { amenitiesService, amenityBookingService } from "@/services";
+import { amenitiesService, amenityBookingService, unitService } from "@/services";
 import type {
   Amenity,
   AmenityBookingWithUser,
   CreateAmenityBookingDto,
 } from "@/types/amenities.types";
+import type { UnitWithOwner } from "@/services/api.service";
 
 export interface ReservationFormPayload {
   amenityId: string;
   userId: string;
+  unitId: string;
   startTime: string;
   endTime: string;
   notes: string;
@@ -24,7 +26,7 @@ export interface ReservationFormPayload {
 
 export function useReservationsManagerData(residentialId: string) {
   const [amenities, setAmenities] = useState<Amenity[]>([]);
-  const [selectedAmenityId, setSelectedAmenityId] = useState<string>("");
+  const [units, setUnits] = useState<UnitWithOwner[]>([]);
   const [bookings, setBookings] = useState<AmenityBookingWithUser[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -33,23 +35,23 @@ export function useReservationsManagerData(residentialId: string) {
     const result = await amenitiesService.listByResidential(residentialId);
     if (result.success) {
       setAmenities(result.data);
-      setSelectedAmenityId((current) => current || result.data[0]?.id || "");
     } else {
       toast.error(result.error.message);
     }
   }, [residentialId]);
 
-  useEffect(() => {
-    void loadAmenities();
-  }, [loadAmenities]);
+  const loadUnits = useCallback(async () => {
+    const result = await unitService.listByResidential(residentialId);
+    if (result.success) {
+      setUnits(result.data);
+    } else {
+      toast.error(result.error.message);
+    }
+  }, [residentialId]);
 
   const loadBookings = useCallback(async () => {
-    if (!selectedAmenityId) {
-      setBookings([]);
-      return;
-    }
     setIsLoading(true);
-    const result = await amenityBookingService.list(selectedAmenityId);
+    const result = await amenityBookingService.list(residentialId);
     setIsLoading(false);
 
     if (result.success) {
@@ -57,11 +59,13 @@ export function useReservationsManagerData(residentialId: string) {
     } else {
       toast.error(result.error.message);
     }
-  }, [selectedAmenityId]);
+  }, [residentialId]);
 
   useEffect(() => {
+    void loadAmenities();
+    void loadUnits();
     void loadBookings();
-  }, [loadBookings]);
+  }, [loadAmenities, loadUnits, loadBookings]);
 
   const createBooking = useCallback(
     async (payload: ReservationFormPayload): Promise<boolean> => {
@@ -71,6 +75,7 @@ export function useReservationsManagerData(residentialId: string) {
         amenity_id: payload.amenityId,
         residential_id: residentialId,
         user_id: payload.userId,
+        unit_id: payload.unitId,
         start_time: payload.startTime,
         end_time: payload.endTime,
         notes: payload.notes || null,
@@ -114,13 +119,12 @@ export function useReservationsManagerData(residentialId: string) {
   );
 
   const reload = useCallback(async () => {
-    await Promise.all([loadAmenities(), loadBookings()]);
-  }, [loadAmenities, loadBookings]);
+    await Promise.all([loadAmenities(), loadUnits(), loadBookings()]);
+  }, [loadAmenities, loadUnits, loadBookings]);
 
   return {
     amenities,
-    selectedAmenityId,
-    setSelectedAmenityId,
+    units,
     bookings,
     isLoading,
     isSubmitting,

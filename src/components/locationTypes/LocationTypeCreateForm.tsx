@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/LoadingStates";
 import { PlusIcon } from "@/components/icons";
+import { useI18n } from "@/i18n/useI18n";
 
 interface LocationTypeCreateFormProps {
   isSubmitting: boolean;
@@ -10,6 +11,7 @@ interface LocationTypeCreateFormProps {
 }
 
 export function LocationTypeCreateForm({ isSubmitting, onCreate }: LocationTypeCreateFormProps) {
+  const { t } = useI18n();
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
   const [level, setLevel] = useState("1");
@@ -29,24 +31,24 @@ export function LocationTypeCreateForm({ isSubmitting, onCreate }: LocationTypeC
 
   return (
     <div className="space-y-2">
-      <label className="text-sm font-medium">Add New Location Type</label>
+      <label className="text-sm font-medium">{t("locationType.create.label")}</label>
       <div className="grid grid-cols-3 gap-2">
         <Input
-          label="Display Name"
+          label={t("locationType.create.nameLabel")}
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="e.g., Edificio"
+          placeholder={t("locationType.create.namePlaceholder")}
           disabled={isSubmitting}
         />
         <Input
-          label="Code"
+          label={t("locationType.code")}
           value={code}
           onChange={(e) => setCode(e.target.value.toUpperCase())}
-          placeholder="e.g., EDIFICIO"
+          placeholder={t("locationType.create.codePlaceholder")}
           disabled={isSubmitting}
         />
         <Input
-          label="Level"
+          label={t("locationType.level")}
           type="number"
           min={1}
           value={level}
@@ -54,10 +56,7 @@ export function LocationTypeCreateForm({ isSubmitting, onCreate }: LocationTypeC
           disabled={isSubmitting}
         />
       </div>
-      <p className="text-xs text-muted-foreground">
-        Level 1 = top of the hierarchy (e.g. Edificio, Bloque). Level 2 goes under a level 1
-        location (e.g. Piso, Polígono), and so on.
-      </p>
+      <p className="text-xs text-muted-foreground">{t("locationType.create.levelHelp")}</p>
       <Button
         onClick={handleCreate}
         disabled={isSubmitting || !name.trim() || !code.trim() || !isLevelValid}
@@ -67,7 +66,7 @@ export function LocationTypeCreateForm({ isSubmitting, onCreate }: LocationTypeC
           <Spinner size="sm" />
         ) : (
           <>
-            <PlusIcon /> <span className="ml-2">Add Type</span>
+            <PlusIcon /> <span className="ml-2">{t("locationType.create.submit")}</span>
           </>
         )}
       </Button>

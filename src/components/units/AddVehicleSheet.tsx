@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Spinner } from "@/components/LoadingStates";
+import { useI18n } from "@/i18n/useI18n";
 
 export interface NewVehicleFields {
   plate: string;
@@ -26,6 +27,7 @@ interface AddVehicleSheetProps {
 const EMPTY: NewVehicleFields = { plate: "", brand: "", model: "", color: "" };
 
 export function AddVehicleSheet({ open, onOpenChange, isSubmitting, onCreate }: AddVehicleSheetProps) {
+  const { t } = useI18n();
   const [fields, setFields] = useState<NewVehicleFields>(EMPTY);
   const set = <K extends keyof NewVehicleFields>(key: K, value: NewVehicleFields[K]) =>
     setFields((prev) => ({ ...prev, [key]: value }));
@@ -48,31 +50,31 @@ export function AddVehicleSheet({ open, onOpenChange, isSubmitting, onCreate }: 
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
         <SheetHeader>
-          <SheetTitle>Add vehicle</SheetTitle>
-          <SheetDescription>Register a vehicle for this unit.</SheetDescription>
+          <SheetTitle>{t("vehicles.create.title")}</SheetTitle>
+          <SheetDescription>{t("vehicles.create.description")}</SheetDescription>
         </SheetHeader>
 
         <div className="space-y-4 py-6">
           <Input
-            label="Plate"
+            label={t("vehicles.table.plate")}
             value={fields.plate}
             onChange={(e) => set("plate", e.target.value)}
             disabled={isSubmitting}
           />
           <Input
-            label="Brand (optional)"
+            label={t("vehicles.create.brandLabel")}
             value={fields.brand}
             onChange={(e) => set("brand", e.target.value)}
             disabled={isSubmitting}
           />
           <Input
-            label="Model (optional)"
+            label={t("vehicles.create.modelLabel")}
             value={fields.model}
             onChange={(e) => set("model", e.target.value)}
             disabled={isSubmitting}
           />
           <Input
-            label="Color (optional)"
+            label={t("vehicles.create.colorLabel")}
             value={fields.color}
             onChange={(e) => set("color", e.target.value)}
             disabled={isSubmitting}
@@ -81,10 +83,10 @@ export function AddVehicleSheet({ open, onOpenChange, isSubmitting, onCreate }: 
 
         <SheetFooter>
           <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={isSubmitting}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button onClick={handleAdd} disabled={isSubmitting || !fields.plate.trim()}>
-            {isSubmitting ? <Spinner size="sm" /> : "Add vehicle"}
+            {isSubmitting ? <Spinner size="sm" /> : t("vehicles.create.submit")}
           </Button>
         </SheetFooter>
       </SheetContent>

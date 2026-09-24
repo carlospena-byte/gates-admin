@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/LoadingStates";
 import { PlusIcon } from "@/components/icons";
+import { useI18n } from "@/i18n/useI18n";
 import type { AddonFormPayload } from "@/hooks/useAddonManagerData";
 import type { AddonType } from "@/types/unit-wizard.types";
 
@@ -14,6 +15,7 @@ interface AddonCreateFormProps {
 }
 
 export function AddonCreateForm({ addonTypes, isSubmitting, onCreate }: AddonCreateFormProps) {
+  const { t } = useI18n();
   const [name, setName] = useState("");
   const [typeId, setTypeId] = useState("");
 
@@ -28,18 +30,18 @@ export function AddonCreateForm({ addonTypes, isSubmitting, onCreate }: AddonCre
 
   return (
     <div className="space-y-2">
-      <label className="text-sm font-medium">Add New Addon</label>
+      <label className="text-sm font-medium">{t("addon.create.label")}</label>
       <div className="space-y-2">
         <Input
-          label="Addon Name"
+          label={t("addon.create.nameLabel")}
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="e.g., Covered Parking, Storage Unit..."
+          placeholder={t("addon.create.namePlaceholder")}
           disabled={isSubmitting}
         />
         <Select value={typeId} onValueChange={setTypeId} disabled={isSubmitting}>
-          <SelectTrigger label="Addon Type">
-            <SelectValue placeholder="Select addon type" />
+          <SelectTrigger label={t("addonType.entityLabel")}>
+            <SelectValue placeholder={t("addon.create.typePlaceholder")} />
           </SelectTrigger>
           <SelectContent>
             {addonTypes.filter((type) => type.is_active).length > 0 ? (
@@ -52,7 +54,7 @@ export function AddonCreateForm({ addonTypes, isSubmitting, onCreate }: AddonCre
                 ))
             ) : (
               <SelectItem value="none" disabled>
-                No types available - Click "Manage Types" to add
+                {t("addon.create.noTypesAvailable")}
               </SelectItem>
             )}
           </SelectContent>
@@ -62,7 +64,7 @@ export function AddonCreateForm({ addonTypes, isSubmitting, onCreate }: AddonCre
             <Spinner size="sm" />
           ) : (
             <>
-              <PlusIcon /> <span className="ml-2">Add Addon</span>
+              <PlusIcon /> <span className="ml-2">{t("addon.create.submit")}</span>
             </>
           )}
         </Button>

@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/LoadingStates";
 import { PlusIcon } from "@/components/icons";
 import { LocationCombobox } from "@/components/units/LocationCombobox";
+import { useI18n } from "@/i18n/useI18n";
 import type { AddonItemFormPayload } from "@/hooks/useAddonItemManagerData";
 import type { Location, LocationTypeDefinition } from "@/types/unit-wizard.types";
 
@@ -20,6 +21,7 @@ export function AddonItemCreateForm({
   isSubmitting,
   onCreate,
 }: AddonItemCreateFormProps) {
+  const { t } = useI18n();
   const [name, setName] = useState("");
   const [locationId, setLocationId] = useState("");
   const [price, setPrice] = useState("");
@@ -36,23 +38,23 @@ export function AddonItemCreateForm({
 
   return (
     <div className="space-y-2">
-      <label className="text-sm font-medium">Add New Addon Item</label>
+      <label className="text-sm font-medium">{t("addonItem.create.label")}</label>
       <div className="space-y-2">
         <Input
-          label="Item Name"
+          label={t("addonItem.create.nameLabel")}
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="e.g., P1 101"
+          placeholder={t("addonItem.create.namePlaceholder")}
           disabled={isSubmitting}
         />
         <Input
-          label="Price (optional)"
+          label={t("addonItem.create.priceLabel")}
           type="number"
           min="0"
           step="0.01"
           value={price}
           onChange={(e) => setPrice(e.target.value)}
-          placeholder="e.g., 50.00"
+          placeholder={t("addonItem.create.pricePlaceholder")}
           disabled={isSubmitting}
         />
         <LocationCombobox
@@ -67,7 +69,7 @@ export function AddonItemCreateForm({
             <Spinner size="sm" />
           ) : (
             <>
-              <PlusIcon /> <span className="ml-2">Add Item</span>
+              <PlusIcon /> <span className="ml-2">{t("addonItem.create.submit")}</span>
             </>
           )}
         </Button>

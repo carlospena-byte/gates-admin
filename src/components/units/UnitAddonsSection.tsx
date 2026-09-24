@@ -16,6 +16,7 @@ import { DeleteIcon, EditIcon, PlusIcon } from "@/components/icons";
 import { getAddonTypeIcon } from "@/lib/addonTypeIcon";
 import { getLocationFullPath } from "@/lib/locationHierarchy";
 import { formatCurrency } from "@/lib/utils";
+import { useI18n } from "@/i18n/useI18n";
 import type {
   AddonItem,
   AddonType,
@@ -47,6 +48,7 @@ export function UnitAddonsSection({
   isSubmitting,
   disabled,
 }: UnitAddonsSectionProps) {
+  const { t } = useI18n();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<AddonItem | null>(null);
 
@@ -60,19 +62,21 @@ export function UnitAddonsSection({
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-2">
         <div>
-          <p className="text-sm font-medium">Add-ons ({assignedItems.length})</p>
-          <p className="text-xs text-muted-foreground">Additional items or services assigned to this unit.</p>
+          <p className="text-sm font-medium">
+            {t("units.addons.title", { count: assignedItems.length })}
+          </p>
+          <p className="text-xs text-muted-foreground">{t("units.addons.description")}</p>
         </div>
         <Button variant="outline" size="sm" onClick={() => setSheetOpen(true)} disabled={disabled}>
-          <PlusIcon /> <span className="ml-2">Add add-on</span>
+          <PlusIcon /> <span className="ml-2">{t("units.addons.addButton")}</span>
         </Button>
       </div>
 
       {assignedItems.length === 0 ? (
         <div className="space-y-3 rounded-md border p-6 text-center">
-          <p className="text-sm text-muted-foreground">No add-ons assigned to this unit yet.</p>
+          <p className="text-sm text-muted-foreground">{t("units.addons.empty")}</p>
           <Button variant="outline" size="sm" onClick={() => setSheetOpen(true)} disabled={disabled}>
-            <PlusIcon /> <span className="ml-2">Add add-on</span>
+            <PlusIcon /> <span className="ml-2">{t("units.addons.addButton")}</span>
           </Button>
         </div>
       ) : (
@@ -80,11 +84,11 @@ export function UnitAddonsSection({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Add-on</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Location</TableHead>
-                <TableHead className="w-[110px]">Price</TableHead>
-                <TableHead className="w-[100px] text-right">Actions</TableHead>
+                <TableHead>{t("units.addons.columnAddon")}</TableHead>
+                <TableHead>{t("common.type")}</TableHead>
+                <TableHead>{t("common.location")}</TableHead>
+                <TableHead className="w-[110px]">{t("common.price")}</TableHead>
+                <TableHead className="w-[100px] text-right">{t("common.actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -106,10 +110,12 @@ export function UnitAddonsSection({
                       {item.addons?.addon_types?.name || "—"}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {item.locations ? getLocationFullPath(item.locations, locations) : "No location"}
+                      {item.locations ? getLocationFullPath(item.locations, locations) : t("units.common.noLocation")}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {item.price !== null ? `${formatCurrency(item.price)} / month` : "—"}
+                      {item.price !== null
+                        ? t("units.addons.priceMonthly", { price: formatCurrency(item.price) })
+                        : "—"}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">

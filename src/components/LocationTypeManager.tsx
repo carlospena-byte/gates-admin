@@ -17,6 +17,7 @@ import {
 import { LocationTypeCreateForm } from "@/components/locationTypes/LocationTypeCreateForm";
 import { LocationTypeTable } from "@/components/locationTypes/LocationTypeTable";
 import { useLocationTypeManagerData } from "@/hooks/useLocationTypeManagerData";
+import { useI18n } from "@/i18n/useI18n";
 
 export function LocationTypeSettingsPanel({
   residentialId,
@@ -57,14 +58,13 @@ export function LocationTypeManager({
   residentialId,
   onTypesUpdated,
 }: LocationTypeManagerProps) {
+  const { t } = useI18n();
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
         <SheetHeader>
-          <SheetTitle>Manage Location Types</SheetTitle>
-          <SheetDescription>
-            Define the types of locations available (e.g., Tower, Floor, Polygon)
-          </SheetDescription>
+          <SheetTitle>{t("locationType.manager.title")}</SheetTitle>
+          <SheetDescription>{t("locationType.manager.description")}</SheetDescription>
         </SheetHeader>
 
         <div className="py-4">

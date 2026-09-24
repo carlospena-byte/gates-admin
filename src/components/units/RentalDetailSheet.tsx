@@ -5,6 +5,7 @@
  * status-select/payments-toggle/delete row actions.
  */
 
+import { useI18n } from "@/i18n/useI18n";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -32,6 +33,7 @@ export function RentalDetailSheet({
   onStatusChange,
   onDelete,
 }: RentalDetailSheetProps) {
+  const { t } = useI18n();
   return (
     <Sheet open={!!rental} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-lg">
@@ -40,7 +42,8 @@ export function RentalDetailSheet({
             <SheetHeader>
               <SheetTitle>{rental.tenant_name}</SheetTitle>
               <SheetDescription>
-                {RENTAL_TYPE_LABEL[rental.rental_type]} · {rental.start_date} → {rental.end_date || "ongoing"}
+                {RENTAL_TYPE_LABEL[rental.rental_type]} · {rental.start_date} →{" "}
+                {rental.end_date || t("rentals.detail.ongoing")}
               </SheetDescription>
             </SheetHeader>
 
@@ -48,7 +51,9 @@ export function RentalDetailSheet({
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant={RENTAL_STATUS_VARIANT[rental.status]}>{rental.status}</Badge>
                 {rental.price !== null && (
-                  <span className="text-sm text-muted-foreground">{formatCurrency(rental.price)} / month</span>
+                  <span className="text-sm text-muted-foreground">
+                    {t("rentals.detail.priceMonthly", { price: formatCurrency(rental.price) })}
+                  </span>
                 )}
               </div>
 
@@ -66,10 +71,10 @@ export function RentalDetailSheet({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                      <SelectItem value="pending">{t("rentals.status.pending")}</SelectItem>
+                      <SelectItem value="active">{t("rentals.status.active")}</SelectItem>
+                      <SelectItem value="completed">{t("rentals.status.completed")}</SelectItem>
+                      <SelectItem value="cancelled">{t("rentals.status.cancelled")}</SelectItem>
                     </SelectContent>
                   </Select>
                   <Button
@@ -80,7 +85,7 @@ export function RentalDetailSheet({
                       onOpenChange(false);
                     }}
                   >
-                    <DeleteIcon /> <span className="ml-2">Delete</span>
+                    <DeleteIcon /> <span className="ml-2">{t("common.delete")}</span>
                   </Button>
                 </div>
               )}

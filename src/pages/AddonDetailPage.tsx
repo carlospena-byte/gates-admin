@@ -14,6 +14,7 @@ import { useSession } from "@/state/useSession";
 import { canManageResidential } from "@/state/useAccess";
 import { useAddonItemManagerData } from "@/hooks/useAddonItemManagerData";
 import { navigateTo } from "@/config/routes";
+import { useI18n } from "@/i18n/useI18n";
 import type { ResidentialRole } from "@/types/database.types";
 
 /**
@@ -30,6 +31,7 @@ export function AddonDetailPage({
   addonId: string;
   role: ResidentialRole;
 }) {
+  const { t } = useI18n();
   const { session } = useSession();
   const canManage = canManageResidential(role);
   const {
@@ -60,7 +62,7 @@ export function AddonDetailPage({
 
   const handleSave = async () => {
     if (!name.trim() || !addonTypeId) {
-      toast.error("Addon name and type are required");
+      toast.error(t("addonDetail.error.nameTypeRequired"));
       return;
     }
     await updateAddon({ name: name.trim(), addon_type_id: addonTypeId });
@@ -68,14 +70,14 @@ export function AddonDetailPage({
 
   const BackButton = () => (
     <Button variant="ghost" size="sm" onClick={() => navigateTo("residential")}>
-      <IconArrowLeft className="h-4 w-4 mr-2" /> Back
+      <IconArrowLeft className="h-4 w-4 mr-2" /> {t("common.back")}
     </Button>
   );
 
   if (!addon) {
     return (
       <div className="min-h-screen">
-        <AppSidebar userEmail={session?.user?.email} onSignOut={() => authService.signOut()} showUserMenu />
+        <AppSidebar userEmail={session?.user?.email} residentialId={residentialId} role={role} onSignOut={() => authService.signOut()} showUserMenu />
         <div className="lg:pl-64">
           <div className="mx-auto max-w-3xl px-6 py-6 space-y-4">
             <BackButton />
@@ -84,7 +86,7 @@ export function AddonDetailPage({
                 <Spinner />
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">Addon not found.</p>
+              <p className="text-sm text-muted-foreground">{t("addonDetail.notFound")}</p>
             )}
           </div>
         </div>
@@ -94,7 +96,7 @@ export function AddonDetailPage({
 
   return (
     <div className="min-h-screen">
-      <AppSidebar userEmail={session?.user?.email} onSignOut={() => authService.signOut()} showUserMenu />
+      <AppSidebar userEmail={session?.user?.email} residentialId={residentialId} role={role} onSignOut={() => authService.signOut()} showUserMenu />
 
       <div className="lg:pl-64">
         <div className="mx-auto max-w-4xl px-6 py-6 space-y-6">
@@ -103,19 +105,19 @@ export function AddonDetailPage({
           <Card>
             <CardHeader>
               <CardTitle>{addon.name}</CardTitle>
-              <CardDescription>Edit this addon and manage its internal items</CardDescription>
+              <CardDescription>{t("addonDetail.editCard.description")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <Input
-                label="Addon Name"
+                label={t("addon.create.nameLabel")}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 disabled={isSubmitting || !canManage}
               />
 
               <Select value={addonTypeId} onValueChange={setAddonTypeId} disabled={isSubmitting || !canManage}>
-                <SelectTrigger label="Addon Type">
-                  <SelectValue placeholder="Select addon type" />
+                <SelectTrigger label={t("addonType.entityLabel")}>
+                  <SelectValue placeholder={t("addon.create.typePlaceholder")} />
                 </SelectTrigger>
                 <SelectContent>
                   {addonTypes.map((type) => (
@@ -128,7 +130,7 @@ export function AddonDetailPage({
 
               {canManage && (
                 <Button onClick={handleSave} disabled={isSubmitting || !name.trim() || !addonTypeId}>
-                  {isSubmitting ? <Spinner size="sm" /> : "Save Changes"}
+                  {isSubmitting ? <Spinner size="sm" /> : t("addonDetail.saveChanges")}
                 </Button>
               )}
             </CardContent>
@@ -136,10 +138,8 @@ export function AddonDetailPage({
 
           <Card>
             <CardHeader>
-              <CardTitle>Internal Addons</CardTitle>
-              <CardDescription>
-                Physical instances of this addon (e.g. specific parking spots), each with its own location.
-              </CardDescription>
+              <CardTitle>{t("addonDetail.internalAddons.title")}</CardTitle>
+              <CardDescription>{t("addonDetail.internalAddons.description")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {canManage && (

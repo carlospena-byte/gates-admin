@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useI18n } from "@/i18n/useI18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/LoadingStates";
@@ -11,6 +12,7 @@ interface ChargeCreateFormProps {
 }
 
 export function ChargeCreateForm({ isSubmitting, onCreate }: ChargeCreateFormProps) {
+  const { t } = useI18n();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
 
@@ -25,17 +27,17 @@ export function ChargeCreateForm({ isSubmitting, onCreate }: ChargeCreateFormPro
 
   return (
     <div className="space-y-2">
-      <label className="text-sm font-medium">Add New Charge</label>
+      <label className="text-sm font-medium">{t("charges.create.title")}</label>
       <div className="space-y-2">
         <Input
-          label="Charge Name"
+          label={t("charges.detail.chargeName.label")}
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="e.g., Seguridad, Mantenimiento y Limpieza"
+          placeholder={t("charges.create.name.placeholder")}
           disabled={isSubmitting}
         />
         <Input
-          label="Description (optional)"
+          label={t("charges.detail.descriptionOptional.label")}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           disabled={isSubmitting}
@@ -45,7 +47,7 @@ export function ChargeCreateForm({ isSubmitting, onCreate }: ChargeCreateFormPro
             <Spinner size="sm" />
           ) : (
             <>
-              <PlusIcon /> <span className="ml-2">Add Charge</span>
+              <PlusIcon /> <span className="ml-2">{t("charges.create.submit")}</span>
             </>
           )}
         </Button>

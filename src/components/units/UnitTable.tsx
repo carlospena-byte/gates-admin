@@ -25,6 +25,7 @@ import { formatCurrency } from "@/lib/utils";
 import { confirmDeleteToast } from "@/lib/confirmDeleteToast";
 import { navigateToUnitDetail } from "@/config/routes";
 import { EditIcon, DeleteIcon, ChevronDownIcon, ChevronRightIcon } from "@/components/icons";
+import { useI18n } from "@/i18n/useI18n";
 import type { Location, UnitWithWizardData } from "@/types/unit-wizard.types";
 
 interface UnitTableProps {
@@ -47,6 +48,7 @@ export function UnitTable({
   onDelete,
   onToggleActive,
 }: UnitTableProps) {
+  const { t } = useI18n();
   const {
     paginatedData: paginatedUnits,
     totalItems,
@@ -96,8 +98,10 @@ export function UnitTable({
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <label className="text-sm font-medium">
-          Existing Units
-          {totalItems > 0 && <span className="ml-2 text-muted-foreground">({totalItems} total)</span>}
+          {t("units.table.existingUnits")}
+          {totalItems > 0 && (
+            <span className="ml-2 text-muted-foreground">({t("units.table.totalSuffix", { count: totalItems })})</span>
+          )}
         </label>
       </div>
 
@@ -106,7 +110,7 @@ export function UnitTable({
           <Spinner />
         </div>
       ) : units.length === 0 ? (
-        <div className="text-center py-8 text-sm text-muted-foreground">No units yet. Create one above.</div>
+        <div className="text-center py-8 text-sm text-muted-foreground">{t("units.table.empty")}</div>
       ) : (
         <>
           <div className="rounded-lg border bg-card">
@@ -121,15 +125,15 @@ export function UnitTable({
                 onSort={handleSort}
                 className="w-1/5"
               >
-                Name
+                {t("common.name")}
               </SortableTableHead>
-              <TableHead className="w-1/5">Owner</TableHead>
-              <TableHead className="w-1/5">Type</TableHead>
-              <TableHead className="w-1/5">Location</TableHead>
-              <TableHead className="w-[100px]">Price</TableHead>
-              <TableHead className="w-[120px]">Addons</TableHead>
-              <TableHead className="w-[80px]">Active</TableHead>
-              <TableHead className="w-[140px] text-right">Actions</TableHead>
+              <TableHead className="w-1/5">{t("common.owner")}</TableHead>
+              <TableHead className="w-1/5">{t("common.type")}</TableHead>
+              <TableHead className="w-1/5">{t("common.location")}</TableHead>
+              <TableHead className="w-[100px]">{t("common.price")}</TableHead>
+              <TableHead className="w-[120px]">{t("units.table.addons")}</TableHead>
+              <TableHead className="w-[80px]">{t("common.active")}</TableHead>
+              <TableHead className="w-[140px] text-right">{t("common.actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -150,7 +154,7 @@ export function UnitTable({
                     <span className="truncate">{unit.name}</span>
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground truncate">
-                    {unit.profiles?.email || "Unassigned"}
+                    {unit.profiles?.email || t("units.common.unassigned")}
                   </TableCell>
                   <TableCell>
                     <span className="text-sm text-muted-foreground truncate">
@@ -175,7 +179,10 @@ export function UnitTable({
                       checked={unit.is_active}
                       onCheckedChange={() => onToggleActive(unit.id, unit.is_active)}
                       disabled={isSubmitting || !canManage}
-                      aria-label={`Set ${unit.name} ${unit.is_active ? "inactive" : "active"}`}
+                      aria-label={t("units.table.toggleActiveAria", {
+                        name: unit.name,
+                        state: unit.is_active ? t("common.inactive") : t("common.active"),
+                      })}
                     />
                   </TableCell>
                   <TableCell className="text-right">
@@ -213,7 +220,7 @@ export function UnitTable({
                             </Badge>
                           ))
                         ) : (
-                          <span className="text-sm text-muted-foreground">No addons</span>
+                          <span className="text-sm text-muted-foreground">{t("units.table.noAddons")}</span>
                         )}
                       </div>
                     </TableCell>

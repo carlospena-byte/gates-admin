@@ -9,6 +9,7 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { IconPaperclip } from "@tabler/icons-react";
+import { useI18n } from "@/i18n/useI18n";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +41,7 @@ function PaymentProofActions({
   onBusyChange: (busy: boolean) => void;
   onReload: () => Promise<void>;
 }) {
+  const { t } = useI18n();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -56,7 +58,7 @@ function PaymentProofActions({
       return;
     }
 
-    toast.success("Proof uploaded");
+    toast.success(t("rentals.payments.proofUploaded"));
     await onReload();
   };
 
@@ -78,7 +80,7 @@ function PaymentProofActions({
       toast.error(result.error.message);
       return;
     }
-    toast.success("Payment approved");
+    toast.success(t("rentals.payments.approved"));
     await onReload();
   };
 
@@ -90,7 +92,7 @@ function PaymentProofActions({
       toast.error(result.error.message);
       return;
     }
-    toast.success("Payment rejected");
+    toast.success(t("rentals.payments.rejected"));
     await onReload();
   };
 
@@ -99,7 +101,7 @@ function PaymentProofActions({
       <>
         <input ref={fileInputRef} type="file" accept="image/*,.pdf" className="hidden" onChange={handleFileSelected} />
         <Button size="sm" variant="outline" disabled={isSubmitting} onClick={() => fileInputRef.current?.click()}>
-          <IconPaperclip className="h-4 w-4" /> <span className="ml-1">Attach proof</span>
+          <IconPaperclip className="h-4 w-4" /> <span className="ml-1">{t("rentals.payments.attachProof")}</span>
         </Button>
       </>
     );
@@ -108,15 +110,15 @@ function PaymentProofActions({
   return (
     <>
       <Button size="sm" variant="outline" disabled={isSubmitting} onClick={handleViewProof}>
-        View proof
+        {t("rentals.payments.viewProof")}
       </Button>
       {payment.status === "pending" && (
         <>
           <Button size="sm" variant="default" disabled={isSubmitting} onClick={handleApprove}>
-            Approve
+            {t("rentals.payments.approve")}
           </Button>
           <Button size="sm" variant="destructive" disabled={isSubmitting} onClick={handleReject}>
-            Reject
+            {t("rentals.payments.reject")}
           </Button>
         </>
       )}
@@ -133,6 +135,7 @@ export function UnitRentalPayments({
   residentialId: string;
   canManage: boolean;
 }) {
+  const { t } = useI18n();
   const [payments, setPayments] = useState<UnitRentalPayment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -157,7 +160,7 @@ export function UnitRentalPayments({
 
   const handleAdd = async () => {
     if (!amount.trim() || !dueDate) {
-      toast.error("Amount and due date are required");
+      toast.error(t("rentals.payments.amountDueDateRequired"));
       return;
     }
 
@@ -175,7 +178,7 @@ export function UnitRentalPayments({
       return;
     }
 
-    toast.success("Payment added");
+    toast.success(t("rentals.payments.added"));
     setAmount("");
     setDueDate("");
     await load();
@@ -194,7 +197,7 @@ export function UnitRentalPayments({
   };
 
   const handleDelete = (id: string) => {
-    confirmDeleteToast("this payment", async () => {
+    confirmDeleteToast(t("rentals.payments.thisPayment"), async () => {
       const result = await unitRentalPaymentService.delete(id);
       if (!result.success) {
         toast.error(result.error.message);
@@ -206,14 +209,14 @@ export function UnitRentalPayments({
 
   return (
     <div className="space-y-3 border-t pt-3">
-      <p className="text-xs font-medium text-muted-foreground">Payments</p>
+      <p className="text-xs font-medium text-muted-foreground">{t("rentals.payments.title")}</p>
 
       {isLoading ? (
         <div className="flex justify-center py-2">
           <Spinner size="sm" />
         </div>
       ) : payments.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No payments recorded yet.</p>
+        <p className="text-sm text-muted-foreground">{t("rentals.payments.empty")}</p>
       ) : (
         <div className="space-y-1.5">
           {payments.map((payment) => (
@@ -221,9 +224,14 @@ export function UnitRentalPayments({
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0 text-sm">
                   <span className="font-medium">{formatCurrency(payment.amount)}</span>{" "}
-                  <span className="text-muted-foreground">due {payment.due_date}</span>
+                  <span className="text-muted-foreground">
+                    {t("rentals.payments.due", { date: payment.due_date })}
+                  </span>
                   {payment.paid_at && (
-                    <span className="text-muted-foreground"> · paid {payment.paid_at.slice(0, 10)}</span>
+                    <span className="text-muted-foreground">
+                      {" "}
+                      · {t("rentals.payments.paidOn", { date: payment.paid_at.slice(0, 10) })}
+                    </span>
                   )}
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
@@ -232,7 +240,7 @@ export function UnitRentalPayments({
                     <>
                       {payment.status === "pending" && !payment.proof_url && (
                         <Button size="sm" variant="outline" onClick={() => handleMarkPaid(payment.id)}>
-                          Mark Paid
+                          {t("rentals.payments.markPaid")}
                         </Button>
                       )}
                       <Button size="sm" variant="ghost" onClick={() => handleDelete(payment.id)}>
@@ -262,7 +270,7 @@ export function UnitRentalPayments({
       {canManage && (
         <div className="flex items-end gap-2">
           <Input
-            label="Amount"
+            label={t("rentals.payments.amount.label")}
             type="number"
             min="0"
             step="0.01"
@@ -272,7 +280,7 @@ export function UnitRentalPayments({
             className="flex-1"
           />
           <Input
-            label="Due Date"
+            label={t("rentals.payments.dueDate.label")}
             type="date"
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
@@ -281,7 +289,7 @@ export function UnitRentalPayments({
           />
           <Button
             size="sm"
-            aria-label="Add payment"
+            aria-label={t("rentals.payments.addPayment")}
             onClick={handleAdd}
             disabled={isSubmitting || !amount.trim() || !dueDate}
           >

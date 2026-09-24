@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { IconArrowLeft } from "@tabler/icons-react";
+import { useI18n } from "@/i18n/useI18n";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,7 @@ export function ChargeDetailPage({
   chargeId: string;
   role: ResidentialRole;
 }) {
+  const { t } = useI18n();
   const { session } = useSession();
   const canManage = canManageResidential(role);
   const {
@@ -67,7 +69,7 @@ export function ChargeDetailPage({
 
   const handleSave = async () => {
     if (!name.trim()) {
-      toast.error("Charge name is required");
+      toast.error(t("charges.detail.nameRequired"));
       return;
     }
     await updateCharge({ name: name.trim(), description: description.trim() || null });
@@ -79,7 +81,7 @@ export function ChargeDetailPage({
 
   const handleAssign = async () => {
     if (!assignPrice.trim()) {
-      toast.error("Price is required");
+      toast.error(t("charges.detail.priceRequired"));
       return;
     }
 
@@ -88,19 +90,19 @@ export function ChargeDetailPage({
       target = { mode: "all" };
     } else if (targetMode === "location") {
       if (!targetLocationId) {
-        toast.error("Pick a location");
+        toast.error(t("charges.detail.pickLocation"));
         return;
       }
       target = { mode: "location", locationId: targetLocationId };
     } else if (targetMode === "unitType") {
       if (!targetUnitTypeId) {
-        toast.error("Pick a unit type");
+        toast.error(t("charges.detail.pickUnitType"));
         return;
       }
       target = { mode: "unitType", unitTypeId: targetUnitTypeId };
     } else {
       if (targetUnitIds.length === 0) {
-        toast.error("Pick at least one unit");
+        toast.error(t("charges.detail.pickAtLeastOneUnit"));
         return;
       }
       target = { mode: "manual", unitIds: targetUnitIds };
@@ -121,14 +123,14 @@ export function ChargeDetailPage({
 
   const BackButton = () => (
     <Button variant="ghost" size="sm" onClick={() => navigateTo("residential")}>
-      <IconArrowLeft className="h-4 w-4 mr-2" /> Back
+      <IconArrowLeft className="h-4 w-4 mr-2" /> {t("common.back")}
     </Button>
   );
 
   if (!charge) {
     return (
       <div className="min-h-screen">
-        <AppSidebar userEmail={session?.user?.email} onSignOut={() => authService.signOut()} showUserMenu />
+        <AppSidebar userEmail={session?.user?.email} residentialId={residentialId} role={role} onSignOut={() => authService.signOut()} showUserMenu />
         <div className="lg:pl-64">
           <div className="mx-auto max-w-3xl px-6 py-6 space-y-4">
             <BackButton />
@@ -137,7 +139,7 @@ export function ChargeDetailPage({
                 <Spinner />
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">Charge not found.</p>
+              <p className="text-sm text-muted-foreground">{t("charges.detail.notFound")}</p>
             )}
           </div>
         </div>
@@ -147,7 +149,7 @@ export function ChargeDetailPage({
 
   return (
     <div className="min-h-screen">
-      <AppSidebar userEmail={session?.user?.email} onSignOut={() => authService.signOut()} showUserMenu />
+      <AppSidebar userEmail={session?.user?.email} residentialId={residentialId} role={role} onSignOut={() => authService.signOut()} showUserMenu />
 
       <div className="lg:pl-64">
         <div className="mx-auto max-w-4xl px-6 py-6 space-y-6">
@@ -156,26 +158,24 @@ export function ChargeDetailPage({
           <Card>
             <CardHeader>
               <CardTitle>{charge.name}</CardTitle>
-              <CardDescription>
-                Recurring extra charge — its price is set per unit or group below, not here.
-              </CardDescription>
+              <CardDescription>{t("charges.detail.chargeDescription")}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <Input
-                label="Charge Name"
+                label={t("charges.detail.chargeName.label")}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 disabled={isSubmitting || !canManage}
               />
               <Input
-                label="Description (optional)"
+                label={t("charges.detail.descriptionOptional.label")}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 disabled={isSubmitting || !canManage}
               />
               {canManage && (
                 <Button onClick={handleSave} disabled={isSubmitting || !name.trim()}>
-                  {isSubmitting ? <Spinner size="sm" /> : "Save Changes"}
+                  {isSubmitting ? <Spinner size="sm" /> : t("charges.detail.saveChanges")}
                 </Button>
               )}
             </CardContent>
@@ -184,21 +184,19 @@ export function ChargeDetailPage({
           {canManage && (
             <Card>
               <CardHeader>
-                <CardTitle>Assign to Units</CardTitle>
-                <CardDescription>
-                  Apply one price to a whole group at once — no need to check units off one by one.
-                </CardDescription>
+                <CardTitle>{t("charges.detail.assignToUnits")}</CardTitle>
+                <CardDescription>{t("charges.detail.assignDescription")}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <Select value={targetMode} onValueChange={(v) => setTargetMode(v as TargetMode)}>
-                  <SelectTrigger label="Assign To">
+                  <SelectTrigger label={t("charges.detail.assignTo.label")}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All active units</SelectItem>
-                    <SelectItem value="location">Units under a location (e.g. a tower)</SelectItem>
-                    <SelectItem value="unitType">Units of a type</SelectItem>
-                    <SelectItem value="manual">Manual selection</SelectItem>
+                    <SelectItem value="all">{t("charges.detail.assignTo.all")}</SelectItem>
+                    <SelectItem value="location">{t("charges.detail.assignTo.location")}</SelectItem>
+                    <SelectItem value="unitType">{t("charges.detail.assignTo.unitType")}</SelectItem>
+                    <SelectItem value="manual">{t("charges.detail.assignTo.manual")}</SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -214,8 +212,8 @@ export function ChargeDetailPage({
 
                 {targetMode === "unitType" && (
                   <Select value={targetUnitTypeId} onValueChange={setTargetUnitTypeId} disabled={isSubmitting}>
-                    <SelectTrigger label="Unit Type">
-                      <SelectValue placeholder="Select unit type" />
+                    <SelectTrigger label={t("charges.detail.unitType.label")}>
+                      <SelectValue placeholder={t("charges.detail.unitType.placeholder")} />
                     </SelectTrigger>
                     <SelectContent>
                       {unitTypes.map((type) => (
@@ -246,24 +244,24 @@ export function ChargeDetailPage({
                         </div>
                       ))
                     ) : (
-                      <p className="text-sm text-muted-foreground">No units available</p>
+                      <p className="text-sm text-muted-foreground">{t("charges.detail.noUnitsAvailable")}</p>
                     )}
                   </div>
                 )}
 
                 <Input
-                  label="Price for this group"
+                  label={t("charges.detail.priceForGroup.label")}
                   type="number"
                   min="0"
                   step="0.01"
                   value={assignPrice}
                   onChange={(e) => setAssignPrice(e.target.value)}
-                  placeholder="e.g., 100.00"
+                  placeholder={t("charges.detail.priceForGroup.placeholder")}
                   disabled={isSubmitting}
                 />
 
                 <Button onClick={handleAssign} disabled={isSubmitting || !assignPrice.trim()} className="w-full">
-                  {isSubmitting ? <Spinner size="sm" /> : "Apply"}
+                  {isSubmitting ? <Spinner size="sm" /> : t("charges.detail.apply")}
                 </Button>
               </CardContent>
             </Card>
@@ -271,9 +269,9 @@ export function ChargeDetailPage({
 
           <Card>
             <CardHeader>
-              <CardTitle>Current Assignments</CardTitle>
+              <CardTitle>{t("charges.detail.currentAssignments")}</CardTitle>
               <CardDescription>
-                {assignments.length} unit{assignments.length === 1 ? "" : "s"} charged for {charge.name}.
+                {t("charges.detail.unitsChargedFor", { count: assignments.length, chargeName: charge.name })}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -282,7 +280,7 @@ export function ChargeDetailPage({
                   <Spinner />
                 </div>
               ) : assignments.length === 0 ? (
-                <p className="text-center py-4 text-sm text-muted-foreground">No units assigned yet.</p>
+                <p className="text-center py-4 text-sm text-muted-foreground">{t("charges.detail.noUnitsAssigned")}</p>
               ) : (
                 <div className="space-y-1.5">
                   {assignments.map((assignment) => (
@@ -291,23 +289,27 @@ export function ChargeDetailPage({
                       className="flex items-center justify-between gap-2 rounded-md border p-2"
                     >
                       <div className="min-w-0 text-sm">
-                        <span className="font-medium">{assignment.units?.name || "Unknown unit"}</span>{" "}
+                        <span className="font-medium">{assignment.units?.name || t("charges.detail.unknownUnit")}</span>{" "}
                         <span className="text-muted-foreground">{formatCurrency(assignment.price)}</span>
                       </div>
                       <div className="flex shrink-0 items-center gap-2">
-                        {!assignment.is_active && <Badge variant="secondary">inactive</Badge>}
+                        {!assignment.is_active && <Badge variant="secondary">{t("common.inactive")}</Badge>}
                         {canManage && (
                           <>
                             <Switch
                               checked={assignment.is_active}
                               onCheckedChange={() => toggleAssignmentActive(assignment.id, assignment.is_active)}
                               disabled={isSubmitting}
-                              aria-label={`Set assignment ${assignment.is_active ? "inactive" : "active"}`}
+                              aria-label={t("charges.detail.setAssignmentStatus", {
+                                status: assignment.is_active ? t("common.inactive") : t("common.active"),
+                              })}
                             />
                             <Button
                               size="sm"
                               variant="ghost"
-                              onClick={() => handleRemove(assignment.id, assignment.units?.name || "this unit")}
+                              onClick={() =>
+                                handleRemove(assignment.id, assignment.units?.name || t("charges.detail.thisUnit"))
+                              }
                               disabled={isSubmitting}
                             >
                               <DeleteIcon />

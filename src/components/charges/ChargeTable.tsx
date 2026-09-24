@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useI18n } from "@/i18n/useI18n";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -21,6 +22,7 @@ interface ChargeTableProps {
 }
 
 export function ChargeTable({ charges, isLoading, isSubmitting, onDelete, onToggleActive }: ChargeTableProps) {
+  const { t } = useI18n();
   const {
     paginatedData: paginatedCharges,
     totalItems,
@@ -54,8 +56,10 @@ export function ChargeTable({ charges, isLoading, isSubmitting, onDelete, onTogg
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <label className="text-sm font-medium">
-          Existing Charges
-          {totalItems > 0 && <span className="ml-2 text-muted-foreground">({totalItems} total)</span>}
+          {t("charges.table.existingCharges")}
+          {totalItems > 0 && (
+            <span className="ml-2 text-muted-foreground">{t("charges.table.totalCount", { count: totalItems })}</span>
+          )}
         </label>
       </div>
 
@@ -76,12 +80,12 @@ export function ChargeTable({ charges, isLoading, isSubmitting, onDelete, onTogg
                     onSort={handleSort}
                     className="w-1/3"
                   >
-                    Name
+                    {t("common.name")}
                   </SortableTableHead>
-                  <TableHead className="w-1/3">Description</TableHead>
-                  <TableHead className="w-[90px]">Units</TableHead>
-                  <TableHead className="w-[100px]">Active</TableHead>
-                  <TableHead className="w-[140px] text-right">Actions</TableHead>
+                  <TableHead className="w-1/3">{t("common.description")}</TableHead>
+                  <TableHead className="w-[90px]">{t("common.units")}</TableHead>
+                  <TableHead className="w-[100px]">{t("common.active")}</TableHead>
+                  <TableHead className="w-[140px] text-right">{t("common.actions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -103,7 +107,10 @@ export function ChargeTable({ charges, isLoading, isSubmitting, onDelete, onTogg
                         checked={charge.is_active}
                         onCheckedChange={() => onToggleActive(charge.id, charge.is_active)}
                         disabled={isSubmitting}
-                        aria-label={`Set ${charge.name} ${charge.is_active ? "inactive" : "active"}`}
+                        aria-label={t("charges.table.setChargeStatus", {
+                          name: charge.name,
+                          status: charge.is_active ? t("common.inactive") : t("common.active"),
+                        })}
                       />
                     </TableCell>
                     <TableCell className="text-right">
@@ -142,7 +149,7 @@ export function ChargeTable({ charges, isLoading, isSubmitting, onDelete, onTogg
           />
         </>
       ) : (
-        <div className="text-center py-8 text-sm text-muted-foreground">No charges yet. Create one above.</div>
+        <div className="text-center py-8 text-sm text-muted-foreground">{t("charges.table.empty")}</div>
       )}
     </div>
   );

@@ -6,10 +6,18 @@ export default {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["Manrope", "ui-sans-serif", "system-ui", "sans-serif"],
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        "gates-sm": "0.5rem",
+        "gates-md": "1rem",
+        "gates-lg": "1.5rem",
+        "gates-xl": "2rem",
+        "gates-full": "999px",
       },
       colors: {
         background: "hsl(var(--background))",
@@ -45,6 +53,33 @@ export default {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
+        gates: {
+          canvas: "hsl(var(--gates-bg-canvas))",
+          surface: "hsl(var(--gates-bg-surface))",
+          subtle: "hsl(var(--gates-bg-subtle))",
+          accent: "hsl(var(--gates-bg-accent))",
+          warm: "hsl(var(--gates-bg-warm))",
+          lilac: "hsl(var(--gates-bg-lilac))",
+          brand: "hsl(var(--gates-bg-brand))",
+          pressed: "hsl(var(--gates-bg-pressed))",
+          "text-primary": "hsl(var(--gates-text-primary))",
+          "text-secondary": "hsl(var(--gates-text-secondary))",
+          "text-brand": "hsl(var(--gates-text-brand))",
+          "text-inverse": "hsl(var(--gates-text-inverse))",
+          border: "hsl(var(--gates-border-default))",
+          "border-focus": "hsl(var(--gates-border-focus))",
+          error: "hsl(var(--gates-status-error))",
+          "error-bg": "hsl(var(--gates-status-error-bg))",
+          warning: "hsl(var(--gates-status-warning))",
+          "warning-bg": "hsl(var(--gates-status-warning-bg))",
+          success: "hsl(var(--gates-status-success))",
+          "success-bg": "hsl(var(--gates-status-success-bg))",
+          "info-bg": "hsl(var(--gates-status-info-bg))",
+        },
+      },
+      boxShadow: {
+        "gates-card": "0 4px 24px 0 rgba(36, 48, 38, 0.035)",
+        "gates-floating": "0 8px 32px 0 rgba(36, 48, 38, 0.1)",
       },
       keyframes: {
         "caret-blink": {

@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Spinner } from "@/components/LoadingStates";
 import { confirmDeleteToast } from "@/lib/confirmDeleteToast";
 import { EditIcon, DeleteIcon } from "@/components/icons";
+import { useI18n } from "@/i18n/useI18n";
 import type { LocationTypeDefinition } from "@/types/unit-wizard.types";
 
 interface LocationTypeTableProps {
@@ -25,6 +26,7 @@ export function LocationTypeTable({
   onDelete,
   onToggleActive,
 }: LocationTypeTableProps) {
+  const { t } = useI18n();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
   const [editingCode, setEditingCode] = useState("");
@@ -62,7 +64,7 @@ export function LocationTypeTable({
   return (
     <div className="space-y-2">
       <label className="text-sm font-medium">
-        Existing Location Types
+        {t("locationType.table.title")}
         {locationTypes.length > 0 && (
           <span className="ml-2 text-muted-foreground">({locationTypes.length} total)</span>
         )}
@@ -77,11 +79,11 @@ export function LocationTypeTable({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-1/4">Name</TableHead>
-                <TableHead className="w-1/4">Code</TableHead>
-                <TableHead className="w-[90px]">Level</TableHead>
-                <TableHead className="w-[110px]">Active</TableHead>
-                <TableHead className="w-[140px] text-right">Actions</TableHead>
+                <TableHead className="w-1/4">{t("common.name")}</TableHead>
+                <TableHead className="w-1/4">{t("locationType.code")}</TableHead>
+                <TableHead className="w-[90px]">{t("locationType.level")}</TableHead>
+                <TableHead className="w-[110px]">{t("common.active")}</TableHead>
+                <TableHead className="w-[140px] text-right">{t("common.actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -94,7 +96,7 @@ export function LocationTypeTable({
                       <Input
                         value={editingName}
                         onChange={(e) => setEditingName(e.target.value)}
-                        placeholder="Name"
+                        placeholder={t("common.name")}
                         className="h-8"
                         autoFocus
                         disabled={isSubmitting}
@@ -108,7 +110,7 @@ export function LocationTypeTable({
                       <Input
                         value={editingCode}
                         onChange={(e) => setEditingCode(e.target.value.toUpperCase())}
-                        placeholder="CODE"
+                        placeholder={t("locationType.table.codePlaceholder")}
                         className="h-8"
                         disabled={isSubmitting}
                       />
@@ -135,7 +137,7 @@ export function LocationTypeTable({
                       checked={type.is_active}
                       onCheckedChange={() => onToggleActive(type.id, type.is_active)}
                       disabled={isSubmitting || editingId === type.id}
-                      aria-label={`Toggle ${type.name} active status`}
+                      aria-label={t("locationType.table.toggleAriaLabel", { name: type.name })}
                     />
                   </TableCell>
                   <TableCell className="text-right">
@@ -148,10 +150,10 @@ export function LocationTypeTable({
                             isSubmitting || !editingName.trim() || !editingCode.trim() || !isEditingLevelValid
                           }
                         >
-                          {isSubmitting ? <Spinner size="sm" /> : "Save"}
+                          {isSubmitting ? <Spinner size="sm" /> : t("common.save")}
                         </Button>
                         <Button size="sm" variant="outline" onClick={cancelEditing} disabled={isSubmitting}>
-                          Cancel
+                          {t("common.cancel")}
                         </Button>
                       </div>
                     ) : (
@@ -177,7 +179,7 @@ export function LocationTypeTable({
         </div>
       ) : (
         <div className="text-center py-8 text-sm text-muted-foreground">
-          No location types yet. Create one above.
+          {t("locationType.table.empty")}
         </div>
       )}
     </div>

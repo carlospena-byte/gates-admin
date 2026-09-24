@@ -10,6 +10,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { IconCalendarEvent, IconChevronRight, IconHistory } from "@tabler/icons-react";
+import { useI18n } from "@/i18n/useI18n";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -34,6 +35,7 @@ export function UnitRentalsPanel({
   residentialId: string;
   canManage: boolean;
 }) {
+  const { t } = useI18n();
   const [rentals, setRentals] = useState<UnitRental[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -78,7 +80,7 @@ export function UnitRentalsPanel({
       return false;
     }
 
-    toast.success("Rental added");
+    toast.success(t("rentals.panel.added"));
     await load();
     return true;
   };
@@ -111,12 +113,12 @@ export function UnitRentalsPanel({
     <Card>
       <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0">
         <div>
-          <p className="text-sm font-medium">Rentals</p>
-          <p className="text-xs text-muted-foreground">Manage current and upcoming rentals.</p>
+          <p className="text-sm font-medium">{t("rentals.panel.title")}</p>
+          <p className="text-xs text-muted-foreground">{t("rentals.panel.subtitle")}</p>
         </div>
         {canManage && (
           <Button variant="outline" size="sm" onClick={() => setAddOpen(true)}>
-            <PlusIcon /> <span className="ml-2">Add rental</span>
+            <PlusIcon /> <span className="ml-2">{t("rentals.add.title")}</span>
           </Button>
         )}
       </CardHeader>
@@ -128,8 +130,8 @@ export function UnitRentalsPanel({
         ) : currentRentals.length === 0 ? (
           <SectionEmptyState
             icon={IconCalendarEvent}
-            title="No active rentals."
-            description="Add a rental to get started."
+            title={t("rentals.panel.emptyTitle")}
+            description={t("rentals.panel.emptyDescription")}
           />
         ) : (
           <div className="space-y-2">
@@ -154,10 +156,12 @@ export function UnitRentalsPanel({
                 </span>
                 <span className="shrink-0 text-right text-xs text-muted-foreground">
                   <span className="block">
-                    {rental.start_date} → {rental.end_date || "ongoing"}
+                    {rental.start_date} → {rental.end_date || t("rentals.detail.ongoing")}
                   </span>
                   {rental.price !== null && (
-                    <span className="block font-medium text-foreground">{formatCurrency(rental.price)} / month</span>
+                    <span className="block font-medium text-foreground">
+                      {t("rentals.detail.priceMonthly", { price: formatCurrency(rental.price) })}
+                    </span>
                   )}
                 </span>
                 <IconChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -172,7 +176,7 @@ export function UnitRentalsPanel({
           className="flex w-full items-center justify-between gap-2 rounded-md border border-dashed p-3 text-sm text-muted-foreground hover:bg-accent"
         >
           <span className="flex items-center gap-2">
-            <IconHistory className="h-4 w-4" /> View rental history
+            <IconHistory className="h-4 w-4" /> {t("rentals.panel.viewHistory")}
           </span>
           <IconChevronRight className="h-4 w-4" />
         </button>

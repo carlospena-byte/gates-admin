@@ -16,11 +16,12 @@ import { Spinner } from "@/components/LoadingStates";
 import { DeleteIcon } from "@/components/icons";
 import { confirmDeleteToast } from "@/lib/confirmDeleteToast";
 import { residentialUserService, type ResidentialUserWithProfile } from "@/services";
+import { useI18n } from "@/i18n/useI18n";
 import type { ResidentialRole } from "@/types/database.types";
 
 const ALL_ROLES: ResidentialRole[] = ["owner", "admin", "security", "member"];
 // Matches the "residential_users: admin manage limited" RLS policy exactly.
-const ADMIN_ASSIGNABLE_ROLES: ResidentialRole[] = ["security", "member"];
+const ADMIN_ASSIGNABLE_ROLES: ResidentialRole[] = ["admin", "security", "member"];
 
 export function UserRoleSettingsPanel({
   residentialId,
@@ -29,6 +30,7 @@ export function UserRoleSettingsPanel({
   residentialId: string;
   currentRole: ResidentialRole;
 }) {
+  const { t } = useI18n();
   const [members, setMembers] = useState<ResidentialUserWithProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -65,7 +67,7 @@ export function UserRoleSettingsPanel({
     }
     if (!lookup.data) {
       setIsSubmitting(false);
-      toast.error("No account found for that email — they need to sign in at least once first.");
+      toast.error(t("settings.users.noAccountFound"));
       return;
     }
 
@@ -77,7 +79,7 @@ export function UserRoleSettingsPanel({
       return;
     }
 
-    toast.success("Member added");
+    toast.success(t("settings.users.memberAdded"));
     setEmail("");
     await load();
   };
@@ -94,8 +96,8 @@ export function UserRoleSettingsPanel({
     await load();
   };
 
-  const handleRemove = (userId: string, email: string) => {
-    confirmDeleteToast(email, async () => {
+  const handleRemove = (userId: string, memberEmail: string) => {
+    confirmDeleteToast(memberEmail, async () => {
       const result = await residentialUserService.remove(residentialId, userId);
       if (!result.success) {
         toast.error(result.error.message);
@@ -109,16 +111,16 @@ export function UserRoleSettingsPanel({
     <div className="space-y-4">
       <div className="flex items-end gap-2">
         <Input
-          label="Add member by email"
+          label={t("settings.users.addByEmail.label")}
           type="email"
-          placeholder="someone@example.com"
+          placeholder={t("settings.users.addByEmail.placeholder")}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           disabled={isSubmitting}
           className="flex-1"
         />
         <Select value={newRole} onValueChange={(v) => setNewRole(v as ResidentialRole)} disabled={isSubmitting}>
-          <SelectTrigger label="Role" className="w-36">
+          <SelectTrigger label={t("common.role")} className="w-36">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -130,7 +132,7 @@ export function UserRoleSettingsPanel({
           </SelectContent>
         </Select>
         <Button onClick={handleAdd} disabled={isSubmitting || !email.trim()}>
-          {isSubmitting ? <Spinner size="sm" /> : "Add"}
+          {isSubmitting ? <Spinner size="sm" /> : t("common.add")}
         </Button>
       </div>
 
@@ -139,15 +141,15 @@ export function UserRoleSettingsPanel({
           <Spinner />
         </div>
       ) : members.length === 0 ? (
-        <div className="py-8 text-center text-sm text-muted-foreground">No members yet.</div>
+        <div className="py-8 text-center text-sm text-muted-foreground">{t("settings.users.empty")}</div>
       ) : (
         <div className="rounded-lg border bg-card">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead>{t("common.email")}</TableHead>
+                <TableHead>{t("common.role")}</TableHead>
+                <TableHead className="text-right">{t("common.actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -156,7 +158,9 @@ export function UserRoleSettingsPanel({
                 const canEditThisRole = currentRole === "owner" || ADMIN_ASSIGNABLE_ROLES.includes(memberRole);
                 return (
                   <TableRow key={member.user_id}>
-                    <TableCell className="text-sm">{member.profiles?.email ?? "Unknown"}</TableCell>
+                    <TableCell className="text-sm">
+                      {member.profiles?.email ?? t("settings.users.unknownEmail")}
+                    </TableCell>
                     <TableCell>
                       {canEditThisRole ? (
                         <Select
@@ -187,7 +191,9 @@ export function UserRoleSettingsPanel({
                           size="sm"
                           variant="ghost"
                           disabled={isSubmitting}
-                          onClick={() => handleRemove(member.user_id, member.profiles?.email ?? "this member")}
+                          onClick={() =>
+                            handleRemove(member.user_id, member.profiles?.email ?? t("settings.users.unnamedMember"))
+                          }
                         >
                           <DeleteIcon />
                         </Button>

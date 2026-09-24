@@ -17,15 +17,18 @@ import { ReservationsPage } from "@/pages/ReservationsPage";
 import { UnitDetailPage } from "@/pages/UnitDetailPage";
 import { AddonDetailPage } from "@/pages/AddonDetailPage";
 import { ChargeDetailPage } from "@/pages/ChargeDetailPage";
+import { FastlanePublicPage } from "@/pages/FastlanePublicPage";
 import { useI18n } from "@/i18n/useI18n";
 import { isMessageKey } from "@/i18n/messages";
 import { useAccess } from "@/state/useAccess";
 import { useSession } from "@/state/useSession";
 import {
   getCurrentRoute,
+  getDefaultRouteForRole,
   getUnitIdFromHash,
   getAddonIdFromHash,
   getChargeIdFromHash,
+  isRouteAllowedForRole,
   isSettingsRoute,
   navigateTo,
   type RouteType,
@@ -53,11 +56,25 @@ export default function App() {
     [],
   );
 
-  const { session, isLoading: sessionLoading } = useSession({ enabled: isSupabaseConfigured });
+  // fastlanePublic must be reachable even with no Supabase session (or, in
+  // principle, no session hooks running at all) — the visitor opens this
+  // link on their own phone. All hooks above still run unconditionally per
+  // the rules of hooks; this just short-circuits the rendering below them.
+  const { session, isLoading: sessionLoading } = useSession({
+    enabled: isSupabaseConfigured && currentRoute !== "fastlanePublic",
+  });
   const { access, isLoading: isAccessLoading, error: accessError } = useAccess({
-    enabled: isSupabaseConfigured && Boolean(session?.user),
+    enabled: isSupabaseConfigured && currentRoute !== "fastlanePublic" && Boolean(session?.user),
     refreshKey: currentRoute,
   });
+
+  if (currentRoute === "fastlanePublic") {
+    return (
+      <AppFrame>
+        <FastlanePublicPage />
+      </AppFrame>
+    );
+  }
 
   // Supabase not configured
   if (!isSupabaseConfigured) {
@@ -181,6 +198,24 @@ export default function App() {
   }
 
   // Residential access - route to appropriate page
+
+  // Role doesn't have access to the current route - redirect to a route it can see
+  if (!isRouteAllowedForRole(currentRoute, access.role)) {
+    navigateTo(getDefaultRouteForRole(access.role));
+    return (
+      <AppFrame>
+        <div className="mx-auto max-w-2xl px-6 py-12">
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("app.loading.title")}</CardTitle>
+              <CardDescription>{t("app.loading.description")}</CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
+      </AppFrame>
+    );
+  }
+
   if (currentRoute === "units") {
     return (
       <AppFrame>
@@ -286,7 +321,22 @@ function AppFrame({ children }: { children: React.ReactNode }) {
     <div className="relative min-h-screen bg-background text-foreground">
       <MeshBackground />
       <div className="relative">{children}</div>
-      <Toaster richColors position="top-right" closeButton expand visibleToasts={5} />
+      <Toaster
+        richColors
+        position="top-right"
+        closeButton
+        expand
+        visibleToasts={5}
+        toastOptions={{
+          classNames: {
+            toast: "!rounded-lg !font-sans",
+            success: "!border-transparent !bg-gates-success-bg !text-gates-text-brand",
+            error: "!border-transparent !bg-gates-error-bg !text-gates-error",
+            warning: "!border-transparent !bg-gates-warning-bg !text-gates-warning",
+            info: "!border-transparent !bg-gates-lilac !text-gates-text-brand",
+          },
+        }}
+      />
     </div>
   );
 }

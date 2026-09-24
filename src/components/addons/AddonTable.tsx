@@ -10,6 +10,7 @@ import { usePaginatedSortedData } from "@/hooks/usePaginatedSortedData";
 import { confirmDeleteToast } from "@/lib/confirmDeleteToast";
 import { navigateToAddonDetail } from "@/config/routes";
 import { EditIcon, DeleteIcon } from "@/components/icons";
+import { useI18n } from "@/i18n/useI18n";
 import type { Addon } from "@/types/unit-wizard.types";
 
 interface AddonTableProps {
@@ -25,6 +26,7 @@ function unitsLinkedCount(addon: Addon): number {
 }
 
 export function AddonTable({ addons, isLoading, isSubmitting, onDelete, onToggleActive }: AddonTableProps) {
+  const { t } = useI18n();
   const {
     paginatedData: paginatedAddons,
     totalItems,
@@ -60,7 +62,7 @@ export function AddonTable({ addons, isLoading, isSubmitting, onDelete, onToggle
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <label className="text-sm font-medium">
-          Existing Addons
+          {t("addon.table.title")}
           {totalItems > 0 && <span className="ml-2 text-muted-foreground">({totalItems} total)</span>}
         </label>
       </div>
@@ -82,13 +84,13 @@ export function AddonTable({ addons, isLoading, isSubmitting, onDelete, onToggle
                     onSort={handleSort}
                     className="w-1/4"
                   >
-                    Name
+                    {t("common.name")}
                   </SortableTableHead>
-                  <TableHead className="w-1/4">Type</TableHead>
-                  <TableHead className="w-[110px]">Internal count</TableHead>
-                  <TableHead className="w-[90px]">Units</TableHead>
-                  <TableHead className="w-[100px]">Active</TableHead>
-                  <TableHead className="w-[140px] text-right">Actions</TableHead>
+                  <TableHead className="w-1/4">{t("common.type")}</TableHead>
+                  <TableHead className="w-[110px]">{t("addon.table.internalCount")}</TableHead>
+                  <TableHead className="w-[90px]">{t("common.units")}</TableHead>
+                  <TableHead className="w-[100px]">{t("common.active")}</TableHead>
+                  <TableHead className="w-[140px] text-right">{t("common.actions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -99,7 +101,7 @@ export function AddonTable({ addons, isLoading, isSubmitting, onDelete, onToggle
                     </TableCell>
                     <TableCell>
                       <span className="text-sm text-muted-foreground truncate">
-                        {addon.addon_types?.name || "No type"}
+                        {addon.addon_types?.name || t("addon.table.noType")}
                       </span>
                     </TableCell>
                     <TableCell>
@@ -117,7 +119,11 @@ export function AddonTable({ addons, isLoading, isSubmitting, onDelete, onToggle
                         checked={addon.is_active}
                         onCheckedChange={() => onToggleActive(addon.id, addon.is_active)}
                         disabled={isSubmitting}
-                        aria-label={`Set ${addon.name} ${addon.is_active ? "inactive" : "active"}`}
+                        aria-label={
+                          addon.is_active
+                            ? t("addon.table.setInactive", { name: addon.name })
+                            : t("addon.table.setActive", { name: addon.name })
+                        }
                       />
                     </TableCell>
                     <TableCell className="text-right">
@@ -156,7 +162,7 @@ export function AddonTable({ addons, isLoading, isSubmitting, onDelete, onToggle
           />
         </>
       ) : (
-        <div className="text-center py-8 text-sm text-muted-foreground">No addons yet. Create one above.</div>
+        <div className="text-center py-8 text-sm text-muted-foreground">{t("addon.table.empty")}</div>
       )}
     </div>
   );

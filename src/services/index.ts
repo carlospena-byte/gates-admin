@@ -10,6 +10,10 @@ export { addonService } from "./addonService";
 export { addonItemService } from "./addonItemService";
 export { unitAddonService } from "./unitAddonService";
 export { unitResidentService } from "./unitResidentService";
+export { invitationService } from "./invitationService";
+export { unitMemberService } from "./unitMemberService";
+export { inviteOrLinkResident } from "./residentInviteFlow";
+export type { InviteOrLinkOutcome } from "./residentInviteFlow";
 export { unitRentalService } from "./unitRentalService";
 export { unitRentalPaymentService } from "./unitRentalPaymentService";
 export { chargeService } from "./chargeService";
@@ -20,9 +24,14 @@ export { visitorService } from "./visitorService";
 export { accessLogService } from "./accessLogService";
 export { incidentService } from "./incidentService";
 export { incidentAttachmentService } from "./incidentAttachmentService";
+export { incidentTypeService } from "./incidentTypeService";
 export { amenityBookingService } from "./amenityBookingService";
 export { dashboardMetricsService } from "./dashboardMetricsService";
 export { announcementService } from "./announcementService";
+export { servicesService } from "./services.service";
+export { amenityServiceService } from "./amenityServiceService";
+export { amenityBookingLimitService } from "./amenityBookingLimitService";
+export { amenityImageService } from "./amenityImageService";
 export type { OperationalMetrics } from "./dashboardMetricsService";
 
 // Re-export commonly used types

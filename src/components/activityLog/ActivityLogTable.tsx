@@ -14,6 +14,8 @@ import { Spinner } from "@/components/LoadingStates";
 import { Pagination } from "@/components/Pagination";
 import { ChevronDownIcon, ChevronRightIcon } from "@/components/icons";
 import { usePaginatedSortedData } from "@/hooks/usePaginatedSortedData";
+import { useI18n } from "@/i18n/useI18n";
+import type { MessageKey } from "@/i18n/messages";
 import type { AuditAction, AuditLogWithActor } from "@/types/audit.types";
 
 interface ActivityLogTableProps {
@@ -21,10 +23,10 @@ interface ActivityLogTableProps {
   isLoading: boolean;
 }
 
-const ACTION_LABELS: Record<AuditAction, string> = {
-  INSERT: "Created",
-  UPDATE: "Updated",
-  DELETE: "Deleted",
+const ACTION_LABEL_KEYS: Record<AuditAction, MessageKey> = {
+  INSERT: "activityLog.action.created",
+  UPDATE: "activityLog.action.updated",
+  DELETE: "activityLog.action.deleted",
 };
 
 const ACTION_BADGE_VARIANT: Record<AuditAction, "default" | "secondary" | "destructive"> = {
@@ -80,6 +82,7 @@ function getDetailRows(log: AuditLogWithActor): DetailRow[] {
 }
 
 export function ActivityLogTable({ logs, isLoading }: ActivityLogTableProps) {
+  const { t } = useI18n();
   const [entityFilter, setEntityFilter] = useState("all");
   const [actionFilter, setActionFilter] = useState("all");
   const [actorFilter, setActorFilter] = useState("all");
@@ -142,11 +145,11 @@ export function ActivityLogTable({ logs, isLoading }: ActivityLogTableProps) {
     <div className="space-y-4">
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
         <Select value={entityFilter} onValueChange={setEntityFilter}>
-          <SelectTrigger label="Entity">
+          <SelectTrigger label={t("activityLog.filters.entity")}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="all">{t("common.all")}</SelectItem>
             {entityOptions.map((name) => (
               <SelectItem key={name} value={name}>
                 {formatEntityName(name)}
@@ -156,23 +159,23 @@ export function ActivityLogTable({ logs, isLoading }: ActivityLogTableProps) {
         </Select>
 
         <Select value={actionFilter} onValueChange={setActionFilter}>
-          <SelectTrigger label="Action">
+          <SelectTrigger label={t("activityLog.filters.action")}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All</SelectItem>
-            <SelectItem value="INSERT">Created</SelectItem>
-            <SelectItem value="UPDATE">Updated</SelectItem>
-            <SelectItem value="DELETE">Deleted</SelectItem>
+            <SelectItem value="all">{t("common.all")}</SelectItem>
+            <SelectItem value="INSERT">{t(ACTION_LABEL_KEYS.INSERT)}</SelectItem>
+            <SelectItem value="UPDATE">{t(ACTION_LABEL_KEYS.UPDATE)}</SelectItem>
+            <SelectItem value="DELETE">{t(ACTION_LABEL_KEYS.DELETE)}</SelectItem>
           </SelectContent>
         </Select>
 
         <Select value={actorFilter} onValueChange={setActorFilter}>
-          <SelectTrigger label="User">
+          <SelectTrigger label={t("activityLog.filters.user")}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="all">{t("common.all")}</SelectItem>
             {actorOptions.map((email) => (
               <SelectItem key={email} value={email}>
                 {email}
@@ -182,8 +185,18 @@ export function ActivityLogTable({ logs, isLoading }: ActivityLogTableProps) {
         </Select>
 
         <div className="grid grid-cols-2 gap-2">
-          <Input label="From" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
-          <Input label="To" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+          <Input
+            label={t("activityLog.filters.dateFrom")}
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+          />
+          <Input
+            label={t("activityLog.filters.dateTo")}
+            type="date"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+          />
         </div>
       </div>
 
@@ -192,7 +205,7 @@ export function ActivityLogTable({ logs, isLoading }: ActivityLogTableProps) {
           <Spinner />
         </div>
       ) : totalItems === 0 ? (
-        <div className="text-center py-8 text-sm text-muted-foreground">No activity matches these filters.</div>
+        <div className="text-center py-8 text-sm text-muted-foreground">{t("activityLog.empty")}</div>
       ) : (
         <>
           <div className="rounded-lg border bg-card">
@@ -200,10 +213,10 @@ export function ActivityLogTable({ logs, isLoading }: ActivityLogTableProps) {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[30px]"></TableHead>
-                  <TableHead className="w-[160px]">When</TableHead>
-                  <TableHead>User</TableHead>
-                  <TableHead className="w-[100px]">Action</TableHead>
-                  <TableHead>Entity</TableHead>
+                  <TableHead className="w-[160px]">{t("activityLog.table.when")}</TableHead>
+                  <TableHead>{t("activityLog.table.user")}</TableHead>
+                  <TableHead className="w-[100px]">{t("activityLog.table.action")}</TableHead>
+                  <TableHead>{t("activityLog.table.entity")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -229,7 +242,7 @@ export function ActivityLogTable({ logs, isLoading }: ActivityLogTableProps) {
                         </TableCell>
                         <TableCell className="text-sm">{log.profiles?.email ?? "System"}</TableCell>
                         <TableCell>
-                          <Badge variant={ACTION_BADGE_VARIANT[log.action]}>{ACTION_LABELS[log.action]}</Badge>
+                          <Badge variant={ACTION_BADGE_VARIANT[log.action]}>{t(ACTION_LABEL_KEYS[log.action])}</Badge>
                         </TableCell>
                         <TableCell className="text-sm">{formatEntityName(log.table_name)}</TableCell>
                       </TableRow>

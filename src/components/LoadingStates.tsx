@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader } from "./ui/card";
 import { Skeleton } from "./ui/skeleton";
+import { useI18n } from "@/i18n/useI18n";
 
 /**
  * Loading skeleton for table rows
@@ -115,11 +116,12 @@ export function Spinner({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
 /**
  * Full page loading state
  */
-export function FullPageLoading({ message = "Loading..." }: { message?: string }) {
+export function FullPageLoading({ message }: { message?: string }) {
+  const { t } = useI18n();
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4">
       <Spinner size="lg" />
-      <p className="mt-4 text-gray-600">{message}</p>
+      <p className="mt-4 text-gray-600">{message ?? t("common.loading")}</p>
     </div>
   );
 }

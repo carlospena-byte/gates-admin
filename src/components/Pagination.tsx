@@ -3,6 +3,7 @@
  */
 
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/i18n/useI18n";
 
 interface PaginationProps {
   currentPage: number;
@@ -21,6 +22,7 @@ export function Pagination({
   endIndex,
   onPageChange,
 }: PaginationProps) {
+  const { t } = useI18n();
   if (totalPages <= 1) return null;
 
   // Show max 5 page numbers
@@ -61,7 +63,11 @@ export function Pagination({
   return (
     <div className="flex items-center justify-between px-2 py-3 border-t bg-muted/20">
       <div className="text-sm text-muted-foreground">
-        Showing {startIndex + 1}-{Math.min(endIndex, totalItems)} of {totalItems}
+        {t("pagination.showing", {
+          start: startIndex + 1,
+          end: Math.min(endIndex, totalItems),
+          total: totalItems,
+        })}
       </div>
       <div className="flex gap-2">
         <Button
@@ -70,7 +76,7 @@ export function Pagination({
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
         >
-          Previous
+          {t("pagination.previous")}
         </Button>
         <div className="flex items-center gap-1">
           {getPageNumbers().map((page, idx) =>
@@ -97,7 +103,7 @@ export function Pagination({
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
         >
-          Next
+          {t("pagination.next")}
         </Button>
       </div>
     </div>

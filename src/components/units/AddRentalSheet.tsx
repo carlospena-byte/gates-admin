@@ -5,6 +5,7 @@
  */
 
 import { useState } from "react";
+import { useI18n } from "@/i18n/useI18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -40,6 +41,7 @@ const EMPTY: NewRentalFields = {
 };
 
 export function AddRentalSheet({ open, onOpenChange, isSubmitting, onCreate }: AddRentalSheetProps) {
+  const { t } = useI18n();
   const [fields, setFields] = useState<NewRentalFields>(EMPTY);
   const set = <K extends keyof NewRentalFields>(key: K, value: NewRentalFields[K]) =>
     setFields((prev) => ({ ...prev, [key]: value }));
@@ -62,27 +64,27 @@ export function AddRentalSheet({ open, onOpenChange, isSubmitting, onCreate }: A
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
         <SheetHeader>
-          <SheetTitle>Add rental</SheetTitle>
-          <SheetDescription>Who&apos;s responsible for this unit, or a short-term stay.</SheetDescription>
+          <SheetTitle>{t("rentals.add.title")}</SheetTitle>
+          <SheetDescription>{t("rentals.add.description")}</SheetDescription>
         </SheetHeader>
 
         <div className="space-y-4 py-6">
-          <div className="grid gap-2 sm:grid-cols-2">
+          <div className="grid gap-2 grid-cols-1">
             <Select
               value={fields.rentalType}
               onValueChange={(v) => set("rentalType", v as RentalType)}
               disabled={isSubmitting}
             >
-              <SelectTrigger label="Rental Type">
+              <SelectTrigger label={t("rentals.add.rentalType.label")}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="monthly">Monthly (responsible tenant)</SelectItem>
-                <SelectItem value="short_term">Short-term (Airbnb-style)</SelectItem>
+                <SelectItem value="monthly">{t("rentals.add.rentalType.monthly")}</SelectItem>
+                <SelectItem value="short_term">{t("rentals.add.rentalType.shortTerm")}</SelectItem>
               </SelectContent>
             </Select>
             <Input
-              label="Price (optional)"
+              label={t("rentals.add.priceOptional.label")}
               type="number"
               min="0"
               step="0.01"
@@ -93,38 +95,38 @@ export function AddRentalSheet({ open, onOpenChange, isSubmitting, onCreate }: A
           </div>
 
           <Input
-            label="Tenant / Guest Name"
+            label={t("rentals.add.tenantName.label")}
             value={fields.tenantName}
             onChange={(e) => set("tenantName", e.target.value)}
             disabled={isSubmitting}
           />
 
-          <div className="grid gap-2 sm:grid-cols-2">
+          <div className="grid gap-2 grid-cols-1">
             <Input
-              label="Email (optional)"
+              label={t("rentals.add.emailOptional.label")}
               type="email"
               value={fields.tenantEmail}
               onChange={(e) => set("tenantEmail", e.target.value)}
               disabled={isSubmitting}
             />
             <Input
-              label="Phone (optional)"
+              label={t("rentals.add.phoneOptional.label")}
               value={fields.tenantPhone}
               onChange={(e) => set("tenantPhone", e.target.value)}
               disabled={isSubmitting}
             />
           </div>
 
-          <div className="grid gap-2 sm:grid-cols-2">
+          <div className="grid gap-2 grid-cols-1">
             <Input
-              label="Start Date"
+              label={t("rentals.add.startDate.label")}
               type="date"
               value={fields.startDate}
               onChange={(e) => set("startDate", e.target.value)}
               disabled={isSubmitting}
             />
             <Input
-              label="End Date (optional)"
+              label={t("rentals.add.endDateOptional.label")}
               type="date"
               value={fields.endDate}
               onChange={(e) => set("endDate", e.target.value)}
@@ -135,10 +137,10 @@ export function AddRentalSheet({ open, onOpenChange, isSubmitting, onCreate }: A
 
         <SheetFooter>
           <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={isSubmitting}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button onClick={handleAdd} disabled={isSubmitting || !fields.tenantName.trim() || !fields.startDate}>
-            {isSubmitting ? <Spinner size="sm" /> : "Add rental"}
+            {isSubmitting ? <Spinner size="sm" /> : t("rentals.add.submit")}
           </Button>
         </SheetFooter>
       </SheetContent>

@@ -5,6 +5,7 @@
  * used by the main list).
  */
 
+import { useI18n } from "@/i18n/useI18n";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { RENTAL_STATUS_VARIANT, RENTAL_TYPE_LABEL, getInitials } from "@/lib/rentalDisplay";
@@ -19,17 +20,18 @@ interface RentalHistorySheetProps {
 }
 
 export function RentalHistorySheet({ open, onOpenChange, rentals, onSelect }: RentalHistorySheetProps) {
+  const { t } = useI18n();
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
         <SheetHeader>
-          <SheetTitle>Rental history</SheetTitle>
-          <SheetDescription>Completed and cancelled rentals for this unit.</SheetDescription>
+          <SheetTitle>{t("rentals.history.title")}</SheetTitle>
+          <SheetDescription>{t("rentals.history.description")}</SheetDescription>
         </SheetHeader>
 
         <div className="space-y-2 py-6">
           {rentals.length === 0 ? (
-            <p className="py-4 text-center text-sm text-muted-foreground">No past rentals yet.</p>
+            <p className="py-4 text-center text-sm text-muted-foreground">{t("rentals.history.empty")}</p>
           ) : (
             rentals.map((rental) => (
               <button
@@ -47,7 +49,8 @@ export function RentalHistorySheet({ open, onOpenChange, rentals, onSelect }: Re
                     <Badge variant={RENTAL_STATUS_VARIANT[rental.status]}>{rental.status}</Badge>
                   </span>
                   <span className="block truncate text-xs text-muted-foreground">
-                    {RENTAL_TYPE_LABEL[rental.rental_type]} · {rental.start_date} → {rental.end_date || "ongoing"}
+                    {RENTAL_TYPE_LABEL[rental.rental_type]} · {rental.start_date} →{" "}
+                    {rental.end_date || t("rentals.detail.ongoing")}
                   </span>
                 </span>
                 {rental.price !== null && (

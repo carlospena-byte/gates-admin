@@ -5,6 +5,7 @@
  * (see ChargeDetailPage) — Edit here navigates there.
  */
 
+import { useI18n } from "@/i18n/useI18n";
 import {
   Sheet,
   SheetContent,
@@ -44,6 +45,7 @@ interface ChargeManagerProps {
 }
 
 export function ChargeManager({ open, onOpenChange, residentialId }: ChargeManagerProps) {
+  const { t } = useI18n();
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
@@ -52,10 +54,8 @@ export function ChargeManager({ open, onOpenChange, residentialId }: ChargeManag
         onInteractOutside={(e) => e.preventDefault()}
       >
         <SheetHeader>
-          <SheetTitle>Manage Charges</SheetTitle>
-          <SheetDescription>
-            Recurring extra charges (Seguridad, Mantenimiento y Limpieza, etc.) — assign a price per unit or group.
-          </SheetDescription>
+          <SheetTitle>{t("charges.manager.title")}</SheetTitle>
+          <SheetDescription>{t("charges.manager.description")}</SheetDescription>
         </SheetHeader>
 
         <div className="py-6">

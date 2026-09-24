@@ -14,6 +14,7 @@ import {
 } from "@/lib/locationHierarchy";
 import { confirmDeleteToast } from "@/lib/confirmDeleteToast";
 import { EditIcon, DeleteIcon } from "@/components/icons";
+import { useI18n } from "@/i18n/useI18n";
 import type { Location, LocationTypeDefinition, UpdateLocationDto } from "@/types/unit-wizard.types";
 
 interface LocationTableProps {
@@ -73,6 +74,7 @@ export function LocationTable({
   onDelete,
   onToggleActive,
 }: LocationTableProps) {
+  const { t } = useI18n();
   const rankedLocations = useMemo(() => rankLocationsByHierarchy(locations), [locations]);
 
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -129,7 +131,7 @@ export function LocationTable({
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <label className="text-sm font-medium">
-          Existing Locations
+          {t("location.table.title")}
           {locations.length > 0 && <span className="ml-2 text-muted-foreground">({locations.length} total)</span>}
         </label>
       </div>
@@ -143,11 +145,11 @@ export function LocationTable({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-1/4">Name</TableHead>
-                <TableHead className="w-1/6">Type</TableHead>
-                <TableHead className="w-1/4">Parent</TableHead>
-                <TableHead className="w-[110px]">Active</TableHead>
-                <TableHead className="w-[140px] text-right">Actions</TableHead>
+                <TableHead className="w-1/4">{t("common.name")}</TableHead>
+                <TableHead className="w-1/6">{t("common.type")}</TableHead>
+                <TableHead className="w-1/4">{t("location.table.parent")}</TableHead>
+                <TableHead className="w-[110px]">{t("common.active")}</TableHead>
+                <TableHead className="w-[140px] text-right">{t("common.actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -158,7 +160,7 @@ export function LocationTable({
                       <Input
                         value={editingName}
                         onChange={(e) => setEditingName(e.target.value)}
-                        placeholder="Location name"
+                        placeholder={t("location.table.namePlaceholder")}
                         className="h-8"
                         autoFocus
                         disabled={isSubmitting}
@@ -177,12 +179,12 @@ export function LocationTable({
                     {editingId === location.id ? (
                       <Select value={editingType} onValueChange={handleTypeChange} disabled={isSubmitting}>
                         <SelectTrigger className="h-8">
-                          <SelectValue placeholder="Type" />
+                          <SelectValue placeholder={t("common.type")} />
                         </SelectTrigger>
                         <SelectContent>
-                          {sortedTypes.map((t) => (
-                            <SelectItem key={t.id} value={t.code}>
-                              {t.name} (Nivel {t.level})
+                          {sortedTypes.map((locType) => (
+                            <SelectItem key={locType.id} value={locType.code}>
+                              {locType.name} {t("location.create.levelSuffix", { level: locType.level })}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -200,11 +202,13 @@ export function LocationTable({
                           disabled={isSubmitting}
                         >
                           <SelectTrigger className="h-8">
-                            <SelectValue placeholder="Parent" />
+                            <SelectValue placeholder={t("location.table.parent")} />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="none" disabled>
-                              {eligibleParentsForEditing.length > 0 ? "Select a parent" : "No eligible parents"}
+                              {eligibleParentsForEditing.length > 0
+                                ? t("location.table.selectParent")
+                                : t("location.table.noEligibleParents")}
                             </SelectItem>
                             {eligibleParentsForEditing.map((parent) => (
                               <SelectItem key={parent.id} value={parent.id}>
@@ -214,13 +218,13 @@ export function LocationTable({
                           </SelectContent>
                         </Select>
                       ) : (
-                        <span className="text-sm text-muted-foreground">Root level</span>
+                        <span className="text-sm text-muted-foreground">{t("location.table.rootLevel")}</span>
                       )
                     ) : (
                       <span className="text-sm text-muted-foreground truncate">
                         {location.parent_id
-                          ? locations.find((l) => l.id === location.parent_id)?.name || "Unknown"
-                          : "None"}
+                          ? locations.find((l) => l.id === location.parent_id)?.name || t("location.table.unknownParent")
+                          : t("common.none")}
                       </span>
                     )}
                   </TableCell>
@@ -229,7 +233,11 @@ export function LocationTable({
                       checked={location.is_active}
                       onCheckedChange={() => onToggleActive(location.id, location.is_active)}
                       disabled={isSubmitting || editingId === location.id}
-                      aria-label={`Set ${location.name} ${location.is_active ? "inactive" : "active"}`}
+                      aria-label={
+                        location.is_active
+                          ? t("location.table.setInactive", { name: location.name })
+                          : t("location.table.setActive", { name: location.name })
+                      }
                     />
                   </TableCell>
                   <TableCell className="text-right">
@@ -242,10 +250,10 @@ export function LocationTable({
                             isSubmitting || !editingName.trim() || !editingType || isEditingMissingParent
                           }
                         >
-                          {isSubmitting ? <Spinner size="sm" /> : "Save"}
+                          {isSubmitting ? <Spinner size="sm" /> : t("common.save")}
                         </Button>
                         <Button size="sm" variant="outline" onClick={cancelEditing} disabled={isSubmitting}>
-                          Cancel
+                          {t("common.cancel")}
                         </Button>
                       </div>
                     ) : (
@@ -270,7 +278,7 @@ export function LocationTable({
           </Table>
         </div>
       ) : (
-        <div className="text-center py-8 text-sm text-muted-foreground">No locations yet. Create one above.</div>
+        <div className="text-center py-8 text-sm text-muted-foreground">{t("location.table.empty")}</div>
       )}
     </div>
   );

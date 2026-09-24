@@ -14,6 +14,7 @@ import {
   sortLocationTypesByLevel,
 } from "@/lib/locationHierarchy";
 import { cn, formatCurrency } from "@/lib/utils";
+import { useI18n } from "@/i18n/useI18n";
 import type { AddonItem, AddonType, Location, LocationTypeDefinition } from "@/types/unit-wizard.types";
 
 const ALL = "__all__";
@@ -39,6 +40,7 @@ export function AddonItemPicker({
   onSetSelected,
   disabled,
 }: AddonItemPickerProps) {
+  const { t } = useI18n();
   const [locationTypeCode, setLocationTypeCode] = useState(ALL);
   const [locationId, setLocationId] = useState(ALL);
   const [subLocationId, setSubLocationId] = useState(ALL);
@@ -73,6 +75,7 @@ export function AddonItemPicker({
   const subLocationLabel = subLocationOptions.length
     ? getLocationTypeLabel(subLocationOptions[0].type, locationTypes)
     : "";
+  const allOfSubLocationLabel = t("units.addonPicker.allOfLabel", { label: subLocationLabel });
 
   // The most specific location actually chosen — a floor if picked, else the tower itself.
   const targetLocationId = effectiveSubLocationId !== ALL ? effectiveSubLocationId : effectiveLocationId;
@@ -113,19 +116,21 @@ export function AddonItemPicker({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <label className="text-sm font-medium">Addons (optional)</label>
+        <label className="text-sm font-medium">{t("units.addonPicker.title")}</label>
         {selectedIds.length > 0 && (
-          <span className="text-xs text-muted-foreground">{selectedIds.length} selected</span>
+          <span className="text-xs text-muted-foreground">
+            {t("units.addonPicker.selectedCount", { count: selectedIds.length })}
+          </span>
         )}
       </div>
 
       <div className={cn("grid gap-2 sm:grid-cols-3", subLocationOptions.length > 0 && "lg:grid-cols-4")}>
         <Select value={addonTypeId} onValueChange={setAddonTypeId} disabled={disabled}>
-          <SelectTrigger label="Addon Type">
-            <SelectValue placeholder="All addon types" />
+          <SelectTrigger label={t("units.addonPicker.addonType")}>
+            <SelectValue placeholder={t("units.addonPicker.allAddonTypes")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ALL}>All addon types</SelectItem>
+            <SelectItem value={ALL}>{t("units.addonPicker.allAddonTypes")}</SelectItem>
             {addonTypes.map((type) => (
               <SelectItem key={type.id} value={type.id}>
                 {type.name}
@@ -143,11 +148,11 @@ export function AddonItemPicker({
           }}
           disabled={disabled}
         >
-          <SelectTrigger label="Location Type">
-            <SelectValue placeholder="All location types" />
+          <SelectTrigger label={t("units.addonPicker.locationType")}>
+            <SelectValue placeholder={t("units.addonPicker.allLocationTypes")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ALL}>All location types</SelectItem>
+            <SelectItem value={ALL}>{t("units.addonPicker.allLocationTypes")}</SelectItem>
             {sortedLocationTypes.map((type) => (
               <SelectItem key={type.id} value={type.code}>
                 {type.name}
@@ -164,11 +169,11 @@ export function AddonItemPicker({
           }}
           disabled={disabled}
         >
-          <SelectTrigger label="Location">
-            <SelectValue placeholder="All locations" />
+          <SelectTrigger label={t("common.location")}>
+            <SelectValue placeholder={t("units.addonPicker.allLocations")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ALL}>All locations</SelectItem>
+            <SelectItem value={ALL}>{t("units.addonPicker.allLocations")}</SelectItem>
             {locationOptions.map((location) => (
               <SelectItem key={location.id} value={location.id}>
                 {getLocationFullPath(location, locations)}
@@ -180,10 +185,10 @@ export function AddonItemPicker({
         {subLocationOptions.length > 0 && (
           <Select value={effectiveSubLocationId} onValueChange={setSubLocationId} disabled={disabled}>
             <SelectTrigger label={subLocationLabel}>
-              <SelectValue placeholder={`All ${subLocationLabel}`} />
+              <SelectValue placeholder={allOfSubLocationLabel} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={ALL}>All {subLocationLabel}</SelectItem>
+              <SelectItem value={ALL}>{allOfSubLocationLabel}</SelectItem>
               {subLocationOptions.map((location) => (
                 <SelectItem key={location.id} value={location.id}>
                   {location.name}
@@ -206,12 +211,12 @@ export function AddonItemPicker({
                     onChange={handleSelectAllFiltered}
                     disabled={disabled}
                     className="h-4 w-4"
-                    aria-label="Select all filtered addons"
+                    aria-label={t("units.addonPicker.selectAllAria")}
                   />
                 </TableHead>
-                <TableHead>Addon</TableHead>
-                <TableHead>Location</TableHead>
-                <TableHead className="w-[100px]">Price</TableHead>
+                <TableHead>{t("units.addonPicker.columnAddon")}</TableHead>
+                <TableHead>{t("common.location")}</TableHead>
+                <TableHead className="w-[100px]">{t("common.price")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -228,14 +233,14 @@ export function AddonItemPicker({
                       onChange={() => onToggle(item.id)}
                       disabled={disabled}
                       className="h-4 w-4"
-                      aria-label={`Select ${item.name}`}
+                      aria-label={t("units.addonPicker.selectItemAria", { name: item.name })}
                     />
                   </TableCell>
                   <TableCell className="text-sm">
                     {item.addons?.name} — {item.name}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
-                    {item.locations ? getLocationFullPath(item.locations, locations) : "No location"}
+                    {item.locations ? getLocationFullPath(item.locations, locations) : t("units.common.noLocation")}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">{formatCurrency(item.price)}</TableCell>
                 </TableRow>
@@ -243,7 +248,7 @@ export function AddonItemPicker({
             </TableBody>
           </Table>
         ) : (
-          <p className="p-3 text-sm text-muted-foreground">No addons match these filters.</p>
+          <p className="p-3 text-sm text-muted-foreground">{t("units.addonPicker.empty")}</p>
         )}
       </div>
     </div>

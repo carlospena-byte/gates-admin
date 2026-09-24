@@ -11,6 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { getLocationTypeLabel } from "@/lib/locationHierarchy";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/i18n/useI18n";
 import type { Location, LocationTypeDefinition } from "@/types/unit-wizard.types";
 
 interface LocationComboboxProps {
@@ -79,8 +80,10 @@ export function LocationCombobox({
   value,
   onChange,
   disabled,
-  label = "Location",
+  label,
 }: LocationComboboxProps) {
+  const { t } = useI18n();
+  const resolvedLabel = label ?? t("common.location");
   const [chain, setChain] = useState<string[]>(() => (value ? buildChainToLocation(value, locations) : []));
 
   useEffect(() => {
@@ -102,7 +105,7 @@ export function LocationCombobox({
   if (steps.length === 0) {
     return (
       <div className="flex h-[52px] w-full items-center rounded-md border border-input bg-background px-3 text-sm text-muted-foreground">
-        No locations available
+        {t("units.location.noneAvailable")}
       </div>
     );
   }
@@ -112,7 +115,7 @@ export function LocationCombobox({
       {steps.map((step, index) => (
         <LocationLevelSelect
           key={index}
-          label={index === 0 ? label : getLocationTypeLabel(step.options[0].type, locationTypes)}
+          label={index === 0 ? resolvedLabel : getLocationTypeLabel(step.options[0].type, locationTypes)}
           options={step.options}
           value={step.selectedId ?? ""}
           onChange={(id) => handleSelect(index, id)}
@@ -121,7 +124,7 @@ export function LocationCombobox({
         />
       ))}
       {leafId === null && steps.length > 0 && (
-        <p className="text-xs text-muted-foreground">Select an option at every level to set the location.</p>
+        <p className="text-xs text-muted-foreground">{t("units.location.selectAllLevels")}</p>
       )}
     </div>
   );
@@ -142,6 +145,7 @@ function LocationLevelSelect({
   disabled?: boolean;
   allowClear?: boolean;
 }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const selected = options.find((o) => o.id === value);
 
@@ -156,7 +160,7 @@ function LocationLevelSelect({
           <div className="flex min-w-0 flex-1 flex-col items-start gap-0.5 text-left">
             <span className="text-[11px] font-medium leading-none text-muted-foreground">{label}</span>
             <span className={cn("truncate", !selected && "text-muted-foreground")}>
-              {selected ? selected.name : "Select"}
+              {selected ? selected.name : t("units.location.selectPlaceholder")}
             </span>
           </div>
           <IconChevronDown className="h-4 w-4 shrink-0 opacity-50" />
@@ -164,9 +168,9 @@ function LocationLevelSelect({
       </PopoverTrigger>
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
         <Command>
-          <CommandInput placeholder={`Search ${label.toLowerCase()}...`} />
+          <CommandInput placeholder={t("units.location.searchPlaceholder", { label: label.toLowerCase() })} />
           <CommandList>
-            <CommandEmpty>No options found.</CommandEmpty>
+            <CommandEmpty>{t("units.location.noOptionsFound")}</CommandEmpty>
             <CommandGroup>
               {allowClear && (
                 <CommandItem
@@ -177,7 +181,7 @@ function LocationLevelSelect({
                   }}
                 >
                   <IconCheck className={cn("mr-2 h-4 w-4", !value ? "opacity-100" : "opacity-0")} />
-                  None
+                  {t("common.none")}
                 </CommandItem>
               )}
               {options.map((option) => (

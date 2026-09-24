@@ -9,9 +9,11 @@ import { authService } from "@/services";
 import { useSession } from "@/state/useSession";
 import { canManageResidential } from "@/state/useAccess";
 import { useUnitManagerData } from "@/hooks/useUnitManagerData";
+import { useI18n } from "@/i18n/useI18n";
 import type { ResidentialRole } from "@/types/database.types";
 
 export function UnitsPage({ residentialId, role }: { residentialId: string; role: ResidentialRole }) {
+  const { t } = useI18n();
   const { session } = useSession();
   const canManage = canManageResidential(role);
   const [unitManagerOpen, setUnitManagerOpen] = useState(false);
@@ -33,21 +35,21 @@ export function UnitsPage({ residentialId, role }: { residentialId: string; role
 
   return (
     <div className="min-h-screen">
-      <AppSidebar userEmail={session?.user?.email} onSignOut={() => authService.signOut()} showUserMenu />
+      <AppSidebar userEmail={session?.user?.email} residentialId={residentialId} role={role} onSignOut={() => authService.signOut()} showUserMenu />
 
       <div className="lg:pl-64">
         <div className="mx-auto max-w-7xl px-6 py-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle>Units</CardTitle>
-                <CardDescription>Manage all residential units</CardDescription>
+                <CardTitle>{t("common.units")}</CardTitle>
+                <CardDescription>{t("units.page.description")}</CardDescription>
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={reload} disabled={isLoading}>
                   <IconRefresh className="h-4 w-4" />
                 </Button>
-                {canManage && <Button onClick={() => setUnitManagerOpen(true)}>Add Unit</Button>}
+                {canManage && <Button onClick={() => setUnitManagerOpen(true)}>{t("units.actions.addUnit")}</Button>}
               </div>
             </CardHeader>
             <CardContent>

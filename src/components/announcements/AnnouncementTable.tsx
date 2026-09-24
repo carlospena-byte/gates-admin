@@ -12,8 +12,20 @@ import { SortableTableHead } from "@/components/SortableTableHead";
 import { DeleteIcon } from "@/components/icons";
 import { confirmDeleteToast } from "@/lib/confirmDeleteToast";
 import { usePaginatedSortedData } from "@/hooks/usePaginatedSortedData";
+import { useI18n } from "@/i18n/useI18n";
+import type { MessageKey } from "@/i18n/messages";
 import { cn } from "@/lib/utils";
 import type { AnnouncementWithAuthor } from "@/types/announcement.types";
+
+const AUDIENCE_LABEL_KEYS: Record<string, MessageKey> = {
+  everyone: "announcements.audience.everyone",
+  admins: "announcements.audience.admins",
+};
+
+const STATUS_LABEL_KEYS: Record<string, MessageKey> = {
+  draft: "announcements.status.draft",
+  published: "announcements.status.published",
+};
 
 interface AnnouncementTableProps {
   announcements: AnnouncementWithAuthor[];
@@ -34,6 +46,7 @@ export function AnnouncementTable({
   onUnpublish,
   onDelete,
 }: AnnouncementTableProps) {
+  const { t } = useI18n();
   const {
     paginatedData: paginatedAnnouncements,
     totalItems,
@@ -67,7 +80,7 @@ export function AnnouncementTable({
   }
 
   if (announcements.length === 0) {
-    return <div className="py-8 text-center text-sm text-muted-foreground">No announcements yet.</div>;
+    return <div className="py-8 text-center text-sm text-muted-foreground">{t("announcements.table.empty")}</div>;
   }
 
   return (
@@ -77,23 +90,27 @@ export function AnnouncementTable({
           <TableHeader>
             <TableRow>
               <SortableTableHead field="title" currentSortField={sortField} sortOrder={sortOrder} onSort={handleSort}>
-                Title
+                {t("announcements.table.title")}
               </SortableTableHead>
-              <TableHead>Audience</TableHead>
-              <TableHead>Author</TableHead>
-              <TableHead>Publish At</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead>{t("announcements.table.audience")}</TableHead>
+              <TableHead>{t("announcements.table.author")}</TableHead>
+              <TableHead>{t("announcements.table.publishAt")}</TableHead>
+              <TableHead>{t("common.status")}</TableHead>
+              <TableHead className="text-right">{t("common.actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {paginatedAnnouncements.map((announcement) => (
               <TableRow key={announcement.id}>
                 <TableCell className="font-medium">{announcement.title}</TableCell>
-                <TableCell className="text-sm text-muted-foreground capitalize">{announcement.audience}</TableCell>
+                <TableCell className="text-sm text-muted-foreground capitalize">
+                  {t(AUDIENCE_LABEL_KEYS[announcement.audience])}
+                </TableCell>
                 <TableCell className="text-sm text-muted-foreground">{announcement.profiles?.email ?? "—"}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">
-                  {announcement.publish_at ? new Date(announcement.publish_at).toLocaleString() : "Immediately"}
+                  {announcement.publish_at
+                    ? new Date(announcement.publish_at).toLocaleString()
+                    : t("announcements.table.immediately")}
                 </TableCell>
                 <TableCell>
                   <Badge
@@ -104,7 +121,7 @@ export function AnnouncementTable({
                         : "bg-secondary text-secondary-foreground",
                     )}
                   >
-                    {announcement.status}
+                    {t(STATUS_LABEL_KEYS[announcement.status])}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
@@ -112,11 +129,11 @@ export function AnnouncementTable({
                     <div className="flex justify-end gap-1">
                       {announcement.status === "draft" ? (
                         <Button size="sm" variant="outline" disabled={isSubmitting} onClick={() => onPublish(announcement.id)}>
-                          Publish
+                          {t("announcements.table.publish")}
                         </Button>
                       ) : (
                         <Button size="sm" variant="outline" disabled={isSubmitting} onClick={() => onUnpublish(announcement.id)}>
-                          Unpublish
+                          {t("announcements.table.unpublish")}
                         </Button>
                       )}
                       <Button

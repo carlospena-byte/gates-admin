@@ -21,8 +21,10 @@ import { AddonCreateForm } from "@/components/addons/AddonCreateForm";
 import { AddonTable } from "@/components/addons/AddonTable";
 import { AddonTypeManager } from "@/components/AddonTypeManager";
 import { useAddonManagerData } from "@/hooks/useAddonManagerData";
+import { useI18n } from "@/i18n/useI18n";
 
 export function AddonSettingsPanel({ residentialId }: { residentialId: string }) {
+  const { t } = useI18n();
   const [typeManagerOpen, setTypeManagerOpen] = useState(false);
 
   const { addons, addonTypes, isLoading, isSubmitting, reload, createAddon, deleteAddon, toggleActive } =
@@ -33,7 +35,7 @@ export function AddonSettingsPanel({ residentialId }: { residentialId: string })
       <div className="flex justify-end">
         <Button variant="outline" size="sm" onClick={() => setTypeManagerOpen(true)}>
           <SettingsIcon />
-          <span className="ml-2">Manage Types</span>
+          <span className="ml-2">{t("addon.manageTypes")}</span>
         </Button>
       </div>
 
@@ -64,6 +66,7 @@ interface AddonManagerProps {
 }
 
 export function AddonManager({ open, onOpenChange, residentialId }: AddonManagerProps) {
+  const { t } = useI18n();
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
@@ -72,10 +75,8 @@ export function AddonManager({ open, onOpenChange, residentialId }: AddonManager
         onInteractOutside={(e) => e.preventDefault()}
       >
         <SheetHeader>
-          <SheetTitle>Manage Addons</SheetTitle>
-          <SheetDescription>
-            Create and manage addons for units (Covered Parking, Storage Unit, etc.)
-          </SheetDescription>
+          <SheetTitle>{t("addon.manager.title")}</SheetTitle>
+          <SheetDescription>{t("addon.manager.description")}</SheetDescription>
         </SheetHeader>
 
         <div className="py-6">

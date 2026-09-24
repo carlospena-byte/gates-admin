@@ -3,7 +3,8 @@ import {
   IconAlertTriangle,
   IconBuildings,
   IconCalendarEvent,
-  IconLayoutDashboard,
+  IconHome,
+  IconLayoutSidebarLeftCollapse,
   IconLogout,
   IconMenu2,
   IconSettings,
@@ -14,6 +15,7 @@ import {
   type IconProps,
 } from "@tabler/icons-react";
 
+import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -35,8 +37,12 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { useI18n } from "@/i18n/useI18n";
-import type { Locale } from "@/i18n/messages";
-import { getCurrentRoute, isSettingsRoute, ROUTES } from "@/config/routes";
+import type { Locale, MessageKey } from "@/i18n/messages";
+import { getCurrentRoute, isRouteAllowedForRole, isSettingsRoute, ROUTES, type RouteType } from "@/config/routes";
+import { residentialService } from "@/services";
+import { useQuery } from "@/hooks";
+import type { ResidentialRole } from "@/types/database.types";
+import { cn } from "@/lib/utils";
 
 interface AppSidebarProps {
   /** User email to display (optional) */
@@ -45,6 +51,10 @@ interface AppSidebarProps {
   userName?: string;
   /** User role/title (optional) */
   userRole?: string;
+  /** Residential id, used to show the residential's name in the sidebar (optional) */
+  residentialId?: string;
+  /** Residential role, used to filter which nav items are shown (optional) */
+  role?: ResidentialRole;
   /** Callback when sign out is clicked (optional) */
   onSignOut?: () => void;
   /** Callback when profile is clicked (optional) */
@@ -58,6 +68,7 @@ interface AppSidebarProps {
 interface NavItem {
   label: string;
   href: string;
+  route: RouteType;
   icon: ComponentType<IconProps>;
   active: boolean;
 }
@@ -69,21 +80,15 @@ interface NavGroup {
 }
 
 const BrandMark = () => (
-  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-600/20">
-    <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={2}
-        d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-      />
-    </svg>
-  </div>
+  <p className="text-2xl font-semibold tracking-[-0.8px] text-gates-text-brand">GATES</p>
 );
 
 interface SidebarBodyProps {
   showUserMenu: boolean;
   navGroups: NavGroup[];
+  residentialName?: string | null;
+  roleLabel: string;
+  isSettingsActive: boolean;
   locale: Locale;
   onLocaleChange: (locale: Locale) => void;
   labelEn: string;
@@ -91,7 +96,6 @@ interface SidebarBodyProps {
   userEmail?: string;
   userRole: string;
   displayName: string;
-  initials: string;
   onProfile?: () => void;
   onSettings?: () => void;
   onSignOut?: () => void;
@@ -101,6 +105,9 @@ interface SidebarBodyProps {
 function SidebarBody({
   showUserMenu,
   navGroups,
+  residentialName,
+  roleLabel,
+  isSettingsActive,
   locale,
   onLocaleChange,
   labelEn,
@@ -108,35 +115,58 @@ function SidebarBody({
   userEmail,
   userRole,
   displayName,
-  initials,
   onProfile,
   onSettings,
   onSignOut,
   onNavigate,
 }: SidebarBodyProps) {
+  const { t } = useI18n();
   return (
     <>
       <SidebarHeader>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between gap-1">
           <BrandMark />
-          <div>
-            <h1 className="text-lg font-bold tracking-tight">Gates Admin</h1>
-            <p className="text-xs text-muted-foreground">Residential Management</p>
-          </div>
+          <span
+            aria-hidden
+            className="flex size-11 shrink-0 items-center justify-center rounded-full bg-gates-subtle"
+          >
+            <IconLayoutSidebarLeftCollapse className="h-5 w-5 text-gates-text-primary" />
+          </span>
         </div>
       </SidebarHeader>
 
+      {residentialName && (
+        <div className="mx-2 flex flex-col gap-1 rounded-2xl bg-gates-subtle p-4">
+          <p className="text-xs font-medium uppercase tracking-tight text-gates-text-brand">{residentialName}</p>
+          <p className="text-sm font-semibold text-gates-text-primary">{roleLabel}</p>
+        </div>
+      )}
+
       {showUserMenu && (
-        <SidebarContent className="space-y-4">
+        <SidebarContent className="space-y-5">
           {navGroups.map((group, index) => (
             <SidebarGroup key={group.label ?? `ungrouped-${index}`} className="px-0">
-              {group.label && <SidebarGroupLabel>{group.label}</SidebarGroupLabel>}
+              {group.label && (
+                <SidebarGroupLabel className="px-3 text-[12px] font-medium normal-case tracking-normal text-gates-text-secondary">
+                  {group.label}
+                </SidebarGroupLabel>
+              )}
               <SidebarMenu>
                 {group.items.map((item) => (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton asChild isActive={item.active} onClick={onNavigate}>
+                  <SidebarMenuItem key={item.href} className="px-0">
+                    <SidebarMenuButton
+                      asChild
+                      isActive={item.active}
+                      onClick={onNavigate}
+                      className={cn(
+                        "h-12 rounded-full px-3 text-sm font-semibold",
+                        item.active
+                          ? "bg-gates-brand text-gates-text-inverse hover:bg-gates-brand hover:text-gates-text-inverse"
+                          : "text-gates-text-primary hover:bg-gates-subtle hover:text-gates-text-primary",
+                      )}
+                    >
                       <a href={item.href}>
-                        <item.icon className="h-4 w-4" />
+                        <item.icon className="h-5 w-5" />
                         {item.label}
                       </a>
                     </SidebarMenuButton>
@@ -148,7 +178,7 @@ function SidebarBody({
         </SidebarContent>
       )}
 
-      <SidebarFooter>
+      <SidebarFooter className="border-t-0">
         <div className="flex items-center gap-1 rounded-lg border border-border/50 bg-background/50 p-1">
           <Button
             size="sm"
@@ -178,24 +208,35 @@ function SidebarBody({
           </Button>
         </div>
 
+        {showUserMenu && (
+          <a
+            href={ROUTES.settingsUnitTypes.hash}
+            className={cn(
+              "flex h-12 items-center gap-3 rounded-full px-3 text-sm font-semibold",
+              isSettingsActive
+                ? "bg-gates-brand text-gates-text-inverse hover:bg-gates-brand hover:text-gates-text-inverse"
+                : "text-gates-text-brand hover:bg-gates-subtle",
+            )}
+          >
+            <IconSettings className="h-5 w-5" />
+            {t("common.settings")}
+          </a>
+        )}
+
         {showUserMenu && userEmail && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 dark:hover:bg-white/10">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-orange-600 text-white">
-                  <span className="text-sm font-semibold">{initials}</span>
-                </div>
+              <button className="flex w-full items-center gap-3 rounded-full px-2 py-2 text-left transition-colors hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 dark:hover:bg-white/10">
+                <Avatar name={displayName} size="sm" />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium leading-none">{displayName}</p>
-                  <p className="mt-1 truncate text-xs text-muted-foreground">{userEmail}</p>
+                  <p className="truncate text-sm font-semibold leading-none text-gates-text-primary">{displayName}</p>
+                  <p className="mt-1 truncate text-xs text-gates-text-secondary">{userEmail}</p>
                 </div>
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-72" align="end" side="top" sideOffset={8}>
               <div className="flex items-center gap-3 px-2 py-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-orange-600 text-white">
-                  <span className="text-lg font-semibold">{initials}</span>
-                </div>
+                <Avatar name={displayName} size="sm" />
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-medium leading-none">{displayName}</p>
                   <p className="text-xs text-muted-foreground">Senior Software Engineer • {userRole}</p>
@@ -207,14 +248,14 @@ function SidebarBody({
               {onProfile && (
                 <DropdownMenuItem className="cursor-pointer py-2.5" onClick={onProfile}>
                   <IconUser className="mr-3 h-4 w-4" />
-                  <span>My Profile</span>
+                  <span>{t("appSidebar.myProfile")}</span>
                 </DropdownMenuItem>
               )}
 
               {onSettings && (
                 <DropdownMenuItem className="cursor-pointer py-2.5" onClick={onSettings}>
                   <IconSettings className="mr-3 h-4 w-4" />
-                  <span>Settings</span>
+                  <span>{t("common.settings")}</span>
                 </DropdownMenuItem>
               )}
 
@@ -226,7 +267,7 @@ function SidebarBody({
                   onClick={onSignOut}
                 >
                   <IconLogout className="mr-3 h-4 w-4" />
-                  <span>Log out</span>
+                  <span>{t("common.signOut")}</span>
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
@@ -241,6 +282,8 @@ export function AppSidebar({
   userEmail,
   userName,
   userRole = "Engineering",
+  residentialId,
+  role,
   onSignOut,
   onProfile,
   onSettings,
@@ -250,20 +293,12 @@ export function AppSidebar({
   const [mobileOpen, setMobileOpen] = useState(false);
   const currentRoute = getCurrentRoute();
 
-  const getInitials = () => {
-    if (userName) {
-      return userName
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2);
-    }
-    if (userEmail) {
-      return userEmail.charAt(0).toUpperCase();
-    }
-    return "U";
-  };
+  const { data: residential } = useQuery(
+    () => residentialService.getById(residentialId as string),
+    { enabled: Boolean(residentialId) },
+  );
+
+  const roleLabel = role ? t((`role.${role}`) as MessageKey) : t("appSidebar.tagline");
 
   const getDisplayName = () => {
     if (userName) return userName;
@@ -277,40 +312,44 @@ export function AppSidebar({
     return "User";
   };
 
-  const navGroups: NavGroup[] = [
+  const allNavGroups: NavGroup[] = [
     {
       label: null,
       items: [
-        { label: "Dashboard", href: "#residential", icon: IconLayoutDashboard, active: currentRoute === "residential" },
+        { label: t("appSidebar.nav.home"), href: "#residential", route: "residential", icon: IconHome, active: currentRoute === "residential" },
       ],
     },
     {
-      label: "Gestión",
+      label: t("appSidebar.group.community"),
       items: [
-        { label: "Units", href: "#units", icon: IconBuildings, active: currentRoute === "units" },
-        { label: "Residents", href: "#residents", icon: IconUsers, active: currentRoute === "residents" },
-        { label: "Visitors", href: "#visitors", icon: IconUserCheck, active: currentRoute === "visitors" },
-        { label: "Reservations", href: "#reservations", icon: IconCalendarEvent, active: currentRoute === "reservations" },
+        { label: t("appSidebar.nav.units"), href: "#units", route: "units", icon: IconBuildings, active: currentRoute === "units" },
+        { label: t("appSidebar.nav.residents"), href: "#residents", route: "residents", icon: IconUsers, active: currentRoute === "residents" },
+        { label: t("appSidebar.nav.visitors"), href: "#visitors", route: "visitors", icon: IconUserCheck, active: currentRoute === "visitors" },
+        { label: t("appSidebar.nav.reservations"), href: "#reservations", route: "reservations", icon: IconCalendarEvent, active: currentRoute === "reservations" },
       ],
     },
     {
-      label: "Operación",
+      label: t("appSidebar.group.operations"),
       items: [
-        { label: "Incidents", href: "#incidents", icon: IconAlertTriangle, active: currentRoute === "incidents" },
-        { label: "Announcements", href: "#announcements", icon: IconSpeakerphone, active: currentRoute === "announcements" },
-      ],
-    },
-    {
-      label: "System",
-      items: [
-        { label: "Settings", href: ROUTES.settingsUnitTypes.hash, icon: IconSettings, active: isSettingsRoute(currentRoute) },
+        { label: t("appSidebar.nav.incidents"), href: "#incidents", route: "incidents", icon: IconAlertTriangle, active: currentRoute === "incidents" },
+        { label: t("appSidebar.nav.announcements"), href: "#announcements", route: "announcements", icon: IconSpeakerphone, active: currentRoute === "announcements" },
       ],
     },
   ];
 
+  const navGroups: NavGroup[] = allNavGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => !role || isRouteAllowedForRole(item.route, role)),
+    }))
+    .filter((group) => group.items.length > 0);
+
   const sharedProps = {
     showUserMenu,
     navGroups,
+    residentialName: residential?.name,
+    roleLabel,
+    isSettingsActive: isSettingsRoute(currentRoute),
     locale,
     onLocaleChange: setLocale,
     labelEn: t("language.en"),
@@ -318,7 +357,6 @@ export function AppSidebar({
     userEmail,
     userRole,
     displayName: getDisplayName(),
-    initials: getInitials(),
     onProfile,
     onSettings,
     onSignOut,
@@ -328,19 +366,7 @@ export function AppSidebar({
     <>
       {/* Mobile top bar */}
       <div className="sticky top-0 z-40 flex h-14 items-center justify-between gap-3 border-b border-border/20 bg-background/70 px-4 backdrop-blur-md supports-[backdrop-filter]:bg-background/40 lg:hidden">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-blue-700 text-white">
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-              />
-            </svg>
-          </div>
-          <span className="text-sm font-bold tracking-tight">Gates Admin</span>
-        </div>
+        <BrandMark />
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetTrigger asChild>
             <Button size="icon" variant="ghost" aria-label="Open menu">
@@ -355,8 +381,8 @@ export function AppSidebar({
         </Sheet>
       </div>
 
-      {/* Desktop fixed sidebar */}
-      <Sidebar className="fixed inset-y-0 left-0 z-30 hidden lg:flex">
+      {/* Desktop floating sidebar card */}
+      <Sidebar className="fixed inset-y-4 left-4 z-30 hidden w-60 rounded-[2rem] border-none bg-gates-surface shadow-gates-card lg:flex">
         <SidebarBody {...sharedProps} />
       </Sidebar>
     </>

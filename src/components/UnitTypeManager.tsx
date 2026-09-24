@@ -16,27 +16,30 @@ import {
 import { NamedTypeForm } from "@/components/namedTypes/NamedTypeForm";
 import { NamedTypeTable } from "@/components/namedTypes/NamedTypeTable";
 import { useNamedTypeManagerData } from "@/hooks/useNamedTypeManagerData";
+import { useI18n } from "@/i18n/useI18n";
 import { unitTypeService } from "@/services";
 
 export function UnitTypeSettingsPanel({ residentialId }: { residentialId: string }) {
+  const { t } = useI18n();
+  const entityLabel = t("units.type.entityLabel");
   const { items, isLoading, isSubmitting, create, update, remove, toggleActive } = useNamedTypeManagerData(
     unitTypeService,
     residentialId,
     true,
-    "Unit Type",
+    entityLabel,
   );
 
   return (
     <div className="space-y-4">
       <NamedTypeForm
-        entityLabel="Unit Type"
-        placeholder="e.g., Apartment, House, Studio..."
+        entityLabel={entityLabel}
+        placeholder={t("units.type.placeholder")}
         isSubmitting={isSubmitting}
         onCreate={create}
       />
 
       <NamedTypeTable
-        entityLabel="Unit Type"
+        entityLabel={entityLabel}
         items={items}
         isLoading={isLoading}
         isSubmitting={isSubmitting}
@@ -55,14 +58,13 @@ interface UnitTypeManagerProps {
 }
 
 export function UnitTypeManager({ open, onOpenChange, residentialId }: UnitTypeManagerProps) {
+  const { t } = useI18n();
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
         <SheetHeader>
-          <SheetTitle>Manage Unit Types</SheetTitle>
-          <SheetDescription>
-            Create and manage unit type categories (Apartment, House, etc.)
-          </SheetDescription>
+          <SheetTitle>{t("units.type.manageTitle")}</SheetTitle>
+          <SheetDescription>{t("units.type.manageDescription")}</SheetDescription>
         </SheetHeader>
 
         <div className="py-6">

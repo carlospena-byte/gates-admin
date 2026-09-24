@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Spinner } from "@/components/LoadingStates";
+import { useI18n } from "@/i18n/useI18n";
 import type { AnnouncementAudience } from "@/types/announcement.types";
 
 export interface NewAnnouncementFields {
@@ -31,6 +32,7 @@ interface AddAnnouncementSheetProps {
 const EMPTY: NewAnnouncementFields = { title: "", content: "", category: "", audience: "everyone", publishAt: "" };
 
 export function AddAnnouncementSheet({ open, onOpenChange, isSubmitting, onCreate }: AddAnnouncementSheetProps) {
+  const { t } = useI18n();
   const [fields, setFields] = useState<NewAnnouncementFields>(EMPTY);
   const set = <K extends keyof NewAnnouncementFields>(key: K, value: NewAnnouncementFields[K]) =>
     setFields((prev) => ({ ...prev, [key]: value }));
@@ -53,39 +55,44 @@ export function AddAnnouncementSheet({ open, onOpenChange, isSubmitting, onCreat
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
         <SheetHeader>
-          <SheetTitle>New announcement</SheetTitle>
-          <SheetDescription>Saved as a draft — publish it from the list when ready.</SheetDescription>
+          <SheetTitle>{t("announcements.create.title")}</SheetTitle>
+          <SheetDescription>{t("announcements.create.description")}</SheetDescription>
         </SheetHeader>
 
         <div className="space-y-4 py-6">
-          <Input label="Title" value={fields.title} onChange={(e) => set("title", e.target.value)} disabled={isSubmitting} />
           <Input
-            label="Content (optional)"
+            label={t("announcements.create.titleLabel")}
+            value={fields.title}
+            onChange={(e) => set("title", e.target.value)}
+            disabled={isSubmitting}
+          />
+          <Input
+            label={t("announcements.create.contentLabel")}
             value={fields.content}
             onChange={(e) => set("content", e.target.value)}
             disabled={isSubmitting}
           />
 
-          <div className="grid gap-2 sm:grid-cols-2">
+          <div className="grid gap-2 grid-cols-1">
             <Input
-              label="Category (optional)"
+              label={t("announcements.create.categoryLabel")}
               value={fields.category}
               onChange={(e) => set("category", e.target.value)}
               disabled={isSubmitting}
             />
             <Select value={fields.audience} onValueChange={(v) => set("audience", v as AnnouncementAudience)} disabled={isSubmitting}>
-              <SelectTrigger label="Audience">
+              <SelectTrigger label={t("announcements.create.audienceLabel")}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="everyone">Everyone</SelectItem>
-                <SelectItem value="admins">Admins only</SelectItem>
+                <SelectItem value="everyone">{t("announcements.audience.everyone")}</SelectItem>
+                <SelectItem value="admins">{t("announcements.audience.admins")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <Input
-            label="Publish at (optional — leave blank to publish immediately when you hit Publish)"
+            label={t("announcements.create.publishAtLabel")}
             type="datetime-local"
             value={fields.publishAt}
             onChange={(e) => set("publishAt", e.target.value)}
@@ -95,10 +102,10 @@ export function AddAnnouncementSheet({ open, onOpenChange, isSubmitting, onCreat
 
         <SheetFooter>
           <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={isSubmitting}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button onClick={handleAdd} disabled={isSubmitting || !fields.title.trim()}>
-            {isSubmitting ? <Spinner size="sm" /> : "Save draft"}
+            {isSubmitting ? <Spinner size="sm" /> : t("announcements.create.submit")}
           </Button>
         </SheetFooter>
       </SheetContent>

@@ -43,6 +43,7 @@ import { canManageResidential } from "@/state/useAccess";
 import { useUnitManagerData, type UnitFormPayload } from "@/hooks/useUnitManagerData";
 import { useScrollSpy } from "@/hooks/useScrollSpy";
 import { navigateTo } from "@/config/routes";
+import { useI18n } from "@/i18n/useI18n";
 import type { ResidentialRole } from "@/types/database.types";
 
 type UnitDraft = Omit<UnitFormPayload, "price"> & { price: string };
@@ -51,12 +52,12 @@ type UnitDraft = Omit<UnitFormPayload, "price"> & { price: string };
 // share the top card; Residents sits beside Charges; Rentals is last), so
 // the scrollspy highlight advances left-to-right as the user scrolls down.
 const SECTIONS = [
-  { key: "general", label: "General", icon: IconClipboardList },
-  { key: "addons", label: "Add-ons", icon: IconPackage },
-  { key: "residents", label: "Residents", icon: IconUsers },
-  { key: "vehicles", label: "Vehicles", icon: IconCar },
-  { key: "charges", label: "Charges", icon: IconCreditCard },
-  { key: "rentals", label: "Rentals", icon: IconCalendar },
+  { key: "general", labelKey: "units.detail.sections.general", icon: IconClipboardList },
+  { key: "addons", labelKey: "units.detail.sections.addons", icon: IconPackage },
+  { key: "residents", labelKey: "units.detail.sections.residents", icon: IconUsers },
+  { key: "vehicles", labelKey: "units.detail.sections.vehicles", icon: IconCar },
+  { key: "charges", labelKey: "units.detail.sections.charges", icon: IconCreditCard },
+  { key: "rentals", labelKey: "units.detail.sections.rentals", icon: IconCalendar },
 ] as const;
 
 const SECTION_IDS = SECTIONS.map((s) => s.key);
@@ -80,6 +81,7 @@ export function UnitDetailPage({
   unitId: string;
   role: ResidentialRole;
 }) {
+  const { t } = useI18n();
   const { session } = useSession();
   const canManage = canManageResidential(role);
   const {
@@ -149,7 +151,7 @@ export function UnitDetailPage({
 
   const handleSave = async () => {
     if (!draft.name.trim()) {
-      toast.error("Unit name is required");
+      toast.error(t("units.detail.nameRequired"));
       return;
     }
 
@@ -183,14 +185,14 @@ export function UnitDetailPage({
 
   const BackButton = () => (
     <Button variant="ghost" size="sm" onClick={() => navigateTo("units")}>
-      <IconArrowLeft className="h-4 w-4 mr-2" /> Back to Units
+      <IconArrowLeft className="h-4 w-4 mr-2" /> {t("units.detail.backToUnits")}
     </Button>
   );
 
   if (!unit) {
     return (
       <div className="min-h-screen">
-        <AppSidebar userEmail={session?.user?.email} onSignOut={() => authService.signOut()} showUserMenu />
+        <AppSidebar userEmail={session?.user?.email} residentialId={residentialId} role={role} onSignOut={() => authService.signOut()} showUserMenu />
         <div className="lg:pl-64">
           <div className="mx-auto max-w-3xl px-6 py-6 space-y-4">
             <BackButton />
@@ -199,7 +201,7 @@ export function UnitDetailPage({
                 <Spinner />
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">Unit not found.</p>
+              <p className="text-sm text-muted-foreground">{t("units.detail.notFound")}</p>
             )}
           </div>
         </div>
@@ -209,24 +211,29 @@ export function UnitDetailPage({
 
   return (
     <div className="min-h-screen">
-      <AppSidebar userEmail={session?.user?.email} onSignOut={() => authService.signOut()} showUserMenu />
+      <AppSidebar userEmail={session?.user?.email} residentialId={residentialId} role={role} onSignOut={() => authService.signOut()} showUserMenu />
 
       <div className="lg:pl-64">
         <div className={cn("mx-auto max-w-6xl px-6 py-6 space-y-6", isDirty && "pb-28")}>
           <div className="flex items-center justify-between">
             <BackButton />
             <div className="flex items-center gap-3">
-              <span className="text-sm text-muted-foreground">{unit.is_active ? "Active" : "Inactive"}</span>
+              <span className="text-sm text-muted-foreground">
+                {unit.is_active ? t("common.active") : t("common.inactive")}
+              </span>
               <Switch
                 checked={unit.is_active}
                 onCheckedChange={() => toggleActive(unitId, unit.is_active)}
                 disabled={!canManage}
-                aria-label={`Set ${unit.name} ${unit.is_active ? "inactive" : "active"}`}
+                aria-label={t("units.detail.toggleActiveAria", {
+                  name: unit.name,
+                  state: unit.is_active ? t("common.inactive") : t("common.active"),
+                })}
               />
               {canManage && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="icon" aria-label="More actions">
+                    <Button variant="outline" size="icon" aria-label={t("units.detail.moreActionsAria")}>
                       <IconDots className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -235,7 +242,7 @@ export function UnitDetailPage({
                       className="cursor-pointer text-red-600 focus:text-red-600 dark:text-red-400 dark:focus:text-red-400"
                       onClick={handleDelete}
                     >
-                      <IconTrash className="mr-2 h-4 w-4" /> Delete Unit
+                      <IconTrash className="mr-2 h-4 w-4" /> {t("units.detail.deleteUnit")}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -253,7 +260,7 @@ export function UnitDetailPage({
                     unit.is_active ? "bg-green-100 text-green-700" : "bg-secondary text-secondary-foreground",
                   )}
                 >
-                  {unit.is_active ? "Active" : "Inactive"}
+                  {unit.is_active ? t("common.active") : t("common.inactive")}
                 </Badge>
               </div>
 
@@ -276,7 +283,9 @@ export function UnitDetailPage({
                 </div>
               )}
 
-              <p className="text-sm text-muted-foreground">Owner: {unit.profiles?.email || "Unassigned"}</p>
+              <p className="text-sm text-muted-foreground">
+                {t("units.detail.owner", { email: unit.profiles?.email || t("units.common.unassigned") })}
+              </p>
             </CardHeader>
           </Card>
 
@@ -285,7 +294,7 @@ export function UnitDetailPage({
               while scrolling past the top card into Residents/Charges/Rentals. */}
           <div className="sticky top-14 z-20 border-b bg-background lg:top-0">
             <nav className="flex items-center gap-1 overflow-x-auto">
-              {SECTIONS.map(({ key, label, icon: Icon }) => (
+              {SECTIONS.map(({ key, labelKey, icon: Icon }) => (
                 <button
                   key={key}
                   type="button"
@@ -297,7 +306,7 @@ export function UnitDetailPage({
                       : "border-transparent text-muted-foreground hover:text-foreground",
                   )}
                 >
-                  <Icon className="h-4 w-4" /> {label}
+                  <Icon className="h-4 w-4" /> {t(labelKey)}
                 </button>
               ))}
             </nav>
@@ -307,12 +316,12 @@ export function UnitDetailPage({
             <CardContent className="space-y-8 pt-6">
               <section id="general" className="scroll-mt-28 space-y-4">
                 <div>
-                  <p className="text-sm font-medium">General</p>
-                  <p className="text-xs text-muted-foreground">Name, type, location and price.</p>
+                  <p className="text-sm font-medium">{t("units.detail.sections.general")}</p>
+                  <p className="text-xs text-muted-foreground">{t("units.detail.general.description")}</p>
                 </div>
 
                 <Input
-                  label="Unit Name"
+                  label={t("units.detail.fields.name")}
                   value={draft.name}
                   onChange={(e) => setName(e.target.value)}
                   disabled={isSubmitting || !canManage}
@@ -323,11 +332,11 @@ export function UnitDetailPage({
                   onValueChange={(value) => setUnitTypeId(value === "none" ? "" : value)}
                   disabled={isSubmitting || !canManage}
                 >
-                  <SelectTrigger label="Unit Type">
-                    <SelectValue placeholder="Select unit type" />
+                  <SelectTrigger label={t("units.detail.fields.type")}>
+                    <SelectValue placeholder={t("units.detail.fields.typePlaceholder")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">None</SelectItem>
+                    <SelectItem value="none">{t("common.none")}</SelectItem>
                     {unitTypes.map((type) => (
                       <SelectItem key={type.id} value={type.id}>
                         {type.name}
@@ -345,13 +354,13 @@ export function UnitDetailPage({
                 />
 
                 <Input
-                  label="Price (optional)"
+                  label={t("units.detail.fields.price")}
                   type="number"
                   min="0"
                   step="0.01"
                   value={draft.price}
                   onChange={(e) => setPrice(e.target.value)}
-                  placeholder="e.g., 500.00"
+                  placeholder={t("units.detail.fields.pricePlaceholder")}
                   disabled={isSubmitting || !canManage}
                 />
               </section>
@@ -398,15 +407,15 @@ export function UnitDetailPage({
         <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-background lg:pl-64">
           <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4">
             <div>
-              <p className="text-sm font-medium">Unsaved changes</p>
-              <p className="text-xs text-muted-foreground">Make sure to save your updates.</p>
+              <p className="text-sm font-medium">{t("common.unsavedChanges")}</p>
+              <p className="text-xs text-muted-foreground">{t("units.detail.unsavedDescription")}</p>
             </div>
             <div className="flex items-center gap-2">
               <Button variant="outline" onClick={handleCancel} disabled={isSubmitting}>
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button onClick={handleSave} disabled={isSubmitting || !draft.name.trim()}>
-                {isSubmitting ? <Spinner size="sm" /> : "Save changes"}
+                {isSubmitting ? <Spinner size="sm" /> : t("units.detail.saveChanges")}
               </Button>
             </div>
           </div>

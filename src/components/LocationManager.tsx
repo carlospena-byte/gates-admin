@@ -22,8 +22,10 @@ import { LocationCreateForm } from "@/components/locations/LocationCreateForm";
 import { LocationTable } from "@/components/locations/LocationTable";
 import { LocationTypeManager } from "@/components/LocationTypeManager";
 import { useLocationManagerData } from "@/hooks/useLocationManagerData";
+import { useI18n } from "@/i18n/useI18n";
 
 export function LocationSettingsPanel({ residentialId }: { residentialId: string }) {
+  const { t } = useI18n();
   const [typeManagerOpen, setTypeManagerOpen] = useState(false);
 
   const {
@@ -43,7 +45,7 @@ export function LocationSettingsPanel({ residentialId }: { residentialId: string
       <div className="flex justify-end">
         <Button variant="outline" size="sm" onClick={() => setTypeManagerOpen(true)}>
           <SettingsIcon />
-          <span className="ml-2">Manage Types</span>
+          <span className="ml-2">{t("location.manageTypes")}</span>
         </Button>
       </div>
 
@@ -81,6 +83,7 @@ interface LocationManagerProps {
 }
 
 export function LocationManager({ open, onOpenChange, residentialId }: LocationManagerProps) {
+  const { t } = useI18n();
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
@@ -89,8 +92,8 @@ export function LocationManager({ open, onOpenChange, residentialId }: LocationM
         onInteractOutside={(e) => e.preventDefault()}
       >
         <SheetHeader>
-          <SheetTitle>Manage Locations</SheetTitle>
-          <SheetDescription>Create and manage hierarchical locations</SheetDescription>
+          <SheetTitle>{t("location.manager.title")}</SheetTitle>
+          <SheetDescription>{t("location.manager.description")}</SheetDescription>
         </SheetHeader>
 
         <div className="py-6">

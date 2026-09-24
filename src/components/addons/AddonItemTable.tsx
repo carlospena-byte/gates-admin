@@ -11,6 +11,7 @@ import { getLocationFullPath } from "@/lib/locationHierarchy";
 import { formatCurrency } from "@/lib/utils";
 import { AddonItemEditSheet } from "@/components/addons/AddonItemEditSheet";
 import { EditIcon, DeleteIcon } from "@/components/icons";
+import { useI18n } from "@/i18n/useI18n";
 import type { AddonItem, Location, LocationTypeDefinition, UpdateAddonItemDto } from "@/types/unit-wizard.types";
 
 interface AddonItemTableProps {
@@ -34,6 +35,7 @@ export function AddonItemTable({
   onDelete,
   onToggleActive,
 }: AddonItemTableProps) {
+  const { t } = useI18n();
   const {
     paginatedData: paginatedItems,
     totalItems,
@@ -69,7 +71,7 @@ export function AddonItemTable({
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <label className="text-sm font-medium">
-          Addon Items
+          {t("addonItem.table.title")}
           {totalItems > 0 && <span className="ml-2 text-muted-foreground">({totalItems} total)</span>}
         </label>
       </div>
@@ -91,12 +93,12 @@ export function AddonItemTable({
                     onSort={handleSort}
                     className="w-1/3"
                   >
-                    Name
+                    {t("common.name")}
                   </SortableTableHead>
-                  <TableHead className="w-1/4">Location</TableHead>
-                  <TableHead className="w-[110px]">Price</TableHead>
-                  <TableHead className="w-[110px]">Active</TableHead>
-                  <TableHead className="w-[140px] text-right">Actions</TableHead>
+                  <TableHead className="w-1/4">{t("common.location")}</TableHead>
+                  <TableHead className="w-[110px]">{t("common.price")}</TableHead>
+                  <TableHead className="w-[110px]">{t("common.active")}</TableHead>
+                  <TableHead className="w-[140px] text-right">{t("common.actions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -107,7 +109,7 @@ export function AddonItemTable({
                     </TableCell>
                     <TableCell>
                       <span className="text-sm text-muted-foreground truncate">
-                        {item.locations ? getLocationFullPath(item.locations, locations) : "No location"}
+                        {item.locations ? getLocationFullPath(item.locations, locations) : t("addonItem.table.noLocation")}
                       </span>
                     </TableCell>
                     <TableCell>
@@ -118,7 +120,11 @@ export function AddonItemTable({
                         checked={item.is_active}
                         onCheckedChange={() => onToggleActive(item.id, item.is_active)}
                         disabled={isSubmitting}
-                        aria-label={`Set ${item.name} ${item.is_active ? "inactive" : "active"}`}
+                        aria-label={
+                          item.is_active
+                            ? t("addonItem.table.setInactive", { name: item.name })
+                            : t("addonItem.table.setActive", { name: item.name })
+                        }
                       />
                     </TableCell>
                     <TableCell className="text-right">
@@ -157,7 +163,7 @@ export function AddonItemTable({
           />
         </>
       ) : (
-        <div className="text-center py-8 text-sm text-muted-foreground">No addon items yet. Create one above.</div>
+        <div className="text-center py-8 text-sm text-muted-foreground">{t("addonItem.table.empty")}</div>
       )}
 
       <AddonItemEditSheet

@@ -16,9 +16,11 @@ import { authService } from "@/services";
 import { useSession } from "@/state/useSession";
 import { canManageResidential } from "@/state/useAccess";
 import { useAnnouncementManagerData, type AnnouncementFormPayload } from "@/hooks/useAnnouncementManagerData";
+import { useI18n } from "@/i18n/useI18n";
 import type { ResidentialRole } from "@/types/database.types";
 
 export function AnnouncementsPage({ residentialId, role }: { residentialId: string; role: ResidentialRole }) {
+  const { t } = useI18n();
   const { session } = useSession();
   const canManage = canManageResidential(role);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -40,21 +42,21 @@ export function AnnouncementsPage({ residentialId, role }: { residentialId: stri
 
   return (
     <div className="min-h-screen">
-      <AppSidebar userEmail={session?.user?.email} onSignOut={() => authService.signOut()} showUserMenu />
+      <AppSidebar userEmail={session?.user?.email} residentialId={residentialId} role={role} onSignOut={() => authService.signOut()} showUserMenu />
 
       <div className="lg:pl-64">
         <div className="mx-auto max-w-7xl px-6 py-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle>Announcements</CardTitle>
-                <CardDescription>Draft and publish community-wide posts</CardDescription>
+                <CardTitle>{t("announcements.page.title")}</CardTitle>
+                <CardDescription>{t("announcements.page.description")}</CardDescription>
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={reload} disabled={isLoading}>
                   <IconRefresh className="h-4 w-4" />
                 </Button>
-                {canManage && <Button onClick={() => setSheetOpen(true)}>New Announcement</Button>}
+                {canManage && <Button onClick={() => setSheetOpen(true)}>{t("announcements.page.newAnnouncement")}</Button>}
               </div>
             </CardHeader>
             <CardContent>

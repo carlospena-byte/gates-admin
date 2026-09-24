@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/sheet";
 import { ActivityLogTable } from "@/components/activityLog/ActivityLogTable";
 import { useActivityLogData } from "@/hooks/useActivityLogData";
+import { useI18n } from "@/i18n/useI18n";
 
 interface ActivityLogManagerProps {
   open: boolean;
@@ -22,6 +23,7 @@ interface ActivityLogManagerProps {
 }
 
 export function ActivityLogManager({ open, onOpenChange, residentialId }: ActivityLogManagerProps) {
+  const { t } = useI18n();
   const { logs, isLoading } = useActivityLogData(residentialId, open);
 
   return (
@@ -32,8 +34,8 @@ export function ActivityLogManager({ open, onOpenChange, residentialId }: Activi
         onInteractOutside={(e) => e.preventDefault()}
       >
         <SheetHeader>
-          <SheetTitle>Activity Log</SheetTitle>
-          <SheetDescription>Who created, updated, or deleted what — across this residential</SheetDescription>
+          <SheetTitle>{t("activityLog.title")}</SheetTitle>
+          <SheetDescription>{t("activityLog.description")}</SheetDescription>
         </SheetHeader>
 
         <div className="py-6">

@@ -13,6 +13,7 @@ import { DeleteIcon, PlusIcon } from "@/components/icons";
 import { AddVehicleSheet, type NewVehicleFields } from "@/components/units/AddVehicleSheet";
 import { SectionEmptyState } from "@/components/units/SectionEmptyState";
 import { confirmDeleteToast } from "@/lib/confirmDeleteToast";
+import { useI18n } from "@/i18n/useI18n";
 import { vehicleService } from "@/services";
 import type { Vehicle } from "@/types/visitor.types";
 
@@ -25,6 +26,7 @@ export function UnitVehiclesPanel({
   residentialId: string;
   canManage: boolean;
 }) {
+  const { t } = useI18n();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -63,7 +65,7 @@ export function UnitVehiclesPanel({
       return false;
     }
 
-    toast.success("Vehicle added");
+    toast.success(t("vehicles.panel.addSuccess"));
     await load();
     return true;
   };
@@ -83,12 +85,12 @@ export function UnitVehiclesPanel({
     <Card className="h-full">
       <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0">
         <div>
-          <p className="text-sm font-medium">Vehicles</p>
-          <p className="text-xs text-muted-foreground">Vehicles registered to this unit.</p>
+          <p className="text-sm font-medium">{t("vehicles.panel.title")}</p>
+          <p className="text-xs text-muted-foreground">{t("vehicles.panel.description")}</p>
         </div>
         {canManage && (
           <Button variant="outline" size="sm" onClick={() => setSheetOpen(true)}>
-            <PlusIcon /> <span className="ml-2">Add vehicle</span>
+            <PlusIcon /> <span className="ml-2">{t("vehicles.create.submit")}</span>
           </Button>
         )}
       </CardHeader>
@@ -98,7 +100,11 @@ export function UnitVehiclesPanel({
             <Spinner />
           </div>
         ) : vehicles.length === 0 ? (
-          <SectionEmptyState icon={IconCar} title="No vehicles yet." description="Add a vehicle to get started." />
+          <SectionEmptyState
+            icon={IconCar}
+            title={t("vehicles.panel.emptyTitle")}
+            description={t("vehicles.panel.emptyDescription")}
+          />
         ) : (
           <div className="space-y-2">
             {vehicles.map((vehicle) => (

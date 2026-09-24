@@ -11,6 +11,7 @@ import { Spinner } from "@/components/LoadingStates";
 import { PlusIcon } from "@/components/icons";
 import { LocationCombobox } from "@/components/units/LocationCombobox";
 import { AddonItemPicker } from "@/components/units/AddonItemPicker";
+import { useI18n } from "@/i18n/useI18n";
 import type { UnitFormPayload } from "@/hooks/useUnitManagerData";
 import type { UnitType, Location, LocationTypeDefinition, AddonItem, AddonType } from "@/types/unit-wizard.types";
 
@@ -33,6 +34,7 @@ export function UnitCreateForm({
   isSubmitting,
   onCreate,
 }: UnitCreateFormProps) {
+  const { t } = useI18n();
   const [name, setName] = useState("");
   const [unitTypeId, setUnitTypeId] = useState("");
   const [locationId, setLocationId] = useState("");
@@ -69,19 +71,19 @@ export function UnitCreateForm({
 
   return (
     <div className="space-y-2">
-      <label className="text-sm font-medium">Add New Unit</label>
+      <label className="text-sm font-medium">{t("units.create.title")}</label>
       <div className="space-y-2">
         <Input
-          label="Unit Name"
+          label={t("units.create.fields.name")}
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="e.g., 101, A-203"
+          placeholder={t("units.create.fields.namePlaceholder")}
           disabled={isSubmitting}
         />
 
         <Select value={unitTypeId} onValueChange={setUnitTypeId} disabled={isSubmitting}>
-          <SelectTrigger label="Unit Type">
-            <SelectValue placeholder="Select unit type" />
+          <SelectTrigger label={t("units.create.fields.type")}>
+            <SelectValue placeholder={t("units.create.fields.typePlaceholder")} />
           </SelectTrigger>
           <SelectContent>
             {unitTypes
@@ -103,13 +105,13 @@ export function UnitCreateForm({
         />
 
         <Input
-          label="Price (optional)"
+          label={t("units.create.fields.price")}
           type="number"
           min="0"
           step="0.01"
           value={price}
           onChange={(e) => setPrice(e.target.value)}
-          placeholder="e.g., 500.00"
+          placeholder={t("units.create.fields.pricePlaceholder")}
           disabled={isSubmitting}
         />
 
@@ -133,7 +135,7 @@ export function UnitCreateForm({
             <Spinner size="sm" />
           ) : (
             <>
-              <PlusIcon /> <span className="ml-2">Add Unit</span>
+              <PlusIcon /> <span className="ml-2">{t("units.create.submit")}</span>
             </>
           )}
         </Button>

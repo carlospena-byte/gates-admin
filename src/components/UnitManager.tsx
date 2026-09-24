@@ -17,6 +17,7 @@ import {
 import { UnitCreateForm } from "@/components/units/UnitCreateForm";
 import { UnitTable } from "@/components/units/UnitTable";
 import { useUnitManagerData, type UnitFormPayload } from "@/hooks/useUnitManagerData";
+import { useI18n } from "@/i18n/useI18n";
 
 interface UnitManagerProps {
   open: boolean;
@@ -34,6 +35,7 @@ export function UnitManager({
   showList = true,
   onUnitCreated,
 }: UnitManagerProps) {
+  const { t } = useI18n();
   const {
     units,
     unitTypes,
@@ -62,10 +64,8 @@ export function UnitManager({
         onInteractOutside={(e) => e.preventDefault()}
       >
         <SheetHeader>
-          <SheetTitle>Manage Units</SheetTitle>
-          <SheetDescription>
-            Create and manage residential units with types, locations, and addons
-          </SheetDescription>
+          <SheetTitle>{t("units.manager.title")}</SheetTitle>
+          <SheetDescription>{t("units.manager.description")}</SheetDescription>
         </SheetHeader>
 
         <div className="space-y-4 py-6">

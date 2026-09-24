@@ -19,6 +19,7 @@ import {
   sortLocationTypesByLevel,
 } from "@/lib/locationHierarchy";
 import { cn, formatCurrency } from "@/lib/utils";
+import { useI18n } from "@/i18n/useI18n";
 import type { AddonItem, AddonType, Location, LocationTypeDefinition } from "@/types/unit-wizard.types";
 
 const ALL = "__all__";
@@ -46,6 +47,7 @@ export function AddAddonSheet({
   onAdd,
   disabled,
 }: AddAddonSheetProps) {
+  const { t } = useI18n();
   const [addonTypeId, setAddonTypeId] = useState(ALL);
   const [locationTypeCode, setLocationTypeCode] = useState(ALL);
   const [locationId, setLocationId] = useState(ALL);
@@ -94,7 +96,8 @@ export function AddAddonSheet({
   const effectiveSubLocationId = subLocationOptions.some((l) => l.id === subLocationId) ? subLocationId : ALL;
   const subLocationLabel = subLocationOptions.length
     ? getLocationTypeLabel(subLocationOptions[0].type, locationTypes)
-    : "Floor";
+    : t("units.addSheet.floorFallback");
+  const allOfSubLocationLabel = t("units.addSheet.allOfLabel", { label: subLocationLabel });
 
   const targetLocationId = effectiveSubLocationId !== ALL ? effectiveSubLocationId : effectiveLocationId;
 
@@ -144,20 +147,20 @@ export function AddAddonSheet({
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent side="right" className="flex h-full w-full flex-col gap-0 p-0 sm:max-w-[420px]">
         <SheetHeader className="border-b px-6 py-4">
-          <SheetTitle>Add add-on</SheetTitle>
-          <SheetDescription>Select an add-on to assign to this unit.</SheetDescription>
+          <SheetTitle>{t("units.addSheet.title")}</SheetTitle>
+          <SheetDescription>{t("units.addSheet.description")}</SheetDescription>
         </SheetHeader>
 
         <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4">
           <div className="space-y-2">
-            <p className="text-sm font-medium">Filters</p>
-            <div className="grid grid-cols-2 gap-2">
+            <p className="text-sm font-medium">{t("units.addSheet.filters")}</p>
+            <div className="grid grid-cols-1 gap-2">
               <Select value={addonTypeId} onValueChange={setAddonTypeId} disabled={disabled}>
-                <SelectTrigger label="Add-on Type">
-                  <SelectValue placeholder="All types" />
+                <SelectTrigger label={t("units.addSheet.addonType")}>
+                  <SelectValue placeholder={t("units.addSheet.allTypes")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={ALL}>All types</SelectItem>
+                  <SelectItem value={ALL}>{t("units.addSheet.allTypes")}</SelectItem>
                   {addonTypes.map((type) => (
                     <SelectItem key={type.id} value={type.id}>
                       {type.name}
@@ -175,11 +178,11 @@ export function AddAddonSheet({
                 }}
                 disabled={disabled}
               >
-                <SelectTrigger label="Location Type">
-                  <SelectValue placeholder="All location types" />
+                <SelectTrigger label={t("units.addSheet.locationType")}>
+                  <SelectValue placeholder={t("units.addSheet.allLocationTypes")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={ALL}>All location types</SelectItem>
+                  <SelectItem value={ALL}>{t("units.addSheet.allLocationTypes")}</SelectItem>
                   {sortedLocationTypes.map((type) => (
                     <SelectItem key={type.id} value={type.code}>
                       {type.name}
@@ -196,11 +199,11 @@ export function AddAddonSheet({
                 }}
                 disabled={disabled}
               >
-                <SelectTrigger label="Location">
-                  <SelectValue placeholder="All locations" />
+                <SelectTrigger label={t("common.location")}>
+                  <SelectValue placeholder={t("units.addSheet.allLocations")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={ALL}>All locations</SelectItem>
+                  <SelectItem value={ALL}>{t("units.addSheet.allLocations")}</SelectItem>
                   {locationOptions.map((location) => (
                     <SelectItem key={location.id} value={location.id}>
                       {getLocationFullPath(location, locations)}
@@ -212,10 +215,10 @@ export function AddAddonSheet({
               {subLocationOptions.length > 0 && (
                 <Select value={effectiveSubLocationId} onValueChange={setSubLocationId} disabled={disabled}>
                   <SelectTrigger label={subLocationLabel}>
-                    <SelectValue placeholder={`All ${subLocationLabel}`} />
+                    <SelectValue placeholder={allOfSubLocationLabel} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={ALL}>All {subLocationLabel}</SelectItem>
+                    <SelectItem value={ALL}>{allOfSubLocationLabel}</SelectItem>
                     {subLocationOptions.map((location) => (
                       <SelectItem key={location.id} value={location.id}>
                         {location.name}
@@ -231,7 +234,7 @@ export function AddAddonSheet({
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search add-ons..."
+                placeholder={t("units.addSheet.searchPlaceholder")}
                 className="pl-9"
                 disabled={disabled}
               />
@@ -240,13 +243,13 @@ export function AddAddonSheet({
 
           <div className="space-y-2">
             <p className="text-sm font-medium">
-              Available add-ons
+              {t("units.addSheet.availableTitle")}
               <span className="ml-2 text-muted-foreground">({availableItems.length})</span>
             </p>
 
             {availableItems.length === 0 ? (
               <p className="rounded-md border p-4 text-center text-sm text-muted-foreground">
-                No add-ons match these filters.
+                {t("units.addSheet.empty")}
               </p>
             ) : (
               <div className="space-y-2">
@@ -267,7 +270,7 @@ export function AddAddonSheet({
                         onChange={() => togglePending(item.id)}
                         disabled={disabled}
                         className="mt-1 h-4 w-4"
-                        aria-label={`Select ${item.name}`}
+                        aria-label={t("units.addSheet.selectItemAria", { name: item.name })}
                       />
                       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-muted">
                         <Icon className="h-5 w-5 text-muted-foreground" />
@@ -284,11 +287,11 @@ export function AddAddonSheet({
                             {item.addons?.addon_types?.name || "—"}
                           </span>
                           {item.price !== null && (
-                            <span className="shrink-0 text-xs text-muted-foreground">/ month</span>
+                            <span className="shrink-0 text-xs text-muted-foreground">{t("units.addSheet.perMonth")}</span>
                           )}
                         </span>
                         <span className="block truncate text-xs text-muted-foreground">
-                          {item.locations ? getLocationFullPath(item.locations, locations) : "No location"}
+                          {item.locations ? getLocationFullPath(item.locations, locations) : t("units.common.noLocation")}
                         </span>
                       </span>
                     </label>
@@ -301,10 +304,10 @@ export function AddAddonSheet({
 
         <SheetFooter className="border-t px-6 py-4">
           <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={disabled}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button onClick={handleAdd} disabled={disabled || pendingIds.length === 0}>
-            Add selected ({pendingIds.length})
+            {t("units.addSheet.addSelected", { count: pendingIds.length })}
           </Button>
         </SheetFooter>
       </SheetContent>

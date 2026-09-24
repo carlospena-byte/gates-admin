@@ -10,6 +10,7 @@ import {
   sortLocationTypesByLevel,
   typeRequiresParent,
 } from "@/lib/locationHierarchy";
+import { useI18n } from "@/i18n/useI18n";
 import type { Location, LocationTypeDefinition, CreateLocationDto } from "@/types/unit-wizard.types";
 
 interface LocationCreateFormProps {
@@ -25,6 +26,7 @@ export function LocationCreateForm({
   isSubmitting,
   onCreate,
 }: LocationCreateFormProps) {
+  const { t } = useI18n();
   const [name, setName] = useState("");
   const [type, setType] = useState("");
   const [parentId, setParentId] = useState("");
@@ -65,29 +67,29 @@ export function LocationCreateForm({
 
   return (
     <div className="space-y-2">
-      <label className="text-sm font-medium">Add New Location</label>
+      <label className="text-sm font-medium">{t("location.create.label")}</label>
       <div className="space-y-2">
         <Input
-          label="Location Name"
+          label={t("location.create.nameLabel")}
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="e.g., Edificio A, Piso 3"
+          placeholder={t("location.create.namePlaceholder")}
           disabled={isSubmitting}
         />
         <Select value={type} onValueChange={setType} disabled={isSubmitting}>
-          <SelectTrigger label="Location Type">
-            <SelectValue placeholder="Select location type" />
+          <SelectTrigger label={t("location.create.typeLabel")}>
+            <SelectValue placeholder={t("location.create.typePlaceholder")} />
           </SelectTrigger>
           <SelectContent>
             {sortedTypes.length > 0 ? (
-              sortedTypes.map((t) => (
-                <SelectItem key={t.id} value={t.code}>
-                  {t.name} (Nivel {t.level})
+              sortedTypes.map((locType) => (
+                <SelectItem key={locType.id} value={locType.code}>
+                  {locType.name} {t("location.create.levelSuffix", { level: locType.level })}
                 </SelectItem>
               ))
             ) : (
               <SelectItem value="none" disabled>
-                No types available - Click "Manage Types" to add
+                {t("location.create.noTypesAvailable")}
               </SelectItem>
             )}
           </SelectContent>
@@ -98,12 +100,14 @@ export function LocationCreateForm({
             onValueChange={(value) => setParentId(value === "none" ? "" : value)}
             disabled={isSubmitting}
           >
-            <SelectTrigger label="Parent Location">
-              <SelectValue placeholder="Select parent location" />
+            <SelectTrigger label={t("location.create.parentLabel")}>
+              <SelectValue placeholder={t("location.create.parentPlaceholder")} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="none" disabled>
-                {eligibleParents.length > 0 ? "Select a parent" : "No eligible parent locations yet"}
+                {eligibleParents.length > 0
+                  ? t("location.create.selectParent")
+                  : t("location.create.noEligibleParents")}
               </SelectItem>
               {eligibleParents.map((location) => (
                 <SelectItem key={location.id} value={location.id}>
@@ -122,7 +126,7 @@ export function LocationCreateForm({
             <Spinner size="sm" />
           ) : (
             <>
-              <PlusIcon /> <span className="ml-2">Add Location</span>
+              <PlusIcon /> <span className="ml-2">{t("location.create.submit")}</span>
             </>
           )}
         </Button>

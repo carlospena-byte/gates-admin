@@ -668,6 +668,41 @@ export type Database = {
           },
         ]
       }
+      device_tokens: {
+        Row: {
+          created_at: string
+          id: string
+          platform: string
+          token: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          platform: string
+          token: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          platform?: string
+          token?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "device_tokens_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       incident_attachments: {
         Row: {
           created_at: string
@@ -996,6 +1031,53 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_plans: {
+        Row: {
+          base_price: number
+          created_at: string
+          id: string
+          is_active: boolean
+          min_monthly_price: number
+          name: string
+          price: number | null
+          price_anchor_plan_id: string | null
+          price_per_unit: number
+          price_per_unit_offset: number | null
+        }
+        Insert: {
+          base_price?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          min_monthly_price?: number
+          name: string
+          price?: number | null
+          price_anchor_plan_id?: string | null
+          price_per_unit?: number
+          price_per_unit_offset?: number | null
+        }
+        Update: {
+          base_price?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          min_monthly_price?: number
+          name?: string
+          price?: number | null
+          price_anchor_plan_id?: string | null
+          price_per_unit?: number
+          price_per_unit_offset?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_plans_price_anchor_plan_id_fkey"
+            columns: ["price_anchor_plan_id"]
+            isOneToOne: false
+            referencedRelation: "platform_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -1022,6 +1104,44 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      providers: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          kind: string
+          logo_url: string | null
+          name: string
+          residential_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          kind: string
+          logo_url?: string | null
+          name: string
+          residential_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          kind?: string
+          logo_url?: string | null
+          name?: string
+          residential_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "providers_residential_id_fkey"
+            columns: ["residential_id"]
+            isOneToOne: false
+            referencedRelation: "residentials"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       residential_users: {
         Row: {
@@ -1069,6 +1189,7 @@ export type Database = {
           location_lng: number | null
           name: string
           owner_user_id: string | null
+          plan_id: string | null
           plan_type: string | null
         }
         Insert: {
@@ -1080,6 +1201,7 @@ export type Database = {
           location_lng?: number | null
           name: string
           owner_user_id?: string | null
+          plan_id?: string | null
           plan_type?: string | null
         }
         Update: {
@@ -1091,6 +1213,7 @@ export type Database = {
           location_lng?: number | null
           name?: string
           owner_user_id?: string | null
+          plan_id?: string | null
           plan_type?: string | null
         }
         Relationships: [
@@ -1100,6 +1223,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "residentials_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "platform_plans"
+            referencedColumns: ["id"]
           },
         ]
       }

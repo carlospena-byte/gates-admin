@@ -33,6 +33,10 @@ export { amenityServiceService } from "./amenityServiceService";
 export { amenityBookingLimitService } from "./amenityBookingLimitService";
 export { amenityImageService } from "./amenityImageService";
 export type { OperationalMetrics } from "./dashboardMetricsService";
+export { platformPlanService } from "./platformPlanService";
+export { providerService } from "./providerService";
+export { platformMetricsService } from "./platformMetricsService";
+export type { PlatformMetrics } from "./platformMetricsService";
 
 // Re-export commonly used types
 export type { TablesUpdate, TablesInsert } from "../types/database.types";

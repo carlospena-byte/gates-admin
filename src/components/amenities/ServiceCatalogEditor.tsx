@@ -11,11 +11,13 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Spinner } from "@/components/LoadingStates";
+import { Pagination } from "@/components/Pagination";
 import { PlusIcon, DeleteIcon, EditIcon } from "@/components/icons";
 import { IconCheck, IconX } from "@tabler/icons-react";
 import { confirmDeleteToast } from "@/lib/confirmDeleteToast";
 import { getServiceIcon, searchServiceIcons } from "@/lib/serviceIcons";
 import { IconPicker } from "@/components/amenities/IconPicker";
+import { usePaginatedSortedData } from "@/hooks/usePaginatedSortedData";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/i18n/useI18n";
 import type { Service } from "@/types/amenities.types";
@@ -90,6 +92,28 @@ export function ServiceCatalogEditor({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editIcon, setEditIcon] = useState<string | null>(null);
+
+  const {
+    paginatedData: paginatedServices,
+    totalItems,
+    totalPages,
+    startIndex,
+    endIndex,
+    currentPage,
+    setCurrentPage,
+    resetPage,
+    itemsPerPage,
+    setItemsPerPage,
+  } = usePaginatedSortedData({
+    data: services,
+    defaultSortField: "name" as keyof Service,
+    itemsPerPage: 10,
+  });
+
+  useEffect(() => {
+    resetPage();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [services]);
 
   // Auto-pick the best-matching icon as the name is typed, e.g. "sillas" ->
   // a chair icon — but stop once the admin has explicitly chosen one.
@@ -179,7 +203,7 @@ export function ServiceCatalogEditor({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {services.map((service) => {
+              {paginatedServices.map((service) => {
                 const isEditing = editingId === service.id;
                 const Icon = getServiceIcon(service.icon);
                 return (
@@ -243,6 +267,16 @@ export function ServiceCatalogEditor({
               })}
             </TableBody>
           </Table>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            startIndex={startIndex}
+            endIndex={endIndex}
+            onPageChange={setCurrentPage}
+            itemsPerPage={itemsPerPage}
+            onItemsPerPageChange={setItemsPerPage}
+          />
         </div>
       ) : (
         <div className="text-center py-8 text-sm text-muted-foreground">{emptyLabel}</div>

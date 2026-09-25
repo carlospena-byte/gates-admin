@@ -17,11 +17,12 @@ export function usePaginatedSortedData<T, K extends keyof T>({
   data,
   defaultSortField,
   defaultSortOrder = "asc",
-  itemsPerPage = 10,
+  itemsPerPage: initialItemsPerPage = 10,
 }: UsePaginatedSortedDataOptions<T, K>) {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortField, setSortField] = useState<K>(defaultSortField);
   const [sortOrder, setSortOrder] = useState<SortOrder>(defaultSortOrder);
+  const [itemsPerPage, setItemsPerPageState] = useState(initialItemsPerPage);
 
   function compareValues(a: unknown, b: unknown) {
     if (a === b) return 0;
@@ -70,6 +71,11 @@ export function usePaginatedSortedData<T, K extends keyof T>({
 
   const resetPage = () => setCurrentPage(1);
 
+  const setItemsPerPage = (value: number) => {
+    setItemsPerPageState(value);
+    setCurrentPage(1);
+  };
+
   return {
     // Data
     paginatedData,
@@ -87,5 +93,7 @@ export function usePaginatedSortedData<T, K extends keyof T>({
     currentPage,
     setCurrentPage,
     resetPage,
+    itemsPerPage,
+    setItemsPerPage,
   };
 }

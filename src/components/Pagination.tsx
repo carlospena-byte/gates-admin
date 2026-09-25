@@ -3,7 +3,10 @@
  */
 
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useI18n } from "@/i18n/useI18n";
+
+const DEFAULT_PAGE_SIZE_OPTIONS = [10, 20, 50];
 
 interface PaginationProps {
   currentPage: number;
@@ -12,6 +15,9 @@ interface PaginationProps {
   startIndex: number;
   endIndex: number;
   onPageChange: (page: number) => void;
+  itemsPerPage?: number;
+  onItemsPerPageChange?: (itemsPerPage: number) => void;
+  pageSizeOptions?: number[];
 }
 
 export function Pagination({
@@ -21,9 +27,12 @@ export function Pagination({
   startIndex,
   endIndex,
   onPageChange,
+  itemsPerPage,
+  onItemsPerPageChange,
+  pageSizeOptions = DEFAULT_PAGE_SIZE_OPTIONS,
 }: PaginationProps) {
   const { t } = useI18n();
-  if (totalPages <= 1) return null;
+  if (totalPages <= 1 && !onItemsPerPageChange) return null;
 
   // Show max 5 page numbers
   const getPageNumbers = () => {
@@ -61,51 +70,72 @@ export function Pagination({
   };
 
   return (
-    <div className="flex items-center justify-between px-2 py-3 border-t bg-muted/20">
-      <div className="text-sm text-muted-foreground">
-        {t("pagination.showing", {
-          start: startIndex + 1,
-          end: Math.min(endIndex, totalItems),
-          total: totalItems,
-        })}
-      </div>
-      <div className="flex gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onPageChange(currentPage - 1)}
-          disabled={currentPage === 1}
-        >
-          {t("pagination.previous")}
-        </Button>
-        <div className="flex items-center gap-1">
-          {getPageNumbers().map((page, idx) =>
-            page < 0 ? (
-              <span key={`ellipsis-${idx}`} className="px-2">
-                ...
-              </span>
-            ) : (
-              <Button
-                key={page}
-                variant={currentPage === page ? "default" : "outline"}
-                size="sm"
-                onClick={() => onPageChange(page)}
-                className="w-8"
-              >
-                {page}
-              </Button>
-            ),
-          )}
+    <div className="flex flex-wrap items-center justify-between gap-3 px-2 py-3 border-t bg-muted/20">
+      <div className="flex items-center gap-4">
+        <div className="text-sm text-muted-foreground">
+          {t("pagination.showing", {
+            start: totalItems === 0 ? 0 : startIndex + 1,
+            end: Math.min(endIndex, totalItems),
+            total: totalItems,
+          })}
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onPageChange(currentPage + 1)}
-          disabled={currentPage === totalPages}
-        >
-          {t("pagination.next")}
-        </Button>
+        {onItemsPerPageChange ? (
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">{t("pagination.rowsPerPage")}</span>
+            <Select value={String(itemsPerPage)} onValueChange={(v) => onItemsPerPageChange(Number(v))}>
+              <SelectTrigger className="h-8 w-[70px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {pageSizeOptions.map((size) => (
+                  <SelectItem key={size} value={String(size)}>
+                    {size}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        ) : null}
       </div>
+      {totalPages > 1 ? (
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onPageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+          >
+            {t("pagination.previous")}
+          </Button>
+          <div className="flex items-center gap-1">
+            {getPageNumbers().map((page, idx) =>
+              page < 0 ? (
+                <span key={`ellipsis-${idx}`} className="px-2">
+                  ...
+                </span>
+              ) : (
+                <Button
+                  key={page}
+                  variant={currentPage === page ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => onPageChange(page)}
+                  className="w-8"
+                >
+                  {page}
+                </Button>
+              ),
+            )}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onPageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+          >
+            {t("pagination.next")}
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 }

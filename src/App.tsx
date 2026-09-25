@@ -5,6 +5,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { MeshBackground } from "@/components/MeshBackground";
 import { LoginPage } from "@/pages/LoginPage";
 import { PlatformDashboardPage } from "@/pages/PlatformDashboardPage";
+import { PlatformResidentialsPage } from "@/pages/PlatformResidentialsPage";
+import { PlatformResidentialDetailPage } from "@/pages/PlatformResidentialDetailPage";
+import { PlatformPlansPage } from "@/pages/PlatformPlansPage";
+import { PlatformProvidersPage } from "@/pages/PlatformProvidersPage";
+import { PlatformAmenitiesCatalogPage } from "@/pages/PlatformAmenitiesCatalogPage";
+import { PlatformAdminsPage } from "@/pages/PlatformAdminsPage";
+import { PlatformAuditLogPage } from "@/pages/PlatformAuditLogPage";
 import { ResidentialDashboardPage } from "@/pages/ResidentialDashboardPage";
 import { ResidentialSignupPage } from "@/pages/ResidentialSignupPage";
 import { SettingsPage } from "@/pages/SettingsPage";
@@ -28,6 +35,7 @@ import {
   getUnitIdFromHash,
   getAddonIdFromHash,
   getChargeIdFromHash,
+  getPlatformResidentialIdFromHash,
   isRouteAllowedForRole,
   isSettingsRoute,
   navigateTo,
@@ -190,6 +198,66 @@ export default function App() {
 
   // Route based on access type
   if (access.kind === "platform_admin") {
+    if (currentRoute === "platformResidentials") {
+      return (
+        <AppFrame>
+          <PlatformResidentialsPage />
+        </AppFrame>
+      );
+    }
+
+    if (currentRoute === "platformResidentialDetail") {
+      const residentialId = getPlatformResidentialIdFromHash();
+      if (residentialId) {
+        return (
+          <AppFrame>
+            <PlatformResidentialDetailPage residentialId={residentialId} />
+          </AppFrame>
+        );
+      }
+      navigateTo("platformResidentials");
+    }
+
+    if (currentRoute === "platformPlans") {
+      return (
+        <AppFrame>
+          <PlatformPlansPage />
+        </AppFrame>
+      );
+    }
+
+    if (currentRoute === "platformProviders") {
+      return (
+        <AppFrame>
+          <PlatformProvidersPage />
+        </AppFrame>
+      );
+    }
+
+    if (currentRoute === "platformAmenitiesCatalog") {
+      return (
+        <AppFrame>
+          <PlatformAmenitiesCatalogPage />
+        </AppFrame>
+      );
+    }
+
+    if (currentRoute === "platformAdmins") {
+      return (
+        <AppFrame>
+          <PlatformAdminsPage />
+        </AppFrame>
+      );
+    }
+
+    if (currentRoute === "platformAuditLog") {
+      return (
+        <AppFrame>
+          <PlatformAuditLogPage />
+        </AppFrame>
+      );
+    }
+
     return (
       <AppFrame>
         <PlatformDashboardPage />

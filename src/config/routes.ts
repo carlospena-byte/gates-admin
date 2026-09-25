@@ -14,6 +14,13 @@ export type RouteType =
   | "login"
   | "signup"
   | "platform"
+  | "platformResidentials"
+  | "platformResidentialDetail"
+  | "platformPlans"
+  | "platformProviders"
+  | "platformAmenitiesCatalog"
+  | "platformAdmins"
+  | "platformAuditLog"
   | "residential"
   | "units"
   | "unitDetail"
@@ -42,6 +49,17 @@ export const SETTINGS_ROUTES: RouteType[] = [
   "settingsAddons",
   "settingsIncidentTypes",
   "settingsUsers",
+];
+
+/** Route ids that belong to the Platform Admin area, in the order they should be listed. */
+export const PLATFORM_ROUTES: RouteType[] = [
+  "platform",
+  "platformResidentials",
+  "platformPlans",
+  "platformProviders",
+  "platformAmenitiesCatalog",
+  "platformAdmins",
+  "platformAuditLog",
 ];
 
 export interface RouteConfig {
@@ -75,6 +93,50 @@ export const ROUTES: Record<RouteType, RouteConfig> = {
   platform: {
     id: "platform",
     hash: "#platform",
+    requiresAuth: true,
+    requiresPlatformAdmin: true,
+  },
+  platformResidentials: {
+    id: "platformResidentials",
+    hash: "#platform/residentials",
+    requiresAuth: true,
+    requiresPlatformAdmin: true,
+  },
+  // Dynamic route ("#platform/residentials/<id>"); see getCurrentRoute()/
+  // getPlatformResidentialIdFromHash(). hash here is a placeholder only.
+  platformResidentialDetail: {
+    id: "platformResidentialDetail",
+    hash: "#platform/residentials/:id",
+    requiresAuth: true,
+    requiresPlatformAdmin: true,
+  },
+  platformPlans: {
+    id: "platformPlans",
+    hash: "#platform/plans",
+    requiresAuth: true,
+    requiresPlatformAdmin: true,
+  },
+  platformProviders: {
+    id: "platformProviders",
+    hash: "#platform/providers",
+    requiresAuth: true,
+    requiresPlatformAdmin: true,
+  },
+  platformAmenitiesCatalog: {
+    id: "platformAmenitiesCatalog",
+    hash: "#platform/amenities-catalog",
+    requiresAuth: true,
+    requiresPlatformAdmin: true,
+  },
+  platformAdmins: {
+    id: "platformAdmins",
+    hash: "#platform/admins",
+    requiresAuth: true,
+    requiresPlatformAdmin: true,
+  },
+  platformAuditLog: {
+    id: "platformAuditLog",
+    hash: "#platform/audit-log",
     requiresAuth: true,
     requiresPlatformAdmin: true,
   },
@@ -204,6 +266,7 @@ const UNIT_DETAIL_HASH_PREFIX = "#units/";
 const ADDON_DETAIL_HASH_PREFIX = "#addons/";
 const CHARGE_DETAIL_HASH_PREFIX = "#charges/";
 const FASTLANE_PUBLIC_HASH_PREFIX = "#fastlane/";
+const PLATFORM_RESIDENTIAL_DETAIL_HASH_PREFIX = "#platform/residentials/";
 
 /**
  * Get the current route based on the URL hash
@@ -225,6 +288,13 @@ export function getCurrentRoute(): RouteType {
 
   if (hash.startsWith(FASTLANE_PUBLIC_HASH_PREFIX) && hash.length > FASTLANE_PUBLIC_HASH_PREFIX.length) {
     return "fastlanePublic";
+  }
+
+  if (
+    hash.startsWith(PLATFORM_RESIDENTIAL_DETAIL_HASH_PREFIX) &&
+    hash.length > PLATFORM_RESIDENTIAL_DETAIL_HASH_PREFIX.length
+  ) {
+    return "platformResidentialDetail";
   }
 
   // Find matching route by hash
@@ -272,6 +342,23 @@ export function getFastlaneCodeFromHash(): string | null {
   const hash = window.location.hash;
   if (!hash.startsWith(FASTLANE_PUBLIC_HASH_PREFIX)) return null;
   return decodeURIComponent(hash.slice(FASTLANE_PUBLIC_HASH_PREFIX.length)) || null;
+}
+
+/**
+ * Extract the residential id from a "#platform/residentials/<id>" hash.
+ * Returns null when the current route isn't platformResidentialDetail.
+ */
+export function getPlatformResidentialIdFromHash(): string | null {
+  const hash = window.location.hash;
+  if (!hash.startsWith(PLATFORM_RESIDENTIAL_DETAIL_HASH_PREFIX)) return null;
+  return decodeURIComponent(hash.slice(PLATFORM_RESIDENTIAL_DETAIL_HASH_PREFIX.length)) || null;
+}
+
+/**
+ * Navigate to a specific residential's detail page within Platform Admin.
+ */
+export function navigateToPlatformResidentialDetail(residentialId: string): void {
+  window.location.hash = `${PLATFORM_RESIDENTIAL_DETAIL_HASH_PREFIX}${encodeURIComponent(residentialId)}`;
 }
 
 /**
@@ -335,6 +422,15 @@ export function requiresResidentialAccess(route: RouteType): boolean {
  */
 export function isSettingsRoute(route: RouteType): boolean {
   return SETTINGS_ROUTES.includes(route);
+}
+
+/**
+ * Check if a route belongs to the Platform Admin area (including the
+ * dynamic residential-detail route, which isn't listed in PLATFORM_ROUTES
+ * since it's not directly navigable from a nav item).
+ */
+export function isPlatformRoute(route: RouteType): boolean {
+  return PLATFORM_ROUTES.includes(route) || route === "platformResidentialDetail";
 }
 
 // ============================================================================

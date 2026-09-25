@@ -22,6 +22,13 @@ export * from "./apiResult";
 
 export type ResidentialWithOwner = Residential & {
   profiles: Pick<Profile, "email"> | null;
+  platform_plans: { name: string } | null;
+};
+
+export type PlatformAdminWithProfile = {
+  user_id: string;
+  created_at: string;
+  profiles: Pick<Profile, "email"> | null;
 };
 
 export type UnitWithOwner = Unit & {
@@ -81,6 +88,58 @@ export const platformAdminService = {
       return !!row;
     });
   },
+
+  // platform_admins.user_id references auth.users, not public.profiles, so
+  // there's no FK for PostgREST to auto-embed profiles(email) — fetch both
+  // and join them by hand instead.
+  list(): Promise<ApiResult<PlatformAdminWithProfile[]>> {
+    return wrapResult("Failed to list platform admins", async () => {
+      const admins = await unwrap<{ user_id: string; created_at: string }[]>(
+        requireSupabase().from("platform_admins").select("*").order("created_at", { ascending: false }),
+      );
+      if (!admins?.length) return [];
+
+      const profiles = await unwrap<Pick<Profile, "user_id" | "email">[]>(
+        requireSupabase()
+          .from("profiles")
+          .select("user_id, email")
+          .in(
+            "user_id",
+            admins.map((a) => a.user_id),
+          ),
+      );
+      const emailByUserId = new Map((profiles ?? []).map((p) => [p.user_id, p.email]));
+
+      return admins.map((admin) => ({
+        ...admin,
+        profiles: emailByUserId.has(admin.user_id) ? { email: emailByUserId.get(admin.user_id) ?? null } : null,
+      }));
+    });
+  },
+
+  /**
+   * Grants platform admin access to an existing account, found by email via
+   * the find_profile_id_by_email RPC (same lookup residentialUserService
+   * uses) — only finds people who've signed in at least once.
+   */
+  addByEmail(email: string): Promise<ApiResult<string | null>> {
+    return wrapResult("Failed to add platform admin", async () => {
+      const userId = await unwrap<string | null>(
+        requireSupabase().rpc("find_profile_id_by_email", { _email: email }),
+      );
+      if (!userId) return null;
+      await unwrap<{ user_id: string }>(
+        requireSupabase().from("platform_admins").insert({ user_id: userId }).select().single(),
+      );
+      return userId;
+    });
+  },
+
+  remove(userId: string): Promise<ApiResult<void>> {
+    return wrapResult("Failed to remove platform admin", () =>
+      unwrap<void>(requireSupabase().from("platform_admins").delete().eq("user_id", userId)),
+    );
+  },
 };
 
 // ============================================================================
@@ -93,7 +152,7 @@ export const residentialService = {
       const rows = await unwrap<ResidentialWithOwner[]>(
         requireSupabase()
           .from("residentials")
-          .select("*, profiles!residentials_owner_user_id_fkey(email)")
+          .select("*, profiles!residentials_owner_user_id_fkey(email), platform_plans(name)")
           .order("created_at", { ascending: false }),
       );
       return rows ?? [];
@@ -105,7 +164,7 @@ export const residentialService = {
       unwrap<ResidentialWithOwner | null>(
         requireSupabase()
           .from("residentials")
-          .select("*, profiles!residentials_owner_user_id_fkey(email)")
+          .select("*, profiles!residentials_owner_user_id_fkey(email), platform_plans(name)")
           .eq("id", id)
           .maybeSingle(),
       ),

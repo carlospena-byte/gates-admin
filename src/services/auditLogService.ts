@@ -23,4 +23,22 @@ export const auditLogService = {
       return rows ?? [];
     });
   },
+
+  /**
+   * Every audit_logs row, across every residential (plus the residential_id
+   * = null rows for profiles/platform_admins) — only platform admins can
+   * see this per the "audit_logs: platform admin all" RLS policy.
+   */
+  listPlatform(limit = 200): Promise<ApiResult<AuditLogWithActor[]>> {
+    return wrapResult("Failed to list platform audit logs", async () => {
+      const query = requireSupabase()
+        .from("audit_logs")
+        .select("*, profiles:actor_user_id(email)")
+        .order("created_at", { ascending: false })
+        .limit(limit) as unknown as PromiseLike<{ data: AuditLogWithActor[] | null; error: unknown }>;
+
+      const rows = await unwrap<AuditLogWithActor[]>(query);
+      return rows ?? [];
+    });
+  },
 };

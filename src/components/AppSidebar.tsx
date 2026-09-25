@@ -3,12 +3,17 @@ import {
   IconAlertTriangle,
   IconBuildings,
   IconCalendarEvent,
+  IconCategory,
+  IconHistory,
   IconHome,
   IconLayoutSidebarLeftCollapse,
   IconLogout,
   IconMenu2,
   IconSettings,
+  IconShieldLock,
   IconSpeakerphone,
+  IconTicket,
+  IconTruckDelivery,
   IconUser,
   IconUserCheck,
   IconUsers,
@@ -38,7 +43,14 @@ import {
 } from "@/components/ui/sidebar";
 import { useI18n } from "@/i18n/useI18n";
 import type { Locale, MessageKey } from "@/i18n/messages";
-import { getCurrentRoute, isRouteAllowedForRole, isSettingsRoute, ROUTES, type RouteType } from "@/config/routes";
+import {
+  getCurrentRoute,
+  isPlatformRoute,
+  isRouteAllowedForRole,
+  isSettingsRoute,
+  ROUTES,
+  type RouteType,
+} from "@/config/routes";
 import { residentialService } from "@/services";
 import { useQuery } from "@/hooks";
 import type { ResidentialRole } from "@/types/database.types";
@@ -55,6 +67,8 @@ interface AppSidebarProps {
   residentialId?: string;
   /** Residential role, used to filter which nav items are shown (optional) */
   role?: ResidentialRole;
+  /** Renders the Platform Admin nav group instead of the residential one, and hides the residential-scoped settings shortcut (optional) */
+  isPlatformAdmin?: boolean;
   /** Callback when sign out is clicked (optional) */
   onSignOut?: () => void;
   /** Callback when profile is clicked (optional) */
@@ -89,6 +103,7 @@ interface SidebarBodyProps {
   residentialName?: string | null;
   roleLabel: string;
   isSettingsActive: boolean;
+  showSettingsShortcut: boolean;
   locale: Locale;
   onLocaleChange: (locale: Locale) => void;
   labelEn: string;
@@ -108,6 +123,7 @@ function SidebarBody({
   residentialName,
   roleLabel,
   isSettingsActive,
+  showSettingsShortcut,
   locale,
   onLocaleChange,
   labelEn,
@@ -208,7 +224,7 @@ function SidebarBody({
           </Button>
         </div>
 
-        {showUserMenu && (
+        {showUserMenu && showSettingsShortcut && (
           <a
             href={ROUTES.settingsUnitTypes.hash}
             className={cn(
@@ -284,6 +300,7 @@ export function AppSidebar({
   userRole = "Engineering",
   residentialId,
   role,
+  isPlatformAdmin = false,
   onSignOut,
   onProfile,
   onSettings,
@@ -295,7 +312,7 @@ export function AppSidebar({
 
   const { data: residential } = useQuery(
     () => residentialService.getById(residentialId as string),
-    { enabled: Boolean(residentialId) },
+    { enabled: Boolean(residentialId) && !isPlatformAdmin },
   );
 
   const roleLabel = role ? t((`role.${role}`) as MessageKey) : t("appSidebar.tagline");
@@ -312,7 +329,27 @@ export function AppSidebar({
     return "User";
   };
 
-  const allNavGroups: NavGroup[] = [
+  const platformNavGroups: NavGroup[] = [
+    {
+      label: null,
+      items: [
+        { label: t("appSidebar.nav.platformDashboard"), href: "#platform", route: "platform", icon: IconHome, active: currentRoute === "platform" },
+      ],
+    },
+    {
+      label: t("appSidebar.group.platform"),
+      items: [
+        { label: t("appSidebar.nav.platformResidentials"), href: "#platform/residentials", route: "platformResidentials", icon: IconBuildings, active: isPlatformRoute(currentRoute) && (currentRoute === "platformResidentials" || currentRoute === "platformResidentialDetail") },
+        { label: t("appSidebar.nav.platformPlans"), href: "#platform/plans", route: "platformPlans", icon: IconTicket, active: currentRoute === "platformPlans" },
+        { label: t("appSidebar.nav.platformProviders"), href: "#platform/providers", route: "platformProviders", icon: IconTruckDelivery, active: currentRoute === "platformProviders" },
+        { label: t("appSidebar.nav.platformAmenitiesCatalog"), href: "#platform/amenities-catalog", route: "platformAmenitiesCatalog", icon: IconCategory, active: currentRoute === "platformAmenitiesCatalog" },
+        { label: t("appSidebar.nav.platformAdmins"), href: "#platform/admins", route: "platformAdmins", icon: IconShieldLock, active: currentRoute === "platformAdmins" },
+        { label: t("appSidebar.nav.platformAuditLog"), href: "#platform/audit-log", route: "platformAuditLog", icon: IconHistory, active: currentRoute === "platformAuditLog" },
+      ],
+    },
+  ];
+
+  const residentialNavGroups: NavGroup[] = [
     {
       label: null,
       items: [
@@ -337,19 +374,22 @@ export function AppSidebar({
     },
   ];
 
+  const allNavGroups: NavGroup[] = isPlatformAdmin ? platformNavGroups : residentialNavGroups;
+
   const navGroups: NavGroup[] = allNavGroups
     .map((group) => ({
       ...group,
-      items: group.items.filter((item) => !role || isRouteAllowedForRole(item.route, role)),
+      items: group.items.filter((item) => isPlatformAdmin || !role || isRouteAllowedForRole(item.route, role)),
     }))
     .filter((group) => group.items.length > 0);
 
   const sharedProps = {
     showUserMenu,
     navGroups,
-    residentialName: residential?.name,
-    roleLabel,
+    residentialName: isPlatformAdmin ? null : residential?.name,
+    roleLabel: isPlatformAdmin ? t("appSidebar.platformAdminTagline") : roleLabel,
     isSettingsActive: isSettingsRoute(currentRoute),
+    showSettingsShortcut: !isPlatformAdmin,
     locale,
     onLocaleChange: setLocale,
     labelEn: t("language.en"),

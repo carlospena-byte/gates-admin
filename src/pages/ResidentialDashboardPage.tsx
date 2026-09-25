@@ -20,6 +20,7 @@ import { ChargeManager } from "@/components/ChargeManager";
 import { ActivityLogManager } from "@/components/ActivityLogManager";
 import { AmenityFormSheet } from "@/components/amenities/AmenityFormSheet";
 import { ServiceManager } from "@/components/amenities/ServiceManager";
+import { ProviderManager } from "@/components/providers/ProviderManager";
 import { EditIcon } from "@/components/icons";
 import {
   amenitiesService,
@@ -89,6 +90,7 @@ export function ResidentialDashboardPage({
   const [addonManagerOpen, setAddonManagerOpen] = useState(false);
   const [chargeManagerOpen, setChargeManagerOpen] = useState(false);
   const [serviceManagerOpen, setServiceManagerOpen] = useState(false);
+  const [providerManagerOpen, setProviderManagerOpen] = useState(false);
   const [activityLogOpen, setActivityLogOpen] = useState(false);
 
   useEffect(() => {
@@ -246,6 +248,9 @@ export function ResidentialDashboardPage({
                   </Button>
                   <Button variant="secondary" onClick={() => setServiceManagerOpen(true)}>
                     {t("dashboard.residential.services")}
+                  </Button>
+                  <Button variant="secondary" onClick={() => setProviderManagerOpen(true)}>
+                    {t("dashboard.residential.providers")}
                   </Button>
                   <Button variant="secondary" onClick={() => setActivityLogOpen(true)}>
                     {t("dashboard.residential.activityLog")}
@@ -409,6 +414,7 @@ export function ResidentialDashboardPage({
         onSaved={refetchAmenities}
       />
       <ServiceManager open={serviceManagerOpen} onOpenChange={setServiceManagerOpen} residentialId={residentialId} />
+      <ProviderManager open={providerManagerOpen} onOpenChange={setProviderManagerOpen} residentialId={residentialId} />
 
       <UnitTypeManager open={unitTypeManagerOpen} onOpenChange={setUnitTypeManagerOpen} residentialId={residentialId} />
       <UnitManager

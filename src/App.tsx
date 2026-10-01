@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { Toaster } from "sonner";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { MeshBackground } from "@/components/MeshBackground";
+import { authService } from "@/services/auth.service";
 import { LoginPage } from "@/pages/LoginPage";
 import { PlatformDashboardPage } from "@/pages/PlatformDashboardPage";
 import { PlatformResidentialsPage } from "@/pages/PlatformResidentialsPage";
@@ -174,6 +176,11 @@ export default function App() {
               <CardTitle>{t("app.accessError.title")}</CardTitle>
               <CardDescription>{errorMessage}</CardDescription>
             </CardHeader>
+            <CardContent>
+              <Button variant="outline" onClick={() => authService.signOut()}>
+                {t("common.signOut")}
+              </Button>
+            </CardContent>
           </Card>
         </div>
       </AppFrame>
@@ -190,6 +197,11 @@ export default function App() {
               <CardTitle>{t("app.noAccess.title")}</CardTitle>
               <CardDescription>{t("app.noAccess.description")}</CardDescription>
             </CardHeader>
+            <CardContent>
+              <Button variant="outline" onClick={() => authService.signOut()}>
+                {t("common.signOut")}
+              </Button>
+            </CardContent>
           </Card>
         </div>
       </AppFrame>

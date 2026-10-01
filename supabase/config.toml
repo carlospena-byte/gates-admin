@@ -166,13 +166,13 @@ web3 = 30
 enable_signup = true
 # If enabled, a user will be required to confirm any email change on both the old, and new email
 # addresses. If disabled, only the new email is required to confirm.
-double_confirm_changes = true
+double_confirm_changes = false
 # If enabled, users need to confirm their email address before signing in.
 enable_confirmations = false
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
 secure_password_change = false
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
-max_frequency = "1s"
+max_frequency = "60s"
 # Number of characters used in the email OTP.
 otp_length = 6
 # Number of seconds before the email OTP expires (defaults to 1 hour).
@@ -197,6 +197,13 @@ sender_name = "gates-admin"
 subject = "Your login code"
 content_path = "./supabase/templates/magic_link.html"
 
+# Changing the email in the app: the new address gets a 6-digit code
+# ({{ .Token }}) that the user types in to confirm; verifyOtp(type: emailChange).
+# double_confirm_changes is off above so only the new address has to confirm.
+[auth.email.template.email_change]
+subject = "Confirm your new email"
+content_path = "./supabase/templates/email_change.html"
+
 # Uncomment to customize email template
 # [auth.email.template.invite]
 # subject = "You have been invited"
@@ -219,7 +226,7 @@ enable_confirmations = false
 # Template for sending OTP to users
 template = "Your code is {{ .Code }}"
 # Controls the minimum amount of time that must pass before sending another sms otp.
-max_frequency = "5s"
+max_frequency = "60s"
 
 # Use pre-defined map of phone number to OTP for testing.
 # [auth.sms.test_otp]

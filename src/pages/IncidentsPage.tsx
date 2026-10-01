@@ -46,7 +46,8 @@ export function IncidentsPage({ residentialId, role }: { residentialId: string; 
   const buckets = useMemo(() => {
     const grouped: Record<string, IncidentWithRelations[]> = { new: [], in_progress: [], resolved: [], closed: [] };
     for (const incident of incidents) {
-      grouped[incident.status]?.push(incident);
+      // Cancelled reports (withdrawn by the resident) live with the closed ones.
+      grouped[incident.status === "cancelled" ? "closed" : incident.status]?.push(incident);
     }
     return grouped;
   }, [incidents]);

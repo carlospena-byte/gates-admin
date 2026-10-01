@@ -18,5 +18,5 @@ export const amenityBookingService = createCrudService<
 >("amenity_bookings", {
   parentColumn: "residential_id",
   orderBy: "start_time",
-  selectClause: "*, profiles:user_id(email), units:unit_id(name), amenities:amenity_id(name)",
+  selectClause: "*, profiles:user_id(email, first_name, last_name), units:unit_id(name), amenities:amenity_id(name)",
 });

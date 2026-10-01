@@ -4,7 +4,7 @@
  */
 
 export type IncidentPriority = "low" | "medium" | "high" | "urgent";
-export type IncidentStatus = "new" | "in_progress" | "resolved" | "closed";
+export type IncidentStatus = "new" | "in_progress" | "resolved" | "closed" | "cancelled";
 
 export interface Incident {
   id: string;

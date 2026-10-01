@@ -28,6 +28,15 @@ async function checkIn(
     );
 
     await unwrap<null>(client.from("visitors").update({ status: "inside" }).eq("id", visitorId));
+
+    // Best-effort: the resident's app should update in real time via its own
+    // Realtime subscription regardless, so a push failure here must not fail
+    // the check-in itself.
+    try {
+      await client.functions.invoke("notify-visitor-checkin", { body: { visitorId } });
+    } catch (error) {
+      console.error("Failed to send check-in push notification", error);
+    }
   });
 }
 

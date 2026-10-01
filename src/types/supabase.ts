@@ -257,6 +257,7 @@ export type Database = {
           requires_cleaning: boolean
           requires_payment: boolean
           residential_id: string
+          schedule: Json
           terms: string | null
         }
         Insert: {
@@ -278,6 +279,7 @@ export type Database = {
           requires_cleaning?: boolean
           requires_payment?: boolean
           residential_id: string
+          schedule?: Json
           terms?: string | null
         }
         Update: {
@@ -299,11 +301,57 @@ export type Database = {
           requires_cleaning?: boolean
           requires_payment?: boolean
           residential_id?: string
+          schedule?: Json
           terms?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "amenities_residential_id_fkey"
+            columns: ["residential_id"]
+            isOneToOne: false
+            referencedRelation: "residentials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      amenity_blackouts: {
+        Row: {
+          amenity_id: string
+          created_at: string
+          end_date: string
+          id: string
+          reason: string | null
+          residential_id: string
+          start_date: string
+        }
+        Insert: {
+          amenity_id: string
+          created_at?: string
+          end_date: string
+          id?: string
+          reason?: string | null
+          residential_id: string
+          start_date: string
+        }
+        Update: {
+          amenity_id?: string
+          created_at?: string
+          end_date?: string
+          id?: string
+          reason?: string | null
+          residential_id?: string
+          start_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "amenity_blackouts_amenity_id_fkey"
+            columns: ["amenity_id"]
+            isOneToOne: false
+            referencedRelation: "amenities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "amenity_blackouts_residential_id_fkey"
             columns: ["residential_id"]
             isOneToOne: false
             referencedRelation: "residentials"
@@ -350,6 +398,7 @@ export type Database = {
           end_time: string
           id: string
           notes: string | null
+          rejection_reason: string | null
           residential_id: string
           start_time: string
           status: string
@@ -362,6 +411,7 @@ export type Database = {
           end_time: string
           id?: string
           notes?: string | null
+          rejection_reason?: string | null
           residential_id: string
           start_time: string
           status?: string
@@ -374,6 +424,7 @@ export type Database = {
           end_time?: string
           id?: string
           notes?: string | null
+          rejection_reason?: string | null
           residential_id?: string
           start_time?: string
           status?: string
@@ -1633,9 +1684,11 @@ export type Database = {
         Row: {
           created_at: string
           email: string
-          full_name: string
+          first_name: string
+          full_name: string | null
           id: string
           is_active: boolean
+          last_name: string | null
           phone: string | null
           residential_id: string
           unit_id: string
@@ -1644,9 +1697,11 @@ export type Database = {
         Insert: {
           created_at?: string
           email: string
-          full_name: string
+          first_name: string
+          full_name?: string | null
           id?: string
           is_active?: boolean
+          last_name?: string | null
           phone?: string | null
           residential_id: string
           unit_id: string
@@ -1655,9 +1710,11 @@ export type Database = {
         Update: {
           created_at?: string
           email?: string
-          full_name?: string
+          first_name?: string
+          full_name?: string | null
           id?: string
           is_active?: boolean
+          last_name?: string | null
           phone?: string | null
           residential_id?: string
           unit_id?: string
@@ -1979,9 +2036,11 @@ export type Database = {
         Row: {
           created_at: string | null
           email: string | null
+          first_name: string | null
           full_name: string | null
           id: string | null
           is_active: boolean | null
+          last_name: string | null
           phone: string | null
           residential_id: string | null
           status: string | null
@@ -2023,11 +2082,15 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      check_email_login_status: { Args: { _email: string }; Returns: string }
       create_fastlane_visit: {
         Args: {
+          _arrival_time?: string
+          _name?: string
           _notes?: string
-          _phone: string
+          _phone?: string
           _residential_id: string
+          _tz_offset_minutes?: number
           _unit_id: string
           _visit_date: string
         }
@@ -2094,6 +2157,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      expire_stale_visits_and_bookings: { Args: never; Returns: undefined }
       find_profile_id_by_email: { Args: { _email: string }; Returns: string }
       is_platform_admin: { Args: never; Returns: boolean }
       is_residential_admin: {
@@ -2123,8 +2187,11 @@ export type Database = {
         Returns: string
       }
       validate_unit_invitation: {
-        Args: { _code: string; _email: string }
+        Args: { _code: string }
         Returns: {
+          email: string
+          full_name: string
+          phone: string
           residential_name: string
           unit_name: string
         }[]

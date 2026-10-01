@@ -57,10 +57,12 @@ function getSignedUrl(path: string): Promise<ApiResult<string>> {
   });
 }
 
-function remove(id: string): Promise<ApiResult<void>> {
-  return wrapResult("Failed to delete attachment", () =>
-    unwrap<void>(requireSupabase().from("incident_attachments").delete().eq("id", id)),
-  );
+function remove(id: string, storagePath?: string): Promise<ApiResult<void>> {
+  return wrapResult("Failed to delete attachment", async () => {
+    const client = requireSupabase();
+    await unwrap<void>(client.from("incident_attachments").delete().eq("id", id));
+    if (storagePath) await client.storage.from(BUCKET).remove([storagePath]);
+  });
 }
 
 export const incidentAttachmentService = { list, upload, getSignedUrl, delete: remove };

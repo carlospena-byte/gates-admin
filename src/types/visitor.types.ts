@@ -11,7 +11,8 @@ export type VisitorStatus =
   | "inside"
   | "completed"
   | "cancelled"
-  | "rejected";
+  | "rejected"
+  | "expired";
 
 export type VisitType = "frequent" | "delivery" | "fastlane";
 export type VisitorRole = "familiar" | "entrenador" | "empleado" | "proveedor" | "visitante" | "invitado";

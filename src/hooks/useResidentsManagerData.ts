@@ -6,24 +6,26 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { inviteOrLinkResident, unitResidentService, unitService, type UnitWithOwner } from "@/services";
+import { inviteOrLinkResident, locationService, unitResidentService, unitService, type UnitWithOwner } from "@/services";
 import type { NewResidentFields } from "@/components/units/AddResidentSheet";
-import type { ResidentWithStatus, UnitResident } from "@/types/unit-wizard.types";
+import type { Location, ResidentWithStatus, UnitResident } from "@/types/unit-wizard.types";
 import { useI18n } from "@/i18n/useI18n";
 
 export function useResidentsManagerData(residentialId: string) {
   const { t } = useI18n();
   const [residents, setResidents] = useState<ResidentWithStatus[]>([]);
   const [units, setUnits] = useState<UnitWithOwner[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const reload = useCallback(async () => {
     setIsLoading(true);
 
-    const [residentsResult, unitsResult] = await Promise.all([
+    const [residentsResult, unitsResult, locationsResult] = await Promise.all([
       unitResidentService.listByResidentialWithStatus(residentialId),
       unitService.listByResidential(residentialId),
+      locationService.list(residentialId),
     ]);
 
     setIsLoading(false);
@@ -35,6 +37,7 @@ export function useResidentsManagerData(residentialId: string) {
     }
 
     if (unitsResult.success) setUnits(unitsResult.data);
+    if (locationsResult.success) setLocations(locationsResult.data);
   }, [residentialId]);
 
   useEffect(() => {
@@ -80,7 +83,8 @@ export function useResidentsManagerData(residentialId: string) {
       const result = await unitResidentService.create({
         unit_id: fields.unitId,
         residential_id: residentialId,
-        full_name: fields.fullName.trim(),
+        first_name: fields.firstName.trim(),
+        last_name: fields.lastName.trim() || null,
         email: fields.email.trim(),
         phone: fields.phone.trim() || null,
       });
@@ -130,6 +134,7 @@ export function useResidentsManagerData(residentialId: string) {
   return {
     residents,
     units,
+    locations,
     isLoading,
     isSubmitting,
     reload,

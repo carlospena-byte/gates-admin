@@ -3,7 +3,7 @@ import type { Amenity, AmenityWithDetails, InsertAmenity, UpdateAmenity } from "
 import { unwrap, wrapResult, type ApiResult } from "./apiResult";
 
 const WITH_DETAILS_SELECT =
-  "*, amenity_images(*), amenity_services(*, services(*)), amenity_booking_limits(*)";
+  "*, amenity_images(*), amenity_services(*, services(*)), amenity_booking_limits(*), amenity_blackouts(*)";
 
 // ============================================================================
 // Amenities Service

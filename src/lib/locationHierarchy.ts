@@ -8,6 +8,7 @@ import type { Location, LocationTypeDefinition } from "@/types/unit-wizard.types
 export function getLocationFullPath(
   location: Location | null | undefined,
   locations: Location[],
+  separator = " → ",
 ): string {
   if (!location) return "";
 
@@ -20,7 +21,22 @@ export function getLocationFullPath(
     current = parentId ? locations.find((l) => l.id === parentId) : undefined;
   }
 
-  return parts.join(" → ");
+  return parts.join(separator);
+}
+
+/**
+ * A unit's full display label — its location path plus its own name (e.g.
+ * "Torre A → Piso 3 → 101") — so a unit number that repeats across towers
+ * (every tower has a "101") stays unambiguous wherever it's shown flat,
+ * outside the Units page's own path + name columns.
+ */
+export function getUnitFullLabel(
+  unitName: string,
+  location: Location | null | undefined,
+  locations: Location[],
+): string {
+  const path = getLocationFullPath(location, locations);
+  return path ? `${path} → ${unitName}` : unitName;
 }
 
 /** Ancestor chain for a location, root-first (e.g. [Torre A, Piso 1]) — for rendering one badge per hierarchy level. */

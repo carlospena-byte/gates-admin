@@ -100,6 +100,9 @@ export interface UnitResident {
   id: string;
   unit_id: string;
   residential_id: string;
+  first_name: string;
+  last_name: string | null;
+  /** Generated from first_name/last_name — read-only. */
   full_name: string;
   email: string;
   phone: string | null;
@@ -280,14 +283,16 @@ export interface UpdateAddonItemDto {
 export interface CreateUnitResidentDto {
   unit_id: string;
   residential_id: string;
-  full_name: string;
+  first_name: string;
+  last_name?: string | null;
   email: string;
   phone?: string | null;
   is_active?: boolean;
 }
 
 export interface UpdateUnitResidentDto {
-  full_name?: string;
+  first_name?: string;
+  last_name?: string | null;
   email?: string;
   phone?: string | null;
   is_active?: boolean;

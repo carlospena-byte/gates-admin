@@ -28,9 +28,10 @@ const STATUS_STYLES: Record<VisitorStatus, string> = {
   completed: "bg-secondary text-secondary-foreground",
   cancelled: "bg-red-100 text-red-700",
   rejected: "bg-red-100 text-red-700",
+  expired: "bg-secondary text-secondary-foreground",
 };
 
-const STATUS_LABEL_KEYS: Record<VisitorStatus, MessageKey> = {
+export const STATUS_LABEL_KEYS: Record<VisitorStatus, MessageKey> = {
   pending_registration: "visitors.status.pendingRegistration",
   scheduled: "visitors.status.scheduled",
   active: "visitors.status.active",
@@ -38,13 +39,22 @@ const STATUS_LABEL_KEYS: Record<VisitorStatus, MessageKey> = {
   completed: "visitors.status.completed",
   cancelled: "visitors.status.cancelled",
   rejected: "visitors.status.rejected",
+  expired: "visitors.status.expired",
 };
 
-const VISIT_TYPE_LABEL_KEYS: Record<VisitType, MessageKey> = {
+export const VISIT_TYPE_LABEL_KEYS: Record<VisitType, MessageKey> = {
   frequent: "visitors.type.frequent",
   delivery: "visitors.type.delivery",
   fastlane: "visitors.type.fastlane",
 };
+
+/** Terminal/history statuses — no further check-in/out or deletion applies. */
+const HISTORY_STATUSES: ReadonlySet<VisitorStatus> = new Set([
+  "completed",
+  "cancelled",
+  "rejected",
+  "expired",
+]);
 
 interface VisitorTableProps {
   visitors: VisitorWithInviter[];
@@ -164,7 +174,7 @@ export function VisitorTable({
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
-                    {canCheckInOut && visitor.status !== "inside" && visitor.status !== "completed" && (
+                    {canCheckInOut && visitor.status !== "inside" && !HISTORY_STATUSES.has(visitor.status) && (
                       <Button size="sm" variant="outline" onClick={() => onCheckIn(visitor.id)} disabled={isSubmitting}>
                         {t("visitors.table.checkIn")}
                       </Button>
@@ -174,7 +184,7 @@ export function VisitorTable({
                         {t("visitors.table.checkOut")}
                       </Button>
                     )}
-                    {canManage && (
+                    {canManage && !HISTORY_STATUSES.has(visitor.status) && (
                       <Button size="sm" variant="ghost" onClick={() => handleDelete(visitor.id, visitor.name)} disabled={isSubmitting}>
                         <DeleteIcon />
                       </Button>

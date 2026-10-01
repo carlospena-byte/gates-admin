@@ -29,6 +29,7 @@ const STATUS_LABEL_KEYS: Record<IncidentStatus, MessageKey> = {
   in_progress: "incidents.status.inProgress",
   resolved: "incidents.status.resolved",
   closed: "incidents.status.closed",
+  cancelled: "incidents.status.cancelled",
 };
 
 const PRIORITY_STYLES: Record<IncidentPriority, string> = {
@@ -43,6 +44,7 @@ const STATUS_STYLES: Record<IncidentStatus, string> = {
   in_progress: "bg-orange-100 text-orange-700",
   resolved: "bg-green-100 text-green-700",
   closed: "bg-secondary text-secondary-foreground",
+  cancelled: "bg-secondary text-secondary-foreground",
 };
 
 interface IncidentTableProps {

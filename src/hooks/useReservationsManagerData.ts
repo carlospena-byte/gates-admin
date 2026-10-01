@@ -7,13 +7,20 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { amenitiesService, amenityBookingService, unitService } from "@/services";
+import {
+  amenitiesService,
+  amenityBookingService,
+  locationService,
+  unitResidentService,
+  unitService,
+} from "@/services";
 import type {
   Amenity,
   AmenityBookingWithUser,
   CreateAmenityBookingDto,
 } from "@/types/amenities.types";
 import type { UnitWithOwner } from "@/services/api.service";
+import type { Location, ResidentWithStatus } from "@/types/unit-wizard.types";
 
 export interface ReservationFormPayload {
   amenityId: string;
@@ -27,6 +34,8 @@ export interface ReservationFormPayload {
 export function useReservationsManagerData(residentialId: string) {
   const [amenities, setAmenities] = useState<Amenity[]>([]);
   const [units, setUnits] = useState<UnitWithOwner[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [residents, setResidents] = useState<ResidentWithStatus[]>([]);
   const [bookings, setBookings] = useState<AmenityBookingWithUser[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -49,6 +58,24 @@ export function useReservationsManagerData(residentialId: string) {
     }
   }, [residentialId]);
 
+  const loadLocations = useCallback(async () => {
+    const result = await locationService.list(residentialId);
+    if (result.success) {
+      setLocations(result.data);
+    } else {
+      toast.error(result.error.message);
+    }
+  }, [residentialId]);
+
+  const loadResidents = useCallback(async () => {
+    const result = await unitResidentService.listByResidentialWithStatus(residentialId);
+    if (result.success) {
+      setResidents(result.data);
+    } else {
+      toast.error(result.error.message);
+    }
+  }, [residentialId]);
+
   const loadBookings = useCallback(async () => {
     setIsLoading(true);
     const result = await amenityBookingService.list(residentialId);
@@ -64,8 +91,10 @@ export function useReservationsManagerData(residentialId: string) {
   useEffect(() => {
     void loadAmenities();
     void loadUnits();
+    void loadLocations();
+    void loadResidents();
     void loadBookings();
-  }, [loadAmenities, loadUnits, loadBookings]);
+  }, [loadAmenities, loadUnits, loadLocations, loadResidents, loadBookings]);
 
   const createBooking = useCallback(
     async (payload: ReservationFormPayload): Promise<boolean> => {
@@ -89,6 +118,10 @@ export function useReservationsManagerData(residentialId: string) {
         // an overlapping time slot for this amenity.
         if (result.error.code === "23P01") {
           toast.error("This time slot is already booked for this amenity.");
+        } else if (result.error.code === "AM001") {
+          // Trigger rejection — the amenity has a blackout range covering
+          // these dates (maintenance, board-only use, etc).
+          toast.error("This amenity is closed for the selected dates.");
         } else {
           toast.error(result.error.message);
         }
@@ -103,9 +136,12 @@ export function useReservationsManagerData(residentialId: string) {
   );
 
   const cancelBooking = useCallback(
-    async (id: string) => {
+    async (id: string, reason?: string) => {
       setIsSubmitting(true);
-      const result = await amenityBookingService.update(id, { status: "cancelled" });
+      const result = await amenityBookingService.update(id, {
+        status: "cancelled",
+        rejection_reason: reason?.trim() || null,
+      });
       setIsSubmitting(false);
 
       if (!result.success) {
@@ -118,18 +154,67 @@ export function useReservationsManagerData(residentialId: string) {
     [loadBookings],
   );
 
+  const approveBooking = useCallback(
+    async (id: string) => {
+      setIsSubmitting(true);
+      const result = await amenityBookingService.update(id, { status: "confirmed" });
+      setIsSubmitting(false);
+
+      if (!result.success) {
+        toast.error(result.error.message);
+        return;
+      }
+      toast.success("Reservation approved");
+      await loadBookings();
+    },
+    [loadBookings],
+  );
+
+  const updateBookingsStatus = useCallback(
+    async (ids: string[], status: "confirmed" | "cancelled", reason?: string) => {
+      if (ids.length === 0) return;
+      setIsSubmitting(true);
+      const results = await Promise.all(
+        ids.map((id) =>
+          amenityBookingService.update(id, {
+            status,
+            ...(status === "cancelled" ? { rejection_reason: reason?.trim() || null } : {}),
+          }),
+        ),
+      );
+      setIsSubmitting(false);
+
+      const failures = results.filter((result) => !result.success);
+      if (failures.length > 0) {
+        toast.error(`${failures.length} of ${ids.length} reservations could not be updated`);
+      } else {
+        toast.success(
+          status === "confirmed"
+            ? `${ids.length} reservation(s) approved`
+            : `${ids.length} reservation(s) cancelled`,
+        );
+      }
+      await loadBookings();
+    },
+    [loadBookings],
+  );
+
   const reload = useCallback(async () => {
-    await Promise.all([loadAmenities(), loadUnits(), loadBookings()]);
-  }, [loadAmenities, loadUnits, loadBookings]);
+    await Promise.all([loadAmenities(), loadUnits(), loadLocations(), loadResidents(), loadBookings()]);
+  }, [loadAmenities, loadUnits, loadLocations, loadResidents, loadBookings]);
 
   return {
     amenities,
     units,
+    locations,
+    residents,
     bookings,
     isLoading,
     isSubmitting,
     reload,
     createBooking,
     cancelBooking,
+    approveBooking,
+    updateBookingsStatus,
   };
 }

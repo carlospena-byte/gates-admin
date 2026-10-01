@@ -3,6 +3,18 @@ export type UnitType = 'apartment' | 'house' | 'townhouse' | 'studio';
 
 export type BookingLimitPeriod = 'day' | 'week' | 'month';
 
+// One day-group + time-range pair, e.g. { days: ['mon','tue','wed','thu'],
+// openTime: '08:00', closeTime: '09:00' }. An amenity's `schedule` is a list
+// of these, so different day groups can have different hours (Mon-Thu
+// 8-9, Fri-Sat 7-11, etc). `opening_time`/`closing_time`/`available_days`
+// stay in sync as derived values (union of days, earliest open, latest
+// close) for anything still reading the old flat columns.
+export interface AmenityScheduleBlock {
+  days: string[];
+  openTime: string;
+  closeTime: string;
+}
+
 export interface Amenity {
   id: string;
   residential_id: string;
@@ -16,6 +28,7 @@ export interface Amenity {
   opening_time: string | null;
   closing_time: string | null;
   available_days: string[];
+  schedule: AmenityScheduleBlock[];
   requires_payment: boolean;
   price: number | null;
   payment_methods: string[];
@@ -37,6 +50,7 @@ export interface InsertAmenity {
   opening_time?: string | null;
   closing_time?: string | null;
   available_days?: string[];
+  schedule?: AmenityScheduleBlock[];
   requires_payment?: boolean;
   price?: number | null;
   payment_methods?: string[];
@@ -56,6 +70,7 @@ export interface UpdateAmenity {
   opening_time?: string | null;
   closing_time?: string | null;
   available_days?: string[];
+  schedule?: AmenityScheduleBlock[];
   requires_payment?: boolean;
   price?: number | null;
   payment_methods?: string[];
@@ -134,16 +149,37 @@ export interface AmenityBookingLimitRule {
   period: BookingLimitPeriod;
 }
 
+// A date range (inclusive, whole days) where the amenity can't be booked —
+// maintenance, board-only use, etc. Enforced at the DB level (a trigger on
+// amenity_bookings rejects any booking overlapping one of these), so it
+// blocks every client, not just this admin panel.
+export interface AmenityBlackout {
+  id: string;
+  amenity_id: string;
+  start_date: string;
+  end_date: string;
+  reason: string | null;
+  created_at: string;
+}
+
+// A blackout range as edited in the form, before it has an id.
+export interface AmenityBlackoutRule {
+  startDate: string;
+  endDate: string;
+  reason: string;
+}
+
 // Amenity joined with everything the edit form needs to pre-fill: its
-// images, its selected services (with the catalog row), and its booking
-// limit rules.
+// images, its selected services (with the catalog row), its booking
+// limit rules, and its blackout date ranges.
 export type AmenityWithDetails = Amenity & {
   amenity_images: AmenityImage[];
   amenity_services: AmenityServiceWithService[];
   amenity_booking_limits: AmenityBookingLimit[];
+  amenity_blackouts: AmenityBlackout[];
 };
 
-export type AmenityBookingStatus = 'pending' | 'confirmed' | 'cancelled';
+export type AmenityBookingStatus = 'pending' | 'confirmed' | 'cancelled' | 'expired';
 
 export interface AmenityBooking {
   id: string;
@@ -155,6 +191,7 @@ export interface AmenityBooking {
   end_time: string;
   status: AmenityBookingStatus;
   notes: string | null;
+  rejection_reason: string | null;
   created_at: string;
 }
 
@@ -174,12 +211,13 @@ export interface UpdateAmenityBookingDto {
   end_time?: string;
   status?: AmenityBookingStatus;
   notes?: string | null;
+  rejection_reason?: string | null;
 }
 
 // Booking joined with the booking user's email, the assigned unit's name,
 // and the amenity's name, same join-on-select shape as VisitorWithInviter.
 export type AmenityBookingWithUser = AmenityBooking & {
-  profiles: { email: string | null } | null;
+  profiles: { email: string | null; first_name: string | null; last_name: string | null } | null;
   units: { name: string } | null;
   amenities: { name: string } | null;
 };

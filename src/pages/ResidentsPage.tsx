@@ -24,8 +24,18 @@ export function ResidentsPage({ residentialId, role }: { residentialId: string; 
   const canManage = canManageResidential(role);
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  const { residents, units, isLoading, isSubmitting, reload, createResidentAndInvite, deleteResident, toggleActive, inviteResident } =
-    useResidentsManagerData(residentialId);
+  const {
+    residents,
+    units,
+    locations,
+    isLoading,
+    isSubmitting,
+    reload,
+    createResidentAndInvite,
+    deleteResident,
+    toggleActive,
+    inviteResident,
+  } = useResidentsManagerData(residentialId);
 
   return (
     <div className="min-h-screen">
@@ -65,6 +75,7 @@ export function ResidentsPage({ residentialId, role }: { residentialId: string; 
         open={sheetOpen}
         onOpenChange={setSheetOpen}
         units={units}
+        locations={locations}
         isSubmitting={isSubmitting}
         onCreate={createResidentAndInvite}
       />

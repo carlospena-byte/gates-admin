@@ -60,7 +60,8 @@ export function UnitResidentsPanel({
     const createResult = await unitResidentService.create({
       unit_id: unitId,
       residential_id: residentialId,
-      full_name: fields.fullName.trim(),
+      first_name: fields.firstName.trim(),
+      last_name: fields.lastName.trim() || null,
       email: fields.email.trim(),
       phone: fields.phone.trim() || null,
     });

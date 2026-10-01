@@ -12,14 +12,17 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Spinner } from "@/components/LoadingStates";
+import { UnitCombobox } from "@/components/units/UnitCombobox";
 import { useI18n } from "@/i18n/useI18n";
 import type { UnitWithOwner } from "@/services";
+import type { Location } from "@/types/unit-wizard.types";
 
 export interface NewResidentFields {
-  fullName: string;
+  firstName: string;
+  lastName: string;
   email: string;
   phone: string;
   unitId: string;
@@ -32,11 +35,13 @@ interface AddResidentSheetProps {
   onCreate: (fields: NewResidentFields) => Promise<boolean>;
   /** When provided, shows a required unit picker (residential-wide usage). */
   units?: UnitWithOwner[];
+  /** Full location tree, used to label each unit with its building/floor path (e.g. "Edificio 1 → Piso 1 → 101"). */
+  locations?: Location[];
 }
 
-const EMPTY: NewResidentFields = { fullName: "", email: "", phone: "", unitId: "" };
+const EMPTY: NewResidentFields = { firstName: "", lastName: "", email: "", phone: "", unitId: "" };
 
-export function AddResidentSheet({ open, onOpenChange, isSubmitting, onCreate, units }: AddResidentSheetProps) {
+export function AddResidentSheet({ open, onOpenChange, isSubmitting, onCreate, units, locations = [] }: AddResidentSheetProps) {
   const { t } = useI18n();
   const [fields, setFields] = useState<NewResidentFields>(EMPTY);
   const set = <K extends keyof NewResidentFields>(key: K, value: NewResidentFields[K]) =>
@@ -48,7 +53,7 @@ export function AddResidentSheet({ open, onOpenChange, isSubmitting, onCreate, u
   };
 
   const needsUnit = !!units;
-  const isValid = fields.fullName.trim() && fields.email.trim() && (!needsUnit || fields.unitId);
+  const isValid = fields.firstName.trim() && fields.email.trim() && (!needsUnit || fields.unitId);
 
   const handleAdd = async () => {
     if (!isValid) return;
@@ -69,24 +74,25 @@ export function AddResidentSheet({ open, onOpenChange, isSubmitting, onCreate, u
 
         <div className="space-y-4 py-6">
           {units && (
-            <Select value={fields.unitId} onValueChange={(v) => set("unitId", v)} disabled={isSubmitting}>
-              <SelectTrigger label={t("common.unit")}>
-                <SelectValue placeholder={t("residents.create.selectUnitPlaceholder")} />
-              </SelectTrigger>
-              <SelectContent>
-                {units.map((unit) => (
-                  <SelectItem key={unit.id} value={unit.id}>
-                    {unit.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <UnitCombobox
+              units={units}
+              locations={locations}
+              value={fields.unitId}
+              onChange={(v) => set("unitId", v)}
+              disabled={isSubmitting}
+            />
           )}
 
           <Input
-            label={t("residents.create.fullNameLabel")}
-            value={fields.fullName}
-            onChange={(e) => set("fullName", e.target.value)}
+            label={t("residents.create.firstNameLabel")}
+            value={fields.firstName}
+            onChange={(e) => set("firstName", e.target.value)}
+            disabled={isSubmitting}
+          />
+          <Input
+            label={t("residents.create.lastNameLabel")}
+            value={fields.lastName}
+            onChange={(e) => set("lastName", e.target.value)}
             disabled={isSubmitting}
           />
           <Input
@@ -96,10 +102,10 @@ export function AddResidentSheet({ open, onOpenChange, isSubmitting, onCreate, u
             onChange={(e) => set("email", e.target.value)}
             disabled={isSubmitting}
           />
-          <Input
+          <PhoneInput
             label={t("residents.create.phoneLabel")}
             value={fields.phone}
-            onChange={(e) => set("phone", e.target.value)}
+            onChange={(v) => set("phone", v)}
             disabled={isSubmitting}
           />
         </div>

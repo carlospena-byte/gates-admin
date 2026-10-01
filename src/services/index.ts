@@ -31,6 +31,7 @@ export { announcementService } from "./announcementService";
 export { servicesService } from "./services.service";
 export { amenityServiceService } from "./amenityServiceService";
 export { amenityBookingLimitService } from "./amenityBookingLimitService";
+export { amenityBlackoutService } from "./amenityBlackoutService";
 export { amenityImageService } from "./amenityImageService";
 export type { OperationalMetrics } from "./dashboardMetricsService";
 export { platformPlanService } from "./platformPlanService";

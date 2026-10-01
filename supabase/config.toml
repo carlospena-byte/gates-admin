@@ -340,6 +340,11 @@ allow_dynamic_registration = false
 # access_code inside the request body is the only credential.
 verify_jwt = false
 
+[functions.review-login]
+# Called from the login screen before any session exists. Gated by the
+# REVIEW_EMAIL / REVIEW_CODE secrets inside the function.
+verify_jwt = false
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.

@@ -40,6 +40,7 @@ export function sanitizeEmail(email: string): string {
 export function sanitizeInput(input: string): string {
   return sanitizeString(input)
     .replace(/[<>]/g, "") // Remove potential HTML tags
+    // eslint-disable-next-line no-control-regex
     .replace(/[\u0000-\u001F\u007F]/g, ""); // Remove control characters
 }
 

@@ -5,7 +5,7 @@
  * IconBath/IconWashDryHang).
  */
 
-import { useRef, useState } from "react";
+import { createElement, useRef, useState } from "react";
 import { IconSearch } from "@tabler/icons-react";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -27,8 +27,6 @@ export function IconPicker({ value, onChange, disabled }: IconPickerProps) {
 
   const filtered = search.trim() ? searchServiceIcons(search, SERVICE_ICON_OPTIONS.length) : SERVICE_ICON_OPTIONS;
 
-  const SelectedIcon = getServiceIcon(value);
-
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -38,7 +36,7 @@ export function IconPicker({ value, onChange, disabled }: IconPickerProps) {
           aria-label={t("amenities.iconPicker.chooseLabel")}
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-input bg-gates-surface text-foreground hover:bg-accent disabled:cursor-not-allowed disabled:opacity-45"
         >
-          <SelectedIcon className="h-5 w-5" />
+          {createElement(getServiceIcon(value), { className: "h-5 w-5" })}
         </button>
       </PopoverTrigger>
       {/* portal={false}: this picker is meant to be used inside a Sheet — see

@@ -22,7 +22,8 @@ import {
 import { AddFrequentVisitSheet, type NewFrequentVisitFields } from "@/components/visitors/AddFrequentVisitSheet";
 import { AddDeliveryVisitSheet, type NewDeliveryVisitFields } from "@/components/visitors/AddDeliveryVisitSheet";
 import { AddFastlaneVisitSheet, type NewFastlaneVisitFields } from "@/components/visitors/AddFastlaneVisitSheet";
-import { STATUS_LABEL_KEYS, VISIT_TYPE_LABEL_KEYS, VisitorTable } from "@/components/visitors/VisitorTable";
+import { VisitorTable } from "@/components/visitors/VisitorTable";
+import { STATUS_LABEL_KEYS, VISIT_TYPE_LABEL_KEYS } from "@/components/visitors/visitorLabels";
 import { useI18n } from "@/i18n/useI18n";
 import { authService } from "@/services";
 import { useSession } from "@/state/useSession";

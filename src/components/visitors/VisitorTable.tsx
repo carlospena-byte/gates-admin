@@ -15,10 +15,10 @@ import { DeleteIcon } from "@/components/icons";
 import { confirmDeleteToast } from "@/lib/confirmDeleteToast";
 import { usePaginatedSortedData } from "@/hooks/usePaginatedSortedData";
 import { useI18n } from "@/i18n/useI18n";
-import type { MessageKey } from "@/i18n/messages";
 import { cn } from "@/lib/utils";
+import { STATUS_LABEL_KEYS, VISIT_TYPE_LABEL_KEYS } from "./visitorLabels";
 import type { UnitWithOwner } from "@/services";
-import type { VisitorStatus, VisitorWithInviter, VisitType } from "@/types/visitor.types";
+import type { VisitorStatus, VisitorWithInviter } from "@/types/visitor.types";
 
 const STATUS_STYLES: Record<VisitorStatus, string> = {
   pending_registration: "bg-amber-100 text-amber-700",
@@ -29,23 +29,6 @@ const STATUS_STYLES: Record<VisitorStatus, string> = {
   cancelled: "bg-red-100 text-red-700",
   rejected: "bg-red-100 text-red-700",
   expired: "bg-secondary text-secondary-foreground",
-};
-
-export const STATUS_LABEL_KEYS: Record<VisitorStatus, MessageKey> = {
-  pending_registration: "visitors.status.pendingRegistration",
-  scheduled: "visitors.status.scheduled",
-  active: "visitors.status.active",
-  inside: "visitors.status.inside",
-  completed: "visitors.status.completed",
-  cancelled: "visitors.status.cancelled",
-  rejected: "visitors.status.rejected",
-  expired: "visitors.status.expired",
-};
-
-export const VISIT_TYPE_LABEL_KEYS: Record<VisitType, MessageKey> = {
-  frequent: "visitors.type.frequent",
-  delivery: "visitors.type.delivery",
-  fastlane: "visitors.type.fastlane",
 };
 
 /** Terminal/history statuses — no further check-in/out or deletion applies. */

@@ -32,3 +32,6 @@ dist-ssr
 .env.production
 .vercel
 .env*
+
+# Production DB dumps (contain real data)
+supabase/backups/

@@ -15,13 +15,15 @@ export function ChargeCreateForm({ isSubmitting, onCreate }: ChargeCreateFormPro
   const { t } = useI18n();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [amount, setAmount] = useState("");
 
   const handleCreate = async () => {
-    if (!name.trim()) return;
-    const ok = await onCreate({ name: name.trim(), description: description.trim() });
+    if (!name.trim() || amount.trim() === "" || Number(amount) < 0) return;
+    const ok = await onCreate({ name: name.trim(), description: description.trim(), amount: Number(amount) });
     if (ok) {
       setName("");
       setDescription("");
+      setAmount("");
     }
   };
 
@@ -42,7 +44,21 @@ export function ChargeCreateForm({ isSubmitting, onCreate }: ChargeCreateFormPro
           onChange={(e) => setDescription(e.target.value)}
           disabled={isSubmitting}
         />
-        <Button onClick={handleCreate} disabled={isSubmitting || !name.trim()} className="w-full">
+        <Input
+          label={t("charges.create.amount.label")}
+          type="number"
+          min="0"
+          step="0.01"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          placeholder={t("charges.create.amount.placeholder")}
+          disabled={isSubmitting}
+        />
+        <Button
+          onClick={handleCreate}
+          disabled={isSubmitting || !name.trim() || amount.trim() === ""}
+          className="w-full"
+        >
           {isSubmitting ? (
             <Spinner size="sm" />
           ) : (

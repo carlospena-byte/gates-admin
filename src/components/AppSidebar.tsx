@@ -3,6 +3,7 @@ import {
   IconAlertTriangle,
   IconBuildings,
   IconCalendarEvent,
+  IconCash,
   IconCategory,
   IconHistory,
   IconHome,
@@ -10,7 +11,9 @@ import {
   IconLogout,
   IconMenu2,
   IconSettings,
+  IconDeviceMobile,
   IconShieldLock,
+  IconNews,
   IconSpeakerphone,
   IconTicket,
   IconTruckDelivery,
@@ -345,6 +348,7 @@ export function AppSidebar({
         { label: t("appSidebar.nav.platformAmenitiesCatalog"), href: "#platform/amenities-catalog", route: "platformAmenitiesCatalog", icon: IconCategory, active: currentRoute === "platformAmenitiesCatalog" },
         { label: t("appSidebar.nav.platformAdmins"), href: "#platform/admins", route: "platformAdmins", icon: IconShieldLock, active: currentRoute === "platformAdmins" },
         { label: t("appSidebar.nav.platformAuditLog"), href: "#platform/audit-log", route: "platformAuditLog", icon: IconHistory, active: currentRoute === "platformAuditLog" },
+        { label: t("appSidebar.nav.platformAppSettings"), href: "#platform/app-settings", route: "platformAppSettings", icon: IconDeviceMobile, active: currentRoute === "platformAppSettings" },
       ],
     },
   ];
@@ -363,6 +367,7 @@ export function AppSidebar({
         { label: t("appSidebar.nav.residents"), href: "#residents", route: "residents", icon: IconUsers, active: currentRoute === "residents" },
         { label: t("appSidebar.nav.visitors"), href: "#visitors", route: "visitors", icon: IconUserCheck, active: currentRoute === "visitors" },
         { label: t("appSidebar.nav.reservations"), href: "#reservations", route: "reservations", icon: IconCalendarEvent, active: currentRoute === "reservations" },
+        { label: t("appSidebar.nav.billing"), href: "#billing", route: "billing", icon: IconCash, active: currentRoute === "billing" },
       ],
     },
     {
@@ -370,6 +375,7 @@ export function AppSidebar({
       items: [
         { label: t("appSidebar.nav.incidents"), href: "#incidents", route: "incidents", icon: IconAlertTriangle, active: currentRoute === "incidents" },
         { label: t("appSidebar.nav.announcements"), href: "#announcements", route: "announcements", icon: IconSpeakerphone, active: currentRoute === "announcements" },
+        { label: t("appSidebar.nav.bulletins"), href: "#bulletins", route: "bulletins", icon: IconNews, active: currentRoute === "bulletins" },
       ],
     },
   ];

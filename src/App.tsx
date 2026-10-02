@@ -14,6 +14,7 @@ import { PlatformProvidersPage } from "@/pages/PlatformProvidersPage";
 import { PlatformAmenitiesCatalogPage } from "@/pages/PlatformAmenitiesCatalogPage";
 import { PlatformAdminsPage } from "@/pages/PlatformAdminsPage";
 import { PlatformAuditLogPage } from "@/pages/PlatformAuditLogPage";
+import { PlatformAppSettingsPage } from "@/pages/PlatformAppSettingsPage";
 import { ResidentialDashboardPage } from "@/pages/ResidentialDashboardPage";
 import { ResidentialSignupPage } from "@/pages/ResidentialSignupPage";
 import { SettingsPage } from "@/pages/SettingsPage";
@@ -22,7 +23,9 @@ import { ResidentsPage } from "@/pages/ResidentsPage";
 import { VisitorsPage } from "@/pages/VisitorsPage";
 import { IncidentsPage } from "@/pages/IncidentsPage";
 import { AnnouncementsPage } from "@/pages/AnnouncementsPage";
+import { BulletinsPage } from "@/pages/BulletinsPage";
 import { ReservationsPage } from "@/pages/ReservationsPage";
+import { BillingPage } from "@/pages/BillingPage";
 import { UnitDetailPage } from "@/pages/UnitDetailPage";
 import { AddonDetailPage } from "@/pages/AddonDetailPage";
 import { ChargeDetailPage } from "@/pages/ChargeDetailPage";
@@ -270,6 +273,14 @@ export default function App() {
       );
     }
 
+    if (currentRoute === "platformAppSettings") {
+      return (
+        <AppFrame>
+          <PlatformAppSettingsPage />
+        </AppFrame>
+      );
+    }
+
     return (
       <AppFrame>
         <PlatformDashboardPage />
@@ -336,10 +347,26 @@ export default function App() {
     );
   }
 
+  if (currentRoute === "bulletins") {
+    return (
+      <AppFrame>
+        <BulletinsPage residentialId={access.residentialId} role={access.role} />
+      </AppFrame>
+    );
+  }
+
   if (currentRoute === "reservations") {
     return (
       <AppFrame>
         <ReservationsPage residentialId={access.residentialId} role={access.role} />
+      </AppFrame>
+    );
+  }
+
+  if (currentRoute === "billing") {
+    return (
+      <AppFrame>
+        <BillingPage residentialId={access.residentialId} role={access.role} />
       </AppFrame>
     );
   }

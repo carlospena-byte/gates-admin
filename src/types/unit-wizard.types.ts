@@ -167,34 +167,57 @@ export interface UnitRentalPayment {
   updated_at: string;
 }
 
-// A recurring/permanent extra charge (e.g. "Seguridad", "Mantenimiento y
-// Limpieza") — separate from addons, which model physical, location-bound
-// things. Has no price of its own; price lives per-unit on UnitCharge, so
-// the same charge can cost different amounts for different units/towers.
+export type LateFeeType = "none" | "fixed" | "percent";
+export type LateFeeRecurrence = "once" | "monthly";
+
+// A recurring monthly charge (e.g. "Seguridad", "Piscina") — separate from
+// addons, which model physical, location-bound things. Charges aren't shared
+// across audiences: create one per distinct price/group. Who pays is defined
+// by its ChargeAssignment rules.
 export interface Charge {
   id: string;
   residential_id: string;
   name: string;
   description: string | null;
   is_active: boolean;
+  /** Base monthly amount; an assignment can override it. */
+  amount: number;
+  /** Day of month (1-28) the installments are generated. */
+  generation_day: number;
+  /** Day of month (1-28) each installment is due. */
+  due_day: number;
+  late_fee_type: LateFeeType;
+  late_fee_value: number;
+  starts_on: string;
+  ends_on: string | null;
   created_at: string;
   updated_at: string;
-  /** PostgREST embedded count aggregate: [{ count: N }] — units this charge is assigned to. */
-  unit_charges?: { count: number }[];
 }
 
-// One unit's assignment to a charge, with the price agreed for that unit.
-export interface UnitCharge {
+export type ChargeAssignmentScope = "location_subtree" | "location_only" | "unit";
+
+// A rule saying which units a charge applies to. Resolved to concrete units
+// at generation time (see resolve_charge_units).
+export interface ChargeAssignment {
   id: string;
   residential_id: string;
   charge_id: string;
-  unit_id: string;
-  price: number;
+  scope: ChargeAssignmentScope;
+  location_id: string | null;
+  unit_id: string | null;
+  amount_override: number | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
-  charges?: Charge;
-  units?: { id: string; name: string };
+  units?: { id: string; name: string } | null;
+}
+
+/** A charge applicable to one unit, with the amount that unit pays. */
+export interface UnitApplicableCharge {
+  charge_id: string;
+  charge_name: string;
+  amount: number;
+  is_active: boolean;
 }
 
 // Create/Update DTOs
@@ -350,24 +373,29 @@ export interface CreateChargeDto {
   name: string;
   description?: string | null;
   is_active?: boolean;
+  amount?: number;
+  generation_day?: number;
+  due_day?: number;
+  late_fee_type?: LateFeeType;
+  late_fee_value?: number;
+  starts_on?: string;
+  ends_on?: string | null;
 }
 
-export interface UpdateChargeDto {
-  name?: string;
-  description?: string | null;
-  is_active?: boolean;
-}
+export type UpdateChargeDto = Partial<Omit<CreateChargeDto, "residential_id">>;
 
-export interface CreateUnitChargeDto {
+export interface CreateChargeAssignmentDto {
   residential_id: string;
   charge_id: string;
-  unit_id: string;
-  price: number;
+  scope: ChargeAssignmentScope;
+  location_id?: string | null;
+  unit_id?: string | null;
+  amount_override?: number | null;
   is_active?: boolean;
 }
 
-export interface UpdateUnitChargeDto {
-  price?: number;
+export interface UpdateChargeAssignmentDto {
+  amount_override?: number | null;
   is_active?: boolean;
 }
 

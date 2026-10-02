@@ -1,27 +1,35 @@
 /**
  * Data fetching and mutations for ChargeManager — the top-level list of
- * recurring extra charges (e.g. "Seguridad"). Assigning a charge to units
+ * recurring monthly charges (e.g. "Seguridad"). Assigning a charge to units
  * happens on ChargeDetailPage, not here.
  */
 
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { chargeService } from "@/services";
-import type { Charge, CreateChargeDto, UpdateChargeDto } from "@/types/unit-wizard.types";
+import { navigateToChargeDetail } from "@/config/routes";
+import type { Charge, CreateChargeDto, LateFeeRecurrence, UpdateChargeDto } from "@/types/unit-wizard.types";
 
 export interface ChargeFormPayload {
   name: string;
   description: string;
+  amount: number;
 }
 
 export function useChargeManagerData(residentialId: string, open: boolean) {
   const [charges, setCharges] = useState<Charge[]>([]);
+  const [unitCounts, setUnitCounts] = useState<Record<string, number>>({});
+  const [lateFeeRecurrence, setLateFeeRecurrenceState] = useState<LateFeeRecurrence>("once");
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const reload = useCallback(async () => {
     setIsLoading(true);
-    const result = await chargeService.list(residentialId);
+    const [result, countsResult, recurrenceResult] = await Promise.all([
+      chargeService.list(residentialId),
+      chargeService.unitCounts(residentialId),
+      chargeService.getLateFeeRecurrence(residentialId),
+    ]);
     setIsLoading(false);
 
     if (result.success) {
@@ -29,6 +37,8 @@ export function useChargeManagerData(residentialId: string, open: boolean) {
     } else {
       toast.error(result.error.message);
     }
+    if (countsResult.success) setUnitCounts(countsResult.data);
+    if (recurrenceResult.success) setLateFeeRecurrenceState(recurrenceResult.data);
   }, [residentialId]);
 
   useEffect(() => {
@@ -43,6 +53,7 @@ export function useChargeManagerData(residentialId: string, open: boolean) {
         residential_id: residentialId,
         name: payload.name,
         description: payload.description || null,
+        amount: payload.amount,
       };
       const result = await chargeService.create(dto);
       setIsSubmitting(false);
@@ -53,10 +64,11 @@ export function useChargeManagerData(residentialId: string, open: boolean) {
       }
 
       toast.success("Charge created successfully");
-      await reload();
+      // Next step is choosing who pays it, which lives on the charge's page.
+      navigateToChargeDetail(result.data.id);
       return true;
     },
-    [residentialId, reload],
+    [residentialId],
   );
 
   const updateCharge = useCallback(
@@ -107,8 +119,24 @@ export function useChargeManagerData(residentialId: string, open: boolean) {
     [reload],
   );
 
+  const setLateFeeRecurrence = useCallback(
+    async (value: LateFeeRecurrence) => {
+      const previous = lateFeeRecurrence;
+      setLateFeeRecurrenceState(value);
+      const result = await chargeService.setLateFeeRecurrence(residentialId, value);
+      if (!result.success) {
+        setLateFeeRecurrenceState(previous);
+        toast.error(result.error.message);
+      }
+    },
+    [residentialId, lateFeeRecurrence],
+  );
+
   return {
     charges,
+    unitCounts,
+    lateFeeRecurrence,
+    setLateFeeRecurrence,
     isLoading,
     isSubmitting,
     reload,

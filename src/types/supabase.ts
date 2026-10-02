@@ -630,6 +630,72 @@ export type Database = {
           },
         ]
       }
+      app_config: {
+        Row: {
+          id: string
+          maintenance_enabled: boolean
+          maintenance_message: string | null
+          maintenance_title: string | null
+          singleton: boolean
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          maintenance_enabled?: boolean
+          maintenance_message?: string | null
+          maintenance_title?: string | null
+          singleton?: boolean
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          maintenance_enabled?: boolean
+          maintenance_message?: string | null
+          maintenance_title?: string | null
+          singleton?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      app_versions: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          is_forced: boolean
+          message: string | null
+          platform: string
+          store_url: string
+          title: string | null
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_forced?: boolean
+          message?: string | null
+          platform: string
+          store_url: string
+          title?: string | null
+          updated_at?: string
+          version: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_forced?: boolean
+          message?: string | null
+          platform?: string
+          store_url?: string
+          title?: string | null
+          updated_at?: string
+          version?: string
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action: string
@@ -681,32 +747,380 @@ export type Database = {
           },
         ]
       }
-      charges: {
+      bulletin_attachments: {
+        Row: {
+          bulletin_id: string
+          created_at: string
+          file_name: string
+          file_size: number | null
+          id: string
+          kind: string
+          residential_id: string
+          sort_order: number
+          storage_path: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          bulletin_id: string
+          created_at?: string
+          file_name: string
+          file_size?: number | null
+          id?: string
+          kind: string
+          residential_id: string
+          sort_order?: number
+          storage_path: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          bulletin_id?: string
+          created_at?: string
+          file_name?: string
+          file_size?: number | null
+          id?: string
+          kind?: string
+          residential_id?: string
+          sort_order?: number
+          storage_path?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bulletin_attachments_bulletin_id_fkey"
+            columns: ["bulletin_id"]
+            isOneToOne: false
+            referencedRelation: "bulletins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bulletin_attachments_residential_id_fkey"
+            columns: ["residential_id"]
+            isOneToOne: false
+            referencedRelation: "residentials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bulletin_attachments_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      bulletins: {
         Row: {
           created_at: string
+          created_by: string | null
           description: string | null
           id: string
-          is_active: boolean
-          name: string
+          notified_at: string | null
+          published_at: string | null
           residential_id: string
+          status: string
+          title: string
           updated_at: string
         }
         Insert: {
           created_at?: string
+          created_by?: string | null
           description?: string | null
           id?: string
-          is_active?: boolean
-          name: string
+          notified_at?: string | null
+          published_at?: string | null
           residential_id: string
+          status?: string
+          title: string
           updated_at?: string
         }
         Update: {
           created_at?: string
+          created_by?: string | null
           description?: string | null
           id?: string
+          notified_at?: string | null
+          published_at?: string | null
+          residential_id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bulletins_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "bulletins_residential_id_fkey"
+            columns: ["residential_id"]
+            isOneToOne: false
+            referencedRelation: "residentials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      charge_assignments: {
+        Row: {
+          amount_override: number | null
+          charge_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          location_id: string | null
+          residential_id: string
+          scope: string
+          unit_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount_override?: number | null
+          charge_id: string
+          created_at?: string
+          id?: string
           is_active?: boolean
+          location_id?: string | null
+          residential_id: string
+          scope: string
+          unit_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount_override?: number | null
+          charge_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          location_id?: string | null
+          residential_id?: string
+          scope?: string
+          unit_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "charge_assignments_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "charge_assignments_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "charge_assignments_residential_id_fkey"
+            columns: ["residential_id"]
+            isOneToOne: false
+            referencedRelation: "residentials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "charge_assignments_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      charge_installments: {
+        Row: {
+          base_amount: number
+          charge_id: string
+          created_at: string
+          due_date: string
+          id: string
+          late_fee_type: string
+          late_fee_value: number
+          notes: string | null
+          paid_amount: number
+          paid_at: string | null
+          period: string
+          residential_id: string
+          status: string
+          unit_id: string
+          updated_at: string
+        }
+        Insert: {
+          base_amount: number
+          charge_id: string
+          created_at?: string
+          due_date: string
+          id?: string
+          late_fee_type?: string
+          late_fee_value?: number
+          notes?: string | null
+          paid_amount?: number
+          paid_at?: string | null
+          period: string
+          residential_id: string
+          status?: string
+          unit_id: string
+          updated_at?: string
+        }
+        Update: {
+          base_amount?: number
+          charge_id?: string
+          created_at?: string
+          due_date?: string
+          id?: string
+          late_fee_type?: string
+          late_fee_value?: number
+          notes?: string | null
+          paid_amount?: number
+          paid_at?: string | null
+          period?: string
+          residential_id?: string
+          status?: string
+          unit_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "charge_installments_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "charge_installments_residential_id_fkey"
+            columns: ["residential_id"]
+            isOneToOne: false
+            referencedRelation: "residentials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "charge_installments_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      charge_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          id: string
+          installment_id: string
+          method: string | null
+          notes: string | null
+          paid_on: string
+          reference: string | null
+          residential_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          installment_id: string
+          method?: string | null
+          notes?: string | null
+          paid_on?: string
+          reference?: string | null
+          residential_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          installment_id?: string
+          method?: string | null
+          notes?: string | null
+          paid_on?: string
+          reference?: string | null
+          residential_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "charge_payments_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "charge_payments_installment_id_fkey"
+            columns: ["installment_id"]
+            isOneToOne: false
+            referencedRelation: "charge_installments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "charge_payments_installment_id_fkey"
+            columns: ["installment_id"]
+            isOneToOne: false
+            referencedRelation: "v_charge_installments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "charge_payments_residential_id_fkey"
+            columns: ["residential_id"]
+            isOneToOne: false
+            referencedRelation: "residentials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      charges: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          due_day: number
+          ends_on: string | null
+          generation_day: number
+          id: string
+          is_active: boolean
+          late_fee_type: string
+          late_fee_value: number
+          name: string
+          residential_id: string
+          starts_on: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          due_day?: number
+          ends_on?: string | null
+          generation_day?: number
+          id?: string
+          is_active?: boolean
+          late_fee_type?: string
+          late_fee_value?: number
+          name: string
+          residential_id: string
+          starts_on?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          due_day?: number
+          ends_on?: string | null
+          generation_day?: number
+          id?: string
+          is_active?: boolean
+          late_fee_type?: string
+          late_fee_value?: number
           name?: string
           residential_id?: string
+          starts_on?: string
           updated_at?: string
         }
         Relationships: [
@@ -1131,7 +1545,9 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
           created_at: string
+          deletion_scheduled_for: string | null
           email: string | null
           first_name: string | null
           last_name: string | null
@@ -1139,7 +1555,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string
+          deletion_scheduled_for?: string | null
           email?: string | null
           first_name?: string | null
           last_name?: string | null
@@ -1147,7 +1565,9 @@ export type Database = {
           user_id: string
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string
+          deletion_scheduled_for?: string | null
           email?: string | null
           first_name?: string | null
           last_name?: string | null
@@ -1189,6 +1609,71 @@ export type Database = {
             foreignKeyName: "providers_residential_id_fkey"
             columns: ["residential_id"]
             isOneToOne: false
+            referencedRelation: "residentials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      push_campaigns: {
+        Row: {
+          audience: string
+          body: string
+          created_at: string
+          created_by: string | null
+          failed: number
+          id: string
+          recipients: number
+          residential_ids: string[]
+          sent: number
+          title: string
+        }
+        Insert: {
+          audience: string
+          body: string
+          created_at?: string
+          created_by?: string | null
+          failed?: number
+          id?: string
+          recipients?: number
+          residential_ids?: string[]
+          sent?: number
+          title: string
+        }
+        Update: {
+          audience?: string
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          failed?: number
+          id?: string
+          recipients?: number
+          residential_ids?: string[]
+          sent?: number
+          title?: string
+        }
+        Relationships: []
+      }
+      residential_billing_settings: {
+        Row: {
+          late_fee_recurrence: string
+          residential_id: string
+          updated_at: string
+        }
+        Insert: {
+          late_fee_recurrence?: string
+          residential_id: string
+          updated_at?: string
+        }
+        Update: {
+          late_fee_recurrence?: string
+          residential_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "residential_billing_settings_residential_id_fkey"
+            columns: ["residential_id"]
+            isOneToOne: true
             referencedRelation: "residentials"
             referencedColumns: ["id"]
           },
@@ -1348,61 +1833,6 @@ export type Database = {
           },
           {
             foreignKeyName: "unit_addons_unit_id_fkey"
-            columns: ["unit_id"]
-            isOneToOne: false
-            referencedRelation: "units"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      unit_charges: {
-        Row: {
-          charge_id: string
-          created_at: string
-          id: string
-          is_active: boolean
-          price: number
-          residential_id: string
-          unit_id: string
-          updated_at: string
-        }
-        Insert: {
-          charge_id: string
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          price: number
-          residential_id: string
-          unit_id: string
-          updated_at?: string
-        }
-        Update: {
-          charge_id?: string
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          price?: number
-          residential_id?: string
-          unit_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "unit_charges_charge_id_fkey"
-            columns: ["charge_id"]
-            isOneToOne: false
-            referencedRelation: "charges"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "unit_charges_residential_id_fkey"
-            columns: ["residential_id"]
-            isOneToOne: false
-            referencedRelation: "residentials"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "unit_charges_unit_id_fkey"
             columns: ["unit_id"]
             isOneToOne: false
             referencedRelation: "units"
@@ -1915,11 +2345,13 @@ export type Database = {
         Row: {
           access_code: string | null
           created_at: string
+          has_vehicle: boolean
           id: string
           id_photo_path: string | null
           invited_by: string | null
           name: string | null
           notes: string | null
+          notify_on_arrival: boolean
           phone: string | null
           plate: string | null
           provider_kind: string | null
@@ -1928,6 +2360,7 @@ export type Database = {
           registered_at: string | null
           registration_channel: string | null
           residential_id: string
+          schedule_blocks: Json | null
           schedule_end: string | null
           schedule_start: string | null
           schedule_type: string
@@ -1942,11 +2375,13 @@ export type Database = {
         Insert: {
           access_code?: string | null
           created_at?: string
+          has_vehicle?: boolean
           id?: string
           id_photo_path?: string | null
           invited_by?: string | null
           name?: string | null
           notes?: string | null
+          notify_on_arrival?: boolean
           phone?: string | null
           plate?: string | null
           provider_kind?: string | null
@@ -1955,6 +2390,7 @@ export type Database = {
           registered_at?: string | null
           registration_channel?: string | null
           residential_id: string
+          schedule_blocks?: Json | null
           schedule_end?: string | null
           schedule_start?: string | null
           schedule_type?: string
@@ -1969,11 +2405,13 @@ export type Database = {
         Update: {
           access_code?: string | null
           created_at?: string
+          has_vehicle?: boolean
           id?: string
           id_photo_path?: string | null
           invited_by?: string | null
           name?: string | null
           notes?: string | null
+          notify_on_arrival?: boolean
           phone?: string | null
           plate?: string | null
           provider_kind?: string | null
@@ -1982,6 +2420,7 @@ export type Database = {
           registered_at?: string | null
           registration_channel?: string | null
           residential_id?: string
+          schedule_blocks?: Json | null
           schedule_end?: string | null
           schedule_start?: string | null
           schedule_type?: string
@@ -2065,8 +2504,74 @@ export type Database = {
           },
         ]
       }
+      v_charge_installments: {
+        Row: {
+          balance: number | null
+          base_amount: number | null
+          charge_id: string | null
+          charge_name: string | null
+          created_at: string | null
+          days_overdue: number | null
+          due_date: string | null
+          id: string | null
+          is_overdue: boolean | null
+          late_fee: number | null
+          late_fee_type: string | null
+          late_fee_value: number | null
+          notes: string | null
+          paid_amount: number | null
+          paid_at: string | null
+          period: string | null
+          residential_id: string | null
+          status: string | null
+          total_due: number | null
+          unit_id: string | null
+          unit_location_id: string | null
+          unit_name: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "charge_installments_charge_id_fkey"
+            columns: ["charge_id"]
+            isOneToOne: false
+            referencedRelation: "charges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "charge_installments_residential_id_fkey"
+            columns: ["residential_id"]
+            isOneToOne: false
+            referencedRelation: "residentials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "charge_installments_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "units_location_id_fkey"
+            columns: ["unit_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      _generate_installments: {
+        Args: {
+          _charge_id: string
+          _only_due_today: boolean
+          _period: string
+          _residential_id: string
+        }
+        Returns: number
+      }
       accept_unit_invitation: {
         Args: { _code: string }
         Returns: {
@@ -2081,6 +2586,43 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      billing_delinquent_units: {
+        Args: { _residential_id: string }
+        Returns: {
+          charge_names: string[]
+          late_fees: number
+          max_days_overdue: number
+          oldest_due_date: string
+          overdue_balance: number
+          overdue_count: number
+          unit_id: string
+          unit_location_id: string
+          unit_name: string
+        }[]
+      }
+      billing_summary: {
+        Args: { _period?: string; _residential_id: string }
+        Returns: Json
+      }
+      cancel_account_deletion: { Args: never; Returns: undefined }
+      charge_late_fee: {
+        Args: {
+          _as_of: string
+          _base: number
+          _due_date: string
+          _fee_type: string
+          _fee_value: number
+          _recurrence: string
+        }
+        Returns: number
+      }
+      charge_unit_counts: {
+        Args: { _residential_id: string }
+        Returns: {
+          charge_id: string
+          unit_count: number
+        }[]
       }
       check_email_login_status: { Args: { _email: string }; Returns: string }
       create_fastlane_visit: {
@@ -2097,11 +2639,13 @@ export type Database = {
         Returns: {
           access_code: string | null
           created_at: string
+          has_vehicle: boolean
           id: string
           id_photo_path: string | null
           invited_by: string | null
           name: string | null
           notes: string | null
+          notify_on_arrival: boolean
           phone: string | null
           plate: string | null
           provider_kind: string | null
@@ -2110,6 +2654,7 @@ export type Database = {
           registered_at: string | null
           registration_channel: string | null
           residential_id: string
+          schedule_blocks: Json | null
           schedule_end: string | null
           schedule_start: string | null
           schedule_type: string
@@ -2159,6 +2704,15 @@ export type Database = {
       }
       expire_stale_visits_and_bookings: { Args: never; Returns: undefined }
       find_profile_id_by_email: { Args: { _email: string }; Returns: string }
+      generate_charge_installments: {
+        Args: { _charge_id?: string; _period?: string; _residential_id: string }
+        Returns: number
+      }
+      get_app_status: {
+        Args: { p_platform: string; p_version: string }
+        Returns: Json
+      }
+      invoke_process_account_deletions: { Args: never; Returns: undefined }
       is_platform_admin: { Args: never; Returns: boolean }
       is_residential_admin: {
         Args: { _residential_id: string }
@@ -2180,8 +2734,35 @@ export type Database = {
         Args: { _residential_id: string }
         Returns: boolean
       }
+      recompute_installment: {
+        Args: { _installment_id: string }
+        Returns: undefined
+      }
       remove_unit_resident: { Args: { _id: string }; Returns: boolean }
+      request_account_deletion: { Args: never; Returns: string }
+      resolve_charge_units: {
+        Args: { _charge_id: string }
+        Returns: {
+          amount: number
+          assignment_id: string
+          unit_id: string
+        }[]
+      }
       revoke_unit_invitation: { Args: { _id: string }; Returns: undefined }
+      run_scheduled_charge_generation: { Args: never; Returns: undefined }
+      set_installment_cancelled: {
+        Args: { _cancelled: boolean; _installment_id: string }
+        Returns: undefined
+      }
+      unit_applicable_charges: {
+        Args: { _unit_id: string }
+        Returns: {
+          amount: number
+          charge_id: string
+          charge_name: string
+          is_active: boolean
+        }[]
+      }
       unit_resident_status: {
         Args: { _email: string; _unit_id: string; _unit_resident_id: string }
         Returns: string

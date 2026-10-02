@@ -21,6 +21,7 @@ export type RouteType =
   | "platformAmenitiesCatalog"
   | "platformAdmins"
   | "platformAuditLog"
+  | "platformAppSettings"
   | "residential"
   | "units"
   | "unitDetail"
@@ -31,7 +32,9 @@ export type RouteType =
   | "fastlanePublic"
   | "incidents"
   | "announcements"
+  | "bulletins"
   | "reservations"
+  | "billing"
   | "settingsUnitTypes"
   | "settingsLocationTypes"
   | "settingsAddonTypes"
@@ -60,6 +63,7 @@ export const PLATFORM_ROUTES: RouteType[] = [
   "platformAmenitiesCatalog",
   "platformAdmins",
   "platformAuditLog",
+  "platformAppSettings",
 ];
 
 export interface RouteConfig {
@@ -140,6 +144,12 @@ export const ROUTES: Record<RouteType, RouteConfig> = {
     requiresAuth: true,
     requiresPlatformAdmin: true,
   },
+  platformAppSettings: {
+    id: "platformAppSettings",
+    hash: "#platform/app-settings",
+    requiresAuth: true,
+    requiresPlatformAdmin: true,
+  },
   residential: {
     id: "residential",
     hash: "#residential",
@@ -184,9 +194,21 @@ export const ROUTES: Record<RouteType, RouteConfig> = {
     requiresAuth: true,
     requiresResidentialAccess: true,
   },
+  bulletins: {
+    id: "bulletins",
+    hash: "#bulletins",
+    requiresAuth: true,
+    requiresResidentialAccess: true,
+  },
   reservations: {
     id: "reservations",
     hash: "#reservations",
+    requiresAuth: true,
+    requiresResidentialAccess: true,
+  },
+  billing: {
+    id: "billing",
+    hash: "#billing",
     requiresAuth: true,
     requiresResidentialAccess: true,
   },

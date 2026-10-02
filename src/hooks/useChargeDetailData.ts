@@ -1,41 +1,35 @@
 /**
- * Data fetching and mutations for ChargeDetailPage — the charge's own
- * editable fields, plus bulk-assigning a price to a group of units (all,
- * by location, by unit type, or a manual pick) instead of one at a time.
+ * Data fetching and mutations for ChargeDetailPage — the charge's own billing
+ * fields plus its assignment rules (location + descendants, one location only,
+ * or one exact unit), and manual generation of this month's installments.
  */
 
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   chargeService,
-  unitChargeService,
+  chargeAssignmentService,
   unitService,
-  unitTypeService,
   locationService,
   locationTypeService,
 } from "@/services";
-import { getDescendantLocationIds } from "@/lib/locationHierarchy";
+import { useI18n } from "@/i18n/useI18n";
 import type {
   Charge,
+  ChargeAssignment,
+  CreateChargeAssignmentDto,
   Location,
   LocationTypeDefinition,
-  UnitCharge,
-  UnitType,
   UnitWithWizardData,
   UpdateChargeDto,
 } from "@/types/unit-wizard.types";
 
-export type AssignTarget =
-  | { mode: "all" }
-  | { mode: "location"; locationId: string }
-  | { mode: "unitType"; unitTypeId: string }
-  | { mode: "manual"; unitIds: string[] };
-
 export function useChargeDetailData(residentialId: string, chargeId: string) {
+  const { t } = useI18n();
   const [charge, setCharge] = useState<Charge | null>(null);
-  const [assignments, setAssignments] = useState<UnitCharge[]>([]);
+  const [assignments, setAssignments] = useState<ChargeAssignment[]>([]);
+  const [unitCount, setUnitCount] = useState(0);
   const [units, setUnits] = useState<UnitWithWizardData[]>([]);
-  const [unitTypes, setUnitTypes] = useState<UnitType[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [locationTypes, setLocationTypes] = useState<LocationTypeDefinition[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -44,12 +38,12 @@ export function useChargeDetailData(residentialId: string, chargeId: string) {
   const reload = useCallback(async () => {
     setIsLoading(true);
 
-    const [chargeResult, assignmentsResult, unitsResult, unitTypesResult, locationsResult, locationTypesResult] =
+    const [chargeResult, assignmentsResult, countsResult, unitsResult, locationsResult, locationTypesResult] =
       await Promise.all([
         chargeService.getById(chargeId),
-        unitChargeService.list(chargeId),
+        chargeAssignmentService.list(chargeId),
+        chargeService.unitCounts(residentialId),
         unitService.listWithRelations(residentialId),
-        unitTypeService.list(residentialId),
         locationService.list(residentialId),
         locationTypeService.list(residentialId),
       ]);
@@ -59,21 +53,22 @@ export function useChargeDetailData(residentialId: string, chargeId: string) {
     if (chargeResult.success) {
       setCharge(chargeResult.data);
     } else {
-      toast.error(chargeResult.error?.message || "Failed to load charge");
+      toast.error(chargeResult.error?.message || t("charges.detail.loadFailed"));
     }
 
     if (assignmentsResult.success) {
       setAssignments(assignmentsResult.data);
     } else {
-      toast.error(assignmentsResult.error?.message || "Failed to load assignments");
+      toast.error(assignmentsResult.error?.message || t("charges.detail.loadFailed"));
     }
 
+    if (countsResult.success) setUnitCount(countsResult.data[chargeId] ?? 0);
     if (unitsResult.success) setUnits(unitsResult.data);
-    if (unitTypesResult.success) setUnitTypes(unitTypesResult.data);
     if (locationsResult.success) setLocations(locationsResult.data);
     if (locationTypesResult.success) {
-      setLocationTypes(locationTypesResult.data.filter((t) => t.is_active));
+      setLocationTypes(locationTypesResult.data.filter((lt) => lt.is_active));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [residentialId, chargeId]);
 
   useEffect(() => {
@@ -87,102 +82,104 @@ export function useChargeDetailData(residentialId: string, chargeId: string) {
       setIsSubmitting(false);
 
       if (!result.success) {
-        toast.error(result.error?.message || "Failed to update charge");
+        toast.error(result.error?.message || t("charges.detail.saveFailed"));
         return false;
       }
 
-      toast.success("Charge updated successfully");
+      toast.success(t("charges.detail.saved"));
       await reload();
       return true;
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [chargeId, reload],
   );
 
-  /** Resolves an AssignTarget to the concrete list of unit ids it covers. */
-  const resolveTargetUnitIds = useCallback(
-    (target: AssignTarget): string[] => {
-      switch (target.mode) {
-        case "all":
-          return units.filter((u) => u.is_active).map((u) => u.id);
-        case "location": {
-          const locationIds = new Set(getDescendantLocationIds(target.locationId, locations));
-          return units.filter((u) => u.is_active && u.location_id && locationIds.has(u.location_id)).map((u) => u.id);
-        }
-        case "unitType":
-          return units.filter((u) => u.is_active && u.unit_type_id === target.unitTypeId).map((u) => u.id);
-        case "manual":
-          return target.unitIds;
-      }
-    },
-    [units, locations],
-  );
-
-  const bulkAssign = useCallback(
-    async (target: AssignTarget, price: number): Promise<boolean> => {
-      const unitIds = resolveTargetUnitIds(target);
-      if (unitIds.length === 0) {
-        toast.error("No units matched — nothing to assign");
-        return false;
-      }
-
+  const addAssignment = useCallback(
+    async (dto: Omit<CreateChargeAssignmentDto, "residential_id" | "charge_id">): Promise<boolean> => {
       setIsSubmitting(true);
-      const result = await unitChargeService.bulkAssign(residentialId, chargeId, unitIds, price);
+      const result = await chargeAssignmentService.create({
+        ...dto,
+        residential_id: residentialId,
+        charge_id: chargeId,
+      });
       setIsSubmitting(false);
 
       if (!result.success) {
-        toast.error(result.error?.message || "Failed to assign charge");
+        toast.error(result.error?.message || t("charges.detail.ruleFailed"));
         return false;
       }
 
-      toast.success(`Assigned to ${unitIds.length} unit${unitIds.length === 1 ? "" : "s"}`);
       await reload();
       return true;
     },
-    [residentialId, chargeId, resolveTargetUnitIds, reload],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [residentialId, chargeId, reload],
   );
 
   const removeAssignment = useCallback(
     async (id: string): Promise<boolean> => {
       setIsSubmitting(true);
-      const result = await unitChargeService.delete(id);
+      const result = await chargeAssignmentService.delete(id);
       setIsSubmitting(false);
 
       if (!result.success) {
-        toast.error(result.error?.message || "Failed to remove assignment");
+        toast.error(result.error?.message || t("charges.detail.ruleFailed"));
         return false;
       }
 
       await reload();
       return true;
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [reload],
   );
 
   const toggleAssignmentActive = useCallback(
     async (id: string, currentStatus: boolean) => {
-      const result = await unitChargeService.toggleActive(id, currentStatus);
+      const result = await chargeAssignmentService.toggleActive(id, currentStatus);
       if (result.success) {
         await reload();
       } else {
-        toast.error("Failed to toggle assignment status");
+        toast.error(t("charges.detail.ruleFailed"));
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [reload],
   );
+
+  /** Creates this month's missing installments for the charge. */
+  const generateThisMonth = useCallback(async (): Promise<void> => {
+    setIsSubmitting(true);
+    const result = await chargeService.generateInstallments(
+      residentialId,
+      new Date().toISOString().slice(0, 10),
+      chargeId,
+    );
+    setIsSubmitting(false);
+
+    if (!result.success) {
+      toast.error(result.error?.message || t("charges.detail.generateFailed"));
+      return;
+    }
+
+    toast.success(t("charges.detail.generated", { count: result.data }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [residentialId, chargeId]);
 
   return {
     charge,
     assignments,
+    unitCount,
     units,
-    unitTypes,
     locations,
     locationTypes,
     isLoading,
     isSubmitting,
     reload,
     updateCharge,
-    bulkAssign,
+    addAssignment,
     removeAssignment,
     toggleAssignmentActive,
+    generateThisMonth,
   };
 }

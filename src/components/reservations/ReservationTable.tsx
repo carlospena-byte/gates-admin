@@ -9,7 +9,6 @@
  */
 
 import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -17,17 +16,17 @@ import { Spinner } from "@/components/LoadingStates";
 import { Pagination } from "@/components/Pagination";
 import { SortableTableHead } from "@/components/SortableTableHead";
 import { RejectReservationDialog } from "@/components/reservations/RejectReservationDialog";
-import { cn } from "@/lib/utils";
+import { StatusBadge, type StatusTone } from "@/components/ui/status-badge";
 import { formatReservationDateLabel, formatReservationTimeLabel, isPastPendingBooking } from "@/lib/reservationFormat";
 import { usePaginatedSortedData } from "@/hooks/usePaginatedSortedData";
 import { useI18n } from "@/i18n/useI18n";
 import type { AmenityBookingStatus, AmenityBookingWithUser } from "@/types/amenities.types";
 
-const STATUS_STYLES: Record<AmenityBookingStatus, string> = {
-  pending: "bg-amber-100 text-amber-800",
-  confirmed: "bg-green-100 text-green-700",
-  cancelled: "bg-secondary text-secondary-foreground",
-  expired: "bg-secondary text-secondary-foreground",
+const STATUS_TONES: Record<AmenityBookingStatus, StatusTone> = {
+  pending: "warning",
+  confirmed: "success",
+  cancelled: "neutral",
+  expired: "neutral",
 };
 
 export interface UnitInfo {
@@ -205,9 +204,9 @@ export function ReservationTable({
                     {bookerNameById.get(booking.id) ?? "—"}
                   </TableCell>
                   <TableCell className="py-3">
-                    <Badge className={cn("border-transparent", STATUS_STYLES[booking.status])}>
+                    <StatusBadge tone={STATUS_TONES[booking.status]}>
                       {t(`reservations.status.${booking.status}`)}
-                    </Badge>
+                    </StatusBadge>
                   </TableCell>
                   <TableCell className="py-3 text-right">
                     <Button variant="link" className="h-auto p-0 font-semibold" onClick={() => onReview(booking)}>

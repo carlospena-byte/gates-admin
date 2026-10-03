@@ -9,21 +9,20 @@
 
 import { useState } from "react";
 import { IconCalendarEvent, IconCheck } from "@tabler/icons-react";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge, type StatusTone } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Spinner } from "@/components/LoadingStates";
-import { cn } from "@/lib/utils";
 import { formatReservationDateLabel, formatReservationTimeLabel } from "@/lib/reservationFormat";
 import { RejectReservationDialog } from "@/components/reservations/RejectReservationDialog";
 import { useI18n } from "@/i18n/useI18n";
 import type { AmenityBookingStatus, AmenityBookingWithUser } from "@/types/amenities.types";
 
-const STATUS_DOT_STYLES: Record<AmenityBookingStatus, string> = {
-  pending: "bg-amber-100 text-amber-700",
-  confirmed: "bg-green-100 text-green-700",
-  cancelled: "bg-secondary text-secondary-foreground",
-  expired: "bg-secondary text-secondary-foreground",
+const STATUS_TONES: Record<AmenityBookingStatus, StatusTone> = {
+  pending: "warning",
+  confirmed: "success",
+  cancelled: "neutral",
+  expired: "neutral",
 };
 
 interface ReservationDetailSheetProps {
@@ -77,10 +76,9 @@ export function ReservationDetailSheet({
               </p>
               <SheetTitle className="text-2xl">{booking.amenities?.name ?? "—"}</SheetTitle>
               <div>
-                <Badge className={cn("gap-1.5 border-transparent px-3 py-1", STATUS_DOT_STYLES[booking.status])}>
-                  <span className="size-1.5 rounded-full bg-current" />
+                <StatusBadge tone={STATUS_TONES[booking.status]} className="px-3 py-1">
                   {t(`reservations.status.${booking.status}`)}
-                </Badge>
+                </StatusBadge>
               </div>
             </SheetHeader>
 

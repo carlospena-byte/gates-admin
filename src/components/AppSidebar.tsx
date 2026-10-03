@@ -16,6 +16,7 @@ import {
   IconTruckDelivery,
   IconUser,
   type IconProps,
+  IconSwitchHorizontal,
 } from "@tabler/icons-react";
 
 import { Avatar } from "@/components/ui/avatar";
@@ -42,6 +43,7 @@ import {
 import { CommandPalette } from "@/components/CommandPalette";
 import { CreateMenu } from "@/components/CreateMenu";
 import { NAV_SECTIONS, getAllowedSectionRoutes, isSectionActive } from "@/config/sections";
+import { NotificationsBell } from "@/components/dashboard/NotificationsBell";
 import { usePendingCounts } from "@/hooks/usePendingCounts";
 import { useI18n } from "@/i18n/useI18n";
 import type { Locale, MessageKey } from "@/i18n/messages";
@@ -53,7 +55,9 @@ import {
   ROUTES,
   type RouteType,
 } from "@/config/routes";
-import { residentialService } from "@/services";
+import { profileService, residentialService } from "@/services";
+import { useSession } from "@/state/useSession";
+import { guardUsernameFromEmail, isGuardEmail } from "@/lib/guardAccount";
 import { useQuery } from "@/hooks";
 import type { ResidentialRole } from "@/types/database.types";
 import { cn } from "@/lib/utils";
@@ -90,7 +94,7 @@ interface NavItem {
   /** Pending-work count shown as a pill; hidden when 0/undefined. */
   badge?: number;
   /** Sibling pages of the section, listed under the item while it is active. */
-  children?: { href: string; label: string; active: boolean }[];
+  children?: { href: string; label: string; active: boolean; badge?: number }[];
 }
 
 /** `label: null` renders as an ungrouped section (just Dashboard, at the top). */
@@ -158,6 +162,8 @@ interface SidebarBodyProps {
   onProfile?: () => void;
   onSettings?: () => void;
   onSignOut?: () => void;
+  /** Guard (username + PIN) accounts get a one-tap "switch guard" button above the user menu. */
+  isGuard?: boolean;
   onNavigate?: () => void;
   /** Residential-scoped "+ Create" and ⌘K search entry points. */
   showQuickActions: boolean;
@@ -184,6 +190,7 @@ function SidebarBody({
   onProfile,
   onSettings,
   onSignOut,
+  isGuard,
   onNavigate,
   showQuickActions,
   role,
@@ -287,7 +294,12 @@ function SidebarBody({
                                   : "text-gates-text-secondary hover:bg-gates-subtle hover:text-gates-text-primary",
                               )}
                             >
-                              {child.label}
+                              <span className="flex-1">{child.label}</span>
+                              {child.badge ? (
+                                <span className="min-w-5 rounded-full bg-gates-brand px-1.5 py-0.5 text-center text-[11px] font-semibold leading-none text-gates-text-inverse">
+                                  {child.badge > 99 ? "99+" : child.badge}
+                                </span>
+                              ) : null}
                             </a>
                           </li>
                         ))}
@@ -344,6 +356,17 @@ function SidebarBody({
             <IconSettings className="h-5 w-5" />
             {t("common.settings")}
           </a>
+        )}
+
+        {showUserMenu && isGuard && onSignOut && (
+          <Button
+            variant="outline"
+            className="h-12 w-full justify-start gap-3 rounded-full px-3 text-sm font-semibold"
+            onClick={onSignOut}
+          >
+            <IconSwitchHorizontal className="h-5 w-5" />
+            {t("appSidebar.switchGuard")}
+          </Button>
         )}
 
         {showUserMenu && userEmail && (
@@ -583,8 +606,18 @@ export function AppSidebar({
 
   const roleLabel = role ? t((`role.${role}`) as MessageKey) : t("appSidebar.tagline");
 
+  const { session } = useSession();
+  const { data: ownProfile } = useQuery(() => profileService.getProfile(session!.user.id), {
+    enabled: Boolean(session?.user.id) && !userName,
+  });
+  const profileName = [ownProfile?.first_name, ownProfile?.last_name].filter(Boolean).join(" ");
+  const isGuard = isGuardEmail(userEmail);
+  // Guards have no real mailbox; show their username where the email would go.
+  const shownEmail = isGuard && userEmail ? guardUsernameFromEmail(userEmail) : userEmail;
+
   const getDisplayName = () => {
     if (userName) return userName;
+    if (profileName) return profileName;
     if (userEmail) {
       const namePart = userEmail.split("@")[0];
       return namePart
@@ -622,6 +655,12 @@ export function AppSidebar({
     operations: counts ? counts.incidents + counts.reservations : undefined,
   };
 
+  const badgeByRoute: Partial<Record<string, number>> = {
+    incidents: counts?.incidents,
+    reservations: counts?.reservations,
+    payments: counts?.payments,
+  };
+
   const residentialNavGroups: NavGroup[] = [
     {
       label: null,
@@ -643,6 +682,7 @@ export function AppSidebar({
                     href: ROUTES[entry.route].hash,
                     label: t(entry.labelKey),
                     active: entry.route === currentRoute,
+                    badge: badgeByRoute[entry.route],
                   }))
                 : undefined,
           },
@@ -671,7 +711,8 @@ export function AppSidebar({
     onLocaleChange: setLocale,
     labelEn: t("language.en"),
     labelEs: t("language.es"),
-    userEmail,
+    userEmail: shownEmail,
+    isGuard,
     userRole: roleLabel,
     displayName: getDisplayName(),
     onProfile,
@@ -695,6 +736,14 @@ export function AppSidebar({
       {/* Mobile top bar */}
       <div className={"sticky top-0 z-40 flex h-14 items-center justify-between gap-3 border-b border-border/20 bg-background/70 px-4 backdrop-blur-md supports-[backdrop-filter]:bg-background/40 lg:hidden"}>
         <BrandMark />
+        <div className="flex items-center gap-2">
+        {isGuard && showUserMenu && onSignOut && (
+          <Button size="sm" variant="outline" className="max-w-[11rem] gap-2 rounded-full" onClick={onSignOut}>
+            <IconSwitchHorizontal className="h-4 w-4 shrink-0" />
+            <span className="truncate">{sharedProps.displayName}</span>
+          </Button>
+        )}
+        {residentialId && role && !isPlatformAdmin && showUserMenu && <NotificationsBell residentialId={residentialId} role={role} />}
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetTrigger asChild>
             <Button size="icon" variant="ghost" aria-label="Open menu">
@@ -707,6 +756,7 @@ export function AppSidebar({
             </Sidebar>
           </SheetContent>
         </Sheet>
+        </div>
       </div>
 
       {/* Desktop floating sidebar card */}
@@ -717,7 +767,7 @@ export function AppSidebar({
           showQuickActions={sharedProps.showQuickActions}
           showSettingsShortcut={sharedProps.showSettingsShortcut}
           isSettingsActive={sharedProps.isSettingsActive}
-          userEmail={userEmail}
+          userEmail={shownEmail}
           displayName={sharedProps.displayName}
           userRole={roleLabel}
           locale={locale}

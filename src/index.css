@@ -73,6 +73,14 @@
     --border: 150 10% 22%;
     --input: 150 10% 22%;
     --ring: 97 28% 80%;
+    --gates-status-error: 6 60% 72%;
+    --gates-status-error-bg: 6 35% 22%;
+    --gates-status-warning: 44 75% 70%;
+    --gates-status-warning-bg: 41 40% 20%;
+    --gates-status-success: 120 35% 72%;
+    --gates-status-success-bg: 140 22% 21%;
+    --gates-status-info-bg: 259 20% 25%;
+    --gates-text-brand: 97 28% 80%;
   }
 }
 

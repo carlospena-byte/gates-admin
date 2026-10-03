@@ -29,7 +29,7 @@ export { incidentTypeService } from "./incidentTypeService";
 export { amenityBookingService } from "./amenityBookingService";
 export { dashboardMetricsService } from "./dashboardMetricsService";
 export { inboxService } from "./inboxService";
-export type { PendingCounts, PendingPayment, PendingReservation } from "./inboxService";
+export type { AdminAlert, AdminAlertPayment, PendingCounts, PendingPayment, PendingReservation } from "./inboxService";
 export { pushNotificationService } from "./pushNotificationService";
 export { bulletinService } from "./bulletinService";
 export { bulletinAttachmentService } from "./bulletinAttachmentService";
@@ -48,3 +48,5 @@ export type { PlatformMetrics } from "./platformMetricsService";
 
 // Re-export commonly used types
 export type { TablesUpdate, TablesInsert } from "../types/database.types";
+export { guardService } from "./guardService";
+export type { CreatedGuard, GuardSignInError } from "./guardService";

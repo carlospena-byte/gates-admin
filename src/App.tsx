@@ -4,6 +4,7 @@ import { Toaster } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MeshBackground } from "@/components/MeshBackground";
+import { ResidentialTopBar } from "@/components/ResidentialTopBar";
 import { authService } from "@/services/auth.service";
 import { LoginPage } from "@/pages/LoginPage";
 import { PlatformDashboardPage } from "@/pages/PlatformDashboardPage";
@@ -27,6 +28,7 @@ import { BulletinsPage } from "@/pages/BulletinsPage";
 import { ReservationsPage } from "@/pages/ReservationsPage";
 import { AmenitiesPage } from "@/pages/AmenitiesPage";
 import { BillingPage } from "@/pages/BillingPage";
+import { NotificationsPage } from "@/pages/NotificationsPage";
 import { UnitDetailPage } from "@/pages/UnitDetailPage";
 import { AddonDetailPage } from "@/pages/AddonDetailPage";
 import { ChargeDetailPage } from "@/pages/ChargeDetailPage";
@@ -34,6 +36,7 @@ import { FastlanePublicPage } from "@/pages/FastlanePublicPage";
 import { useI18n } from "@/i18n/useI18n";
 import { isMessageKey } from "@/i18n/messages";
 import { useAccess } from "@/state/useAccess";
+import type { ResidentialRole } from "@/types/database.types";
 import { useSession } from "@/state/useSession";
 import {
   getCurrentRoute,
@@ -295,7 +298,7 @@ export default function App() {
   if (!isRouteAllowedForRole(currentRoute, access.role)) {
     navigateTo(getDefaultRouteForRole(access.role));
     return (
-      <AppFrame>
+      <ResidentialFrame residentialId={access.residentialId} role={access.role} userEmail={session.user?.email}>
         <div className="mx-auto max-w-2xl px-6 py-12">
           <Card>
             <CardHeader>
@@ -304,79 +307,87 @@ export default function App() {
             </CardHeader>
           </Card>
         </div>
-      </AppFrame>
+      </ResidentialFrame>
     );
   }
 
   if (currentRoute === "units") {
     return (
-      <AppFrame>
+      <ResidentialFrame residentialId={access.residentialId} role={access.role} userEmail={session.user?.email}>
         <UnitsPage residentialId={access.residentialId} role={access.role} />
-      </AppFrame>
+      </ResidentialFrame>
     );
   }
 
   if (currentRoute === "residents") {
     return (
-      <AppFrame>
+      <ResidentialFrame residentialId={access.residentialId} role={access.role} userEmail={session.user?.email}>
         <ResidentsPage residentialId={access.residentialId} role={access.role} />
-      </AppFrame>
+      </ResidentialFrame>
     );
   }
 
   if (currentRoute === "visitors") {
     return (
-      <AppFrame>
+      <ResidentialFrame residentialId={access.residentialId} role={access.role} userEmail={session.user?.email}>
         <VisitorsPage residentialId={access.residentialId} role={access.role} />
-      </AppFrame>
+      </ResidentialFrame>
     );
   }
 
   if (currentRoute === "incidents") {
     return (
-      <AppFrame>
+      <ResidentialFrame residentialId={access.residentialId} role={access.role} userEmail={session.user?.email}>
         <IncidentsPage residentialId={access.residentialId} role={access.role} />
-      </AppFrame>
+      </ResidentialFrame>
     );
   }
 
   if (currentRoute === "announcements") {
     return (
-      <AppFrame>
+      <ResidentialFrame residentialId={access.residentialId} role={access.role} userEmail={session.user?.email}>
         <AnnouncementsPage residentialId={access.residentialId} role={access.role} />
-      </AppFrame>
+      </ResidentialFrame>
     );
   }
 
   if (currentRoute === "bulletins") {
     return (
-      <AppFrame>
+      <ResidentialFrame residentialId={access.residentialId} role={access.role} userEmail={session.user?.email}>
         <BulletinsPage residentialId={access.residentialId} role={access.role} />
-      </AppFrame>
+      </ResidentialFrame>
     );
   }
 
   if (currentRoute === "reservations") {
     return (
-      <AppFrame>
+      <ResidentialFrame residentialId={access.residentialId} role={access.role} userEmail={session.user?.email}>
         <ReservationsPage residentialId={access.residentialId} role={access.role} />
-      </AppFrame>
+      </ResidentialFrame>
     );
   }
 
   if (currentRoute === "amenities") {
     return (
-      <AppFrame>
+      <ResidentialFrame residentialId={access.residentialId} role={access.role} userEmail={session.user?.email}>
         <AmenitiesPage residentialId={access.residentialId} role={access.role} />
-      </AppFrame>
+      </ResidentialFrame>
+    );
+  }
+
+  if (currentRoute === "notifications") {
+    return (
+      <ResidentialFrame residentialId={access.residentialId} role={access.role} userEmail={session.user?.email}>
+        <NotificationsPage residentialId={access.residentialId} role={access.role} />
+      </ResidentialFrame>
     );
   }
 
   if (currentRoute === "billing") {
     return (
-      <AppFrame>
+      <ResidentialFrame residentialId={access.residentialId} role={access.role} userEmail={session.user?.email}>
         <BillingPage residentialId={access.residentialId} role={access.role} />
-      </AppFrame>
+      </ResidentialFrame>
     );
   }
 
@@ -384,9 +395,9 @@ export default function App() {
     const unitId = getUnitIdFromHash();
     if (unitId) {
       return (
-        <AppFrame>
+        <ResidentialFrame residentialId={access.residentialId} role={access.role} userEmail={session.user?.email}>
           <UnitDetailPage residentialId={access.residentialId} unitId={unitId} role={access.role} />
-        </AppFrame>
+        </ResidentialFrame>
       );
     }
     navigateTo("units");
@@ -396,9 +407,9 @@ export default function App() {
     const addonId = getAddonIdFromHash();
     if (addonId) {
       return (
-        <AppFrame>
+        <ResidentialFrame residentialId={access.residentialId} role={access.role} userEmail={session.user?.email}>
           <AddonDetailPage residentialId={access.residentialId} addonId={addonId} role={access.role} />
-        </AppFrame>
+        </ResidentialFrame>
       );
     }
     navigateTo("residential");
@@ -408,9 +419,9 @@ export default function App() {
     const chargeId = getChargeIdFromHash();
     if (chargeId) {
       return (
-        <AppFrame>
+        <ResidentialFrame residentialId={access.residentialId} role={access.role} userEmail={session.user?.email}>
           <ChargeDetailPage residentialId={access.residentialId} chargeId={chargeId} role={access.role} />
-        </AppFrame>
+        </ResidentialFrame>
       );
     }
     navigateTo("residential");
@@ -418,17 +429,17 @@ export default function App() {
 
   if (isSettingsRoute(currentRoute)) {
     return (
-      <AppFrame>
+      <ResidentialFrame residentialId={access.residentialId} role={access.role} userEmail={session.user?.email}>
         <SettingsPage residentialId={access.residentialId} role={access.role} />
-      </AppFrame>
+      </ResidentialFrame>
     );
   }
 
   // Default to dashboard
   return (
-    <AppFrame>
+    <ResidentialFrame residentialId={access.residentialId} role={access.role} userEmail={session.user?.email}>
       <ResidentialDashboardPage residentialId={access.residentialId} role={access.role} />
-    </AppFrame>
+    </ResidentialFrame>
   );
 }
 
@@ -454,5 +465,25 @@ function AppFrame({ children }: { children: React.ReactNode }) {
         }}
       />
     </div>
+  );
+}
+
+/** AppFrame plus the header (date, bell, avatar) every residential screen shares. */
+function ResidentialFrame({
+  residentialId,
+  role,
+  userEmail,
+  children,
+}: {
+  residentialId: string;
+  role: ResidentialRole;
+  userEmail?: string | null;
+  children: React.ReactNode;
+}) {
+  return (
+    <AppFrame>
+      <ResidentialTopBar residentialId={residentialId} role={role} userEmail={userEmail} />
+      {children}
+    </AppFrame>
   );
 }

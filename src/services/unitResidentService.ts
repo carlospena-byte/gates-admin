@@ -61,9 +61,39 @@ function removeResident(id: string): Promise<ApiResult<boolean>> {
   );
 }
 
+export interface EditResidentFields {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  unitId: string;
+}
+
+// Admin edit: updates the contact row and, when the resident already has an
+// account, pushes name/phone to their profile (and moves their unit
+// membership if the property changed). See update_unit_resident() in
+// supabase/migrations/20261119000000_resident_edit_and_profile_sync.sql.
+function updateResident(id: string, fields: EditResidentFields): Promise<ApiResult<UnitResident>> {
+  return wrapResult("Failed to update resident", async () => {
+    // Generated types mark the generated full_name column nullable.
+    const row = await unwrap(
+      requireSupabase().rpc("update_unit_resident", {
+        _id: id,
+        _first_name: fields.firstName,
+        _last_name: fields.lastName,
+        _email: fields.email,
+        _phone: fields.phone,
+        _unit_id: fields.unitId,
+      }),
+    );
+    return row as unknown as UnitResident;
+  });
+}
+
 export const unitResidentService = {
   ...baseService,
   listByResidentialWithStatus,
   listByUnitWithStatus,
   removeResident,
+  updateResident,
 };

@@ -16,6 +16,7 @@ import {
 } from "@tabler/icons-react";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
@@ -254,14 +255,9 @@ export function UnitDetailPage({
             <CardHeader className="space-y-3">
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-2xl font-semibold leading-none tracking-tight">{unit.name}</h1>
-                <Badge
-                  className={cn(
-                    "border-transparent",
-                    unit.is_active ? "bg-green-100 text-green-700" : "bg-secondary text-secondary-foreground",
-                  )}
-                >
+                <StatusBadge tone={unit.is_active ? "success" : "neutral"}>
                   {unit.is_active ? t("common.active") : t("common.inactive")}
-                </Badge>
+                </StatusBadge>
               </div>
 
               {(locationChain.length > 0 || unitTypeObj) && (

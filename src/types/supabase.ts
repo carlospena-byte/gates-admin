@@ -1553,6 +1553,7 @@ export type Database = {
           last_name: string | null
           phone: string | null
           user_id: string
+          username: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -1563,6 +1564,7 @@ export type Database = {
           last_name?: string | null
           phone?: string | null
           user_id: string
+          username?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -1573,6 +1575,7 @@ export type Database = {
           last_name?: string | null
           phone?: string | null
           user_id?: string
+          username?: string | null
         }
         Relationships: []
       }
@@ -1681,18 +1684,21 @@ export type Database = {
       }
       residential_users: {
         Row: {
+          is_active: boolean
           created_at: string
           residential_id: string
           role: string
           user_id: string
         }
         Insert: {
+          is_active?: boolean
           created_at?: string
           residential_id: string
           role: string
           user_id: string
         }
         Update: {
+          is_active?: boolean
           created_at?: string
           residential_id?: string
           role?: string
@@ -2704,6 +2710,29 @@ export type Database = {
       }
       expire_stale_visits_and_bookings: { Args: never; Returns: undefined }
       find_profile_id_by_email: { Args: { _email: string }; Returns: string }
+      set_member_active: {
+        Args: { _active: boolean; _residential_id: string; _user_id: string }
+        Returns: undefined
+      }
+      update_member_profile: {
+        Args: {
+          _first_name: string
+          _last_name: string
+          _phone: string
+          _residential_id: string
+          _user_id: string
+        }
+        Returns: undefined
+      }
+      revoke_user_sessions: { Args: { _user_id: string }; Returns: undefined }
+      set_platform_admin_name: {
+        Args: { _first_name: string; _last_name: string; _user_id: string }
+        Returns: undefined
+      }
+      set_member_name: {
+        Args: { _first_name: string; _last_name: string; _residential_id: string; _user_id: string }
+        Returns: undefined
+      }
       generate_charge_installments: {
         Args: { _charge_id?: string; _period?: string; _residential_id: string }
         Returns: number
@@ -2740,6 +2769,17 @@ export type Database = {
       }
       remove_unit_resident: { Args: { _id: string }; Returns: boolean }
       request_account_deletion: { Args: never; Returns: string }
+      update_unit_resident: {
+        Args: {
+          _id: string
+          _first_name: string
+          _last_name: string
+          _email: string
+          _phone: string
+          _unit_id: string
+        }
+        Returns: Database["public"]["Tables"]["unit_residents"]["Row"]
+      }
       resolve_charge_units: {
         Args: { _charge_id: string }
         Returns: {

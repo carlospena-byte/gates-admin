@@ -7,7 +7,20 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { accessLogService, locationService, unitService, visitorService, type UnitWithOwner } from "@/services";
+import { requireSupabase } from "@/lib/supabaseClient";
+import { useI18n } from "@/i18n/useI18n";
+import {
+  accessLogService,
+  authService,
+  locationService,
+  profileService,
+  unitService,
+  visitorService,
+  type UnitWithOwner,
+} from "@/services";
+import { isStandingFrequent } from "@/lib/standingVisit";
+import type { AccessLogEntry } from "@/services/accessLogService";
+import type { ResidentialRole } from "@/types/database.types";
 import type { Location } from "@/types/unit-wizard.types";
 import type {
   CreateVisitorDto,
@@ -16,6 +29,7 @@ import type {
   VisitorRole,
   VisitorWithInviter,
 } from "@/types/visitor.types";
+import { translate } from "@/i18n/translate";
 
 export interface FrequentVisitFormPayload {
   name: string;
@@ -48,31 +62,49 @@ export interface FastlaneVisitFormPayload {
 }
 
 export function useVisitorManagerData(residentialId: string) {
+  const { t } = useI18n();
   const [visitors, setVisitors] = useState<VisitorWithInviter[]>([]);
   const [units, setUnits] = useState<UnitWithOwner[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
+  const [staffRoles, setStaffRoles] = useState<Map<string, ResidentialRole>>(new Map());
+  const [movements, setMovements] = useState<AccessLogEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const reload = useCallback(async () => {
     setIsLoading(true);
 
-    const [visitorsResult, unitsResult, locationsResult] = await Promise.all([
+    const [visitorsResult, unitsResult, locationsResult, staffResult] = await Promise.all([
       visitorService.list(residentialId),
       unitService.listByResidential(residentialId),
       locationService.list(residentialId),
+      // Admin/security inviters are labelled by role in the "Invited by" column.
+      requireSupabase()
+        .from("residential_users")
+        .select("user_id, role")
+        .eq("residential_id", residentialId)
+        .in("role", ["owner", "admin", "security"]),
     ]);
 
     setIsLoading(false);
 
     if (visitorsResult.success) {
       setVisitors(visitorsResult.data);
+      // Standing frequent visits keep one access-log entry per arrival; those
+      // entries (not the visitor row) are what History and "last movement" show.
+      const logsResult = await accessLogService.listByVisitors(
+        visitorsResult.data.filter(isStandingFrequent).map((v) => v.id),
+      );
+      if (logsResult.success) setMovements(logsResult.data);
     } else {
       toast.error(visitorsResult.error.message);
     }
 
     if (unitsResult.success) setUnits(unitsResult.data);
     if (locationsResult.success) setLocations(locationsResult.data);
+    if (staffResult.data) {
+      setStaffRoles(new Map(staffResult.data.map((row) => [row.user_id, row.role as ResidentialRole])));
+    }
   }, [residentialId]);
 
   useEffect(() => {
@@ -104,7 +136,7 @@ export function useVisitorManagerData(residentialId: string) {
         return false;
       }
 
-      toast.success("Document photo saved");
+      toast.success(translate("toast.visitor.photoSaved"));
       await reload();
       return true;
     },
@@ -146,7 +178,7 @@ export function useVisitorManagerData(residentialId: string) {
       const checkInResult = await accessLogService.checkIn(result.data.id, residentialId);
       if (!checkInResult.success) toast.error(checkInResult.error.message);
 
-      toast.success("Visit registered");
+      toast.success(translate("toast.visitor.registered"));
       await reload();
       return true;
     },
@@ -183,7 +215,7 @@ export function useVisitorManagerData(residentialId: string) {
       }
 
       await attachIdPhoto(result.data.id, payload.idPhoto);
-      toast.success("Delivery visit scheduled");
+      toast.success(translate("toast.visitor.deliveryScheduled"));
       await reload();
       return true;
     },
@@ -237,7 +269,7 @@ export function useVisitorManagerData(residentialId: string) {
         return false;
       }
 
-      toast.success("Visitor removed");
+      toast.success(translate("toast.visitor.removed"));
       await reload();
       return true;
     },
@@ -255,11 +287,21 @@ export function useVisitorManagerData(residentialId: string) {
         return;
       }
 
-      toast.success("Visit cancelled");
+      toast.success(translate("toast.visitor.cancelled"));
       await reload();
     },
     [reload],
   );
+
+  /** Signed-in user's display name — shown in check-in/out toasts so a shared device makes the actor obvious. */
+  const actorName = useCallback(async (): Promise<string | null> => {
+    const user = await authService.getUser();
+    if (!user.success || !user.data) return null;
+    const profile = await profileService.getProfile(user.data.id);
+    if (!profile.success || !profile.data) return null;
+    const name = [profile.data.first_name, profile.data.last_name].filter(Boolean).join(" ");
+    return name || profile.data.username || null;
+  }, []);
 
   const checkIn = useCallback(
     async (visitorId: string) => {
@@ -268,10 +310,11 @@ export function useVisitorManagerData(residentialId: string) {
         toast.error(result.error.message);
         return;
       }
-      toast.success("Visitor checked in");
+      const name = await actorName();
+      toast.success(name ? t("visitors.toast.checkedInBy", { name }) : "Visitor checked in");
       await reload();
     },
-    [residentialId, reload],
+    [residentialId, reload, actorName, t],
   );
 
   const checkOut = useCallback(
@@ -281,16 +324,19 @@ export function useVisitorManagerData(residentialId: string) {
         toast.error(result.error.message);
         return;
       }
-      toast.success("Visitor checked out");
+      const name = await actorName();
+      toast.success(name ? t("visitors.toast.checkedOutBy", { name }) : "Visitor checked out");
       await reload();
     },
-    [reload],
+    [reload, actorName, t],
   );
 
   return {
     visitors,
     units,
     locations,
+    movements,
+    staffRoles,
     isLoading,
     isSubmitting,
     reload,

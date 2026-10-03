@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { chargeService } from "@/services";
 import { navigateToChargeDetail } from "@/config/routes";
 import type { Charge, CreateChargeDto, LateFeeRecurrence, UpdateChargeDto } from "@/types/unit-wizard.types";
+import { translate } from "@/i18n/translate";
 
 export interface ChargeFormPayload {
   name: string;
@@ -63,7 +64,7 @@ export function useChargeManagerData(residentialId: string, open: boolean) {
         return false;
       }
 
-      toast.success("Charge created successfully");
+      toast.success(translate("toast.charge.created"));
       // Next step is choosing who pays it, which lives on the charge's page.
       navigateToChargeDetail(result.data.id);
       return true;
@@ -82,7 +83,7 @@ export function useChargeManagerData(residentialId: string, open: boolean) {
         return false;
       }
 
-      toast.success("Charge updated successfully");
+      toast.success(translate("toast.charge.updated"));
       await reload();
       return true;
     },
@@ -100,7 +101,7 @@ export function useChargeManagerData(residentialId: string, open: boolean) {
         return false;
       }
 
-      toast.success("Charge deleted successfully");
+      toast.success(translate("toast.charge.deleted"));
       await reload();
       return true;
     },
@@ -113,7 +114,7 @@ export function useChargeManagerData(residentialId: string, open: boolean) {
       if (result.success) {
         await reload();
       } else {
-        toast.error("Failed to toggle charge status");
+        toast.error(translate("toast.charge.toggleFailed"));
       }
     },
     [reload],

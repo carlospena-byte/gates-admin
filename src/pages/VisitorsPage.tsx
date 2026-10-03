@@ -29,14 +29,17 @@ import { useCreateIntent } from "@/lib/createIntent";
 import { authService } from "@/services";
 import { useSession } from "@/state/useSession";
 import { canManageResidential } from "@/state/useAccess";
+import { inviterName } from "@/lib/inviter";
+import { getLocationFullPath } from "@/lib/locationHierarchy";
+import { displayVisitType, type DisplayVisitType, isStandingFrequent, movementToHistoryRow, standingAppliesOn } from "@/lib/standingVisit";
 import { useVisitorManagerData } from "@/hooks/useVisitorManagerData";
 import type { ResidentialRole } from "@/types/database.types";
-import type { ProviderKind, VisitorWithInviter, VisitType } from "@/types/visitor.types";
+import type { ProviderKind, VisitorWithInviter } from "@/types/visitor.types";
 
 type ActiveSheet = "frequent" | "delivery" | null;
 const DELIVERY_MENU_KINDS: ProviderKind[] = ["delivery", "proveedor", "paqueteria"];
-type VisitTypeFilter = VisitType | "all";
-type VisitorsTab = "today" | "upcoming" | "inside" | "history";
+type VisitTypeFilter = DisplayVisitType | "all";
+type VisitorsTab = "today" | "upcoming" | "inside" | "history" | "frequent";
 
 function startOfDay(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
@@ -75,12 +78,15 @@ export function VisitorsPage({ residentialId, role }: { residentialId: string; r
   const [visitorQuery, setVisitorQuery] = useState("");
   const [invitedByQuery, setInvitedByQuery] = useState("");
   const [plateQuery, setPlateQuery] = useState("");
+  const [unitQuery, setUnitQuery] = useState("");
   const [historyRange, setHistoryRange] = useState<DateRange>(defaultHistoryRange);
 
   const {
     visitors,
     units,
     locations,
+    movements,
+    staffRoles,
     isLoading,
     isSubmitting,
     reload,
@@ -92,31 +98,60 @@ export function VisitorsPage({ residentialId, role }: { residentialId: string; r
     checkOut,
   } = useVisitorManagerData(residentialId);
 
+  const unitLabelById = useMemo(
+    () =>
+      new Map(
+        units.map((unit) => {
+          const location = unit.location ? locations.find((l) => l.id === unit.location!.id) : null;
+          const path = getLocationFullPath(location, locations);
+          return [unit.id, path ? `${path} → ${unit.name}` : unit.name];
+        }),
+      ),
+    [units, locations],
+  );
+
   const filteredVisitors = useMemo(() => {
     const visitorQueryLower = visitorQuery.trim().toLowerCase();
     const invitedByQueryLower = invitedByQuery.trim().toLowerCase();
     const plateQueryLower = plateQuery.trim().toLowerCase();
+    const unitQueryLower = unitQuery.trim().toLowerCase();
 
     return visitors.filter((visitor) => {
-      if (visitTypeFilter !== "all" && visitor.visit_type !== visitTypeFilter) return false;
+      if (visitTypeFilter !== "all" && displayVisitType(visitor) !== visitTypeFilter) return false;
       if (visitorQueryLower && !(visitor.name ?? "").toLowerCase().includes(visitorQueryLower)) return false;
-      if (invitedByQueryLower && !(visitor.profiles?.email ?? "").toLowerCase().includes(invitedByQueryLower))
+      if (invitedByQueryLower && !`${inviterName(visitor) ?? ""} ${visitor.profiles?.email ?? ""}`.toLowerCase().includes(invitedByQueryLower))
         return false;
       if (plateQueryLower && !(visitor.plate ?? "").toLowerCase().includes(plateQueryLower)) return false;
+      if (unitQueryLower && !(visitor.unit_id ? unitLabelById.get(visitor.unit_id) ?? "" : "").toLowerCase().includes(unitQueryLower))
+        return false;
       return true;
     });
-  }, [visitors, visitTypeFilter, visitorQuery, invitedByQuery, plateQuery]);
+  }, [visitors, visitTypeFilter, visitorQuery, invitedByQuery, plateQuery, unitQuery, unitLabelById]);
 
   const buckets = useMemo(() => {
     const today: VisitorWithInviter[] = [];
     const upcoming: VisitorWithInviter[] = [];
     const inside: VisitorWithInviter[] = [];
     const history: VisitorWithInviter[] = [];
+    const frequent: VisitorWithInviter[] = [];
     const todayStr = new Date().toDateString();
     const rangeStart = startOfDay(historyRange.from);
     const rangeEnd = endOfDay(historyRange.to);
 
+    const now = new Date();
+    const visitorById = new Map(filteredVisitors.map((v) => [v.id, v]));
+
     for (const visitor of filteredVisitors) {
+      // Standing frequent visits are authorizations, not events: they get their
+      // own tab and only surface in the operational ones when they matter now
+      // (inside, or due today per their recurrence). Each arrival lands in
+      // History through its access-log entry below.
+      if (isStandingFrequent(visitor)) {
+        frequent.push(visitor);
+        if (visitor.status === "inside") inside.push(visitor);
+        else if (standingAppliesOn(visitor, now)) today.push(visitor);
+        continue;
+      }
       if (visitor.status === "inside") {
         inside.push(visitor);
       } else if (
@@ -136,10 +171,24 @@ export function VisitorsPage({ residentialId, role }: { residentialId: string; r
       }
     }
 
-    return { today, upcoming, inside, history };
-  }, [filteredVisitors, historyRange]);
+    for (const log of movements) {
+      const visitor = visitorById.get(log.visitor_id);
+      if (!visitor || !log.checked_out_at) continue;
+      const left = new Date(log.checked_out_at);
+      if (left >= rangeStart && left <= rangeEnd) history.push(movementToHistoryRow(visitor, log));
+    }
 
-  const unitNameById = useMemo(() => new Map(units.map((unit) => [unit.id, unit.name])), [units]);
+    return { today, upcoming, inside, history, frequent };
+  }, [filteredVisitors, historyRange, movements]);
+
+  const lastMovementByVisitor = useMemo(() => {
+    const map = new Map<string, string>();
+    // movements arrive newest-first, so the first entry per visitor wins.
+    for (const log of movements) {
+      if (log.checked_in_at && !map.has(log.visitor_id)) map.set(log.visitor_id, log.checked_in_at);
+    }
+    return map;
+  }, [movements]);
 
   const handleExportHistory = () => {
     const header = [
@@ -154,9 +203,9 @@ export function VisitorsPage({ residentialId, role }: { residentialId: string; r
 
     const rows = buckets.history.map((visitor) => [
       visitor.name ?? t("visitors.table.pendingRegistration"),
-      t(VISIT_TYPE_LABEL_KEYS[visitor.visit_type]),
-      (visitor.unit_id ? unitNameById.get(visitor.unit_id) : null) ?? "",
-      visitor.profiles?.email ?? "",
+      t(VISIT_TYPE_LABEL_KEYS[displayVisitType(visitor)]),
+      (visitor.unit_id ? unitLabelById.get(visitor.unit_id) : null) ?? "",
+      inviterName(visitor) ?? "",
       visitor.plate ?? "",
       new Date(visitor.valid_until).toLocaleString(),
       t(STATUS_LABEL_KEYS[visitor.status]),
@@ -180,6 +229,8 @@ export function VisitorsPage({ residentialId, role }: { residentialId: string; r
 
   const tableProps = {
     units,
+    staffRoles,
+    locations,
     isLoading,
     isSubmitting,
     canManage,
@@ -242,6 +293,7 @@ export function VisitorsPage({ residentialId, role }: { residentialId: string; r
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">{t("visitors.filters.typeAll")}</SelectItem>
+                    <SelectItem value="visit">{t("visitors.type.visit")}</SelectItem>
                     <SelectItem value="frequent">{t("visitors.type.frequent")}</SelectItem>
                     <SelectItem value="delivery">{t("visitors.type.delivery")}</SelectItem>
                     <SelectItem value="fastlane">{t("visitors.type.fastlane")}</SelectItem>
@@ -262,6 +314,13 @@ export function VisitorsPage({ residentialId, role }: { residentialId: string; r
                   className="min-w-0 sm:flex-1 sm:min-w-[160px]"
                 />
                 <Input
+                  label={t("visitors.filters.unitLabel")}
+                  placeholder={t("visitors.filters.unitPlaceholder")}
+                  value={unitQuery}
+                  onChange={(e) => setUnitQuery(e.target.value)}
+                  className="min-w-0 sm:flex-1 sm:min-w-[160px]"
+                />
+                <Input
                   label={t("visitors.filters.plateLabel")}
                   placeholder={t("visitors.filters.platePlaceholder")}
                   value={plateQuery}
@@ -278,16 +337,19 @@ export function VisitorsPage({ residentialId, role }: { residentialId: string; r
                   </TabsTrigger>
                   <TabsTrigger value="inside">{t("visitors.tabs.inside", { count: buckets.inside.length })}</TabsTrigger>
                   <TabsTrigger value="history">{t("visitors.tabs.historyPlain")}</TabsTrigger>
+                  <TabsTrigger value="frequent">
+                    {t("visitors.tabs.frequent", { count: buckets.frequent.length })}
+                  </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="today" className="pt-4">
-                  <VisitorTable visitors={buckets.today} emptyMessage={t("visitors.empty.today")} {...tableProps} />
+                  <VisitorTable showStatus={false} visitors={buckets.today} emptyMessage={t("visitors.empty.today")} {...tableProps} />
                 </TabsContent>
                 <TabsContent value="upcoming" className="pt-4">
-                  <VisitorTable visitors={buckets.upcoming} emptyMessage={t("visitors.empty.upcoming")} {...tableProps} />
+                  <VisitorTable showStatus={false} visitors={buckets.upcoming} emptyMessage={t("visitors.empty.upcoming")} {...tableProps} />
                 </TabsContent>
                 <TabsContent value="inside" className="pt-4">
-                  <VisitorTable visitors={buckets.inside} emptyMessage={t("visitors.empty.inside")} {...tableProps} />
+                  <VisitorTable showStatus={false} visitors={buckets.inside} emptyMessage={t("visitors.empty.inside")} {...tableProps} />
                 </TabsContent>
                 <TabsContent value="history" className="pt-4">
                   <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
@@ -308,6 +370,15 @@ export function VisitorsPage({ residentialId, role }: { residentialId: string; r
                     </Button>
                   </div>
                   <VisitorTable visitors={buckets.history} emptyMessage={t("visitors.empty.history")} {...tableProps} />
+                </TabsContent>
+                <TabsContent value="frequent" className="pt-4">
+                  <VisitorTable
+                    variant="frequent"
+                    lastMovementByVisitor={lastMovementByVisitor}
+                    visitors={buckets.frequent}
+                    emptyMessage={t("visitors.empty.frequent")}
+                    {...tableProps}
+                  />
                 </TabsContent>
               </Tabs>
             </CardContent>

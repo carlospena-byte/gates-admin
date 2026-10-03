@@ -4,7 +4,7 @@
  */
 
 import { IconFileTypePdf, IconPhoto } from "@tabler/icons-react";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Spinner } from "@/components/LoadingStates";
@@ -14,7 +14,6 @@ import { DeleteIcon } from "@/components/icons";
 import { confirmDeleteToast } from "@/lib/confirmDeleteToast";
 import { usePaginatedSortedData } from "@/hooks/usePaginatedSortedData";
 import { useI18n } from "@/i18n/useI18n";
-import { cn } from "@/lib/utils";
 import type { BulletinWithAttachments } from "@/types/bulletin.types";
 
 interface BulletinTableProps {
@@ -114,16 +113,9 @@ export function BulletinTable({
                     {bulletin.published_at ? new Date(bulletin.published_at).toLocaleString() : "—"}
                   </TableCell>
                   <TableCell>
-                    <Badge
-                      className={cn(
-                        "border-transparent",
-                        bulletin.status === "published"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-secondary text-secondary-foreground",
-                      )}
-                    >
+                    <StatusBadge tone={bulletin.status === "published" ? "success" : "neutral"}>
                       {bulletin.status === "published" ? t("bulletins.status.published") : t("bulletins.status.draft")}
-                    </Badge>
+                    </StatusBadge>
                   </TableCell>
                   <TableCell className="text-right">
                     {canManage && (

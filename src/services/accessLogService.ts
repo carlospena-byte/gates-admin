@@ -8,6 +8,14 @@
 import { requireSupabase } from "@/lib/supabaseClient";
 import { unwrap, wrapResult, type ApiResult } from "./apiResult";
 
+export interface AccessLogEntry {
+  id: string;
+  visitor_id: string;
+  checked_in_at: string | null;
+  checked_out_at: string | null;
+  created_at: string;
+}
+
 async function checkIn(
   visitorId: string,
   residentialId: string,
@@ -67,8 +75,37 @@ async function checkOut(visitorId: string): Promise<ApiResult<void>> {
       );
     }
 
-    await unwrap<null>(client.from("visitors").update({ status: "completed" }).eq("id", visitorId));
+    // A standing frequent visit (recurrence set, still inside its validity
+    // window) is a permanent authorization: leaving only closes the access
+    // log entry, and the visit goes back to "scheduled" for its next arrival.
+    const visitor = await unwrap<{ visit_type: string; recurrence: string | null; valid_until: string }>(
+      client.from("visitors").select("visit_type, recurrence, valid_until").eq("id", visitorId).single(),
+    );
+    const isStanding =
+      visitor.visit_type === "frequent" && visitor.recurrence !== null && new Date(visitor.valid_until) > new Date();
+
+    await unwrap<null>(
+      client
+        .from("visitors")
+        .update({ status: isStanding ? "scheduled" : "completed" })
+        .eq("id", visitorId),
+    );
   });
 }
 
-export const accessLogService = { checkIn, checkOut };
+/** Movement history (newest first) for the given visitors — one row per entry. */
+async function listByVisitors(visitorIds: string[]): Promise<ApiResult<AccessLogEntry[]>> {
+  return wrapResult("Failed to load access logs", async () => {
+    if (visitorIds.length === 0) return [];
+    return unwrap<AccessLogEntry[]>(
+      requireSupabase()
+        .from("access_logs")
+        .select("id, visitor_id, checked_in_at, checked_out_at, created_at")
+        .in("visitor_id", visitorIds)
+        .order("checked_in_at", { ascending: false })
+        .limit(2000),
+    );
+  });
+}
+
+export const accessLogService = { checkIn, checkOut, listByVisitors };

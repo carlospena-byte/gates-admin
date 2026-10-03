@@ -28,7 +28,7 @@ export type ResidentialWithOwner = Residential & {
 export type PlatformAdminWithProfile = {
   user_id: string;
   created_at: string;
-  profiles: Pick<Profile, "email"> | null;
+  profiles: Pick<Profile, "email" | "first_name" | "last_name"> | null;
 };
 
 export type UnitWithOwner = Unit & {
@@ -38,7 +38,7 @@ export type UnitWithOwner = Unit & {
 };
 
 export type ResidentialUserWithProfile = ResidentialUser & {
-  profiles: Pick<Profile, "email"> | null;
+  profiles: Pick<Profile, "email" | "first_name" | "last_name" | "username" | "phone"> | null;
 };
 
 export type UnitMemberWithProfile = UnitMember & {
@@ -99,21 +99,26 @@ export const platformAdminService = {
       );
       if (!admins?.length) return [];
 
-      const profiles = await unwrap<Pick<Profile, "user_id" | "email">[]>(
+      const profiles = await unwrap<Pick<Profile, "user_id" | "email" | "first_name" | "last_name">[]>(
         requireSupabase()
           .from("profiles")
-          .select("user_id, email")
+          .select("user_id, email, first_name, last_name")
           .in(
             "user_id",
             admins.map((a) => a.user_id),
           ),
       );
-      const emailByUserId = new Map((profiles ?? []).map((p) => [p.user_id, p.email]));
+      const profileByUserId = new Map((profiles ?? []).map((p) => [p.user_id, p]));
 
-      return admins.map((admin) => ({
-        ...admin,
-        profiles: emailByUserId.has(admin.user_id) ? { email: emailByUserId.get(admin.user_id) ?? null } : null,
-      }));
+      return admins.map((admin) => {
+        const profile = profileByUserId.get(admin.user_id);
+        return {
+          ...admin,
+          profiles: profile
+            ? { email: profile.email, first_name: profile.first_name, last_name: profile.last_name }
+            : null,
+        };
+      });
     });
   },
 
@@ -133,6 +138,19 @@ export const platformAdminService = {
       );
       return userId;
     });
+  },
+
+  /** Sets the admin's first/last name on their profile (platform-admin-only RPC). */
+  setName(userId: string, firstName: string, lastName: string): Promise<ApiResult<void>> {
+    return wrapResult("Failed to save admin name", () =>
+      unwrap<void>(
+        requireSupabase().rpc("set_platform_admin_name", {
+          _user_id: userId,
+          _first_name: firstName,
+          _last_name: lastName,
+        }),
+      ),
+    );
   },
 
   remove(userId: string): Promise<ApiResult<void>> {
@@ -202,7 +220,7 @@ export const residentialUserService = {
       const rows = await unwrap<ResidentialUserWithProfile[]>(
         requireSupabase()
           .from("residential_users")
-          .select("*, profiles(email)")
+          .select("*, profiles(email, first_name, last_name, username, phone)")
           .eq("residential_id", residentialId)
           .order("created_at", { ascending: false }),
       );
@@ -222,6 +240,57 @@ export const residentialUserService = {
           .insert({ residential_id: residentialId, user_id: userId, role })
           .select()
           .single(),
+      ),
+    );
+  },
+
+  /** Sets the member's first/last name on their profile (admin-only RPC). */
+  setName(
+    residentialId: string,
+    userId: string,
+    firstName: string,
+    lastName: string,
+  ): Promise<ApiResult<void>> {
+    return wrapResult("Failed to save member name", () =>
+      unwrap<void>(
+        requireSupabase().rpc("set_member_name", {
+          _residential_id: residentialId,
+          _user_id: userId,
+          _first_name: firstName,
+          _last_name: lastName,
+        }),
+      ),
+    );
+  },
+
+  /** Activates/deactivates a member — inactive members keep their row but lose all access. */
+  setActive(residentialId: string, userId: string, active: boolean): Promise<ApiResult<void>> {
+    return wrapResult("Failed to update member status", () =>
+      unwrap<void>(
+        requireSupabase().rpc("set_member_active", {
+          _residential_id: residentialId,
+          _user_id: userId,
+          _active: active,
+        }),
+      ),
+    );
+  },
+
+  /** Edits a member's first/last name and phone (admin-only RPC). */
+  updateProfile(
+    residentialId: string,
+    userId: string,
+    fields: { firstName: string; lastName: string; phone: string },
+  ): Promise<ApiResult<void>> {
+    return wrapResult("Failed to update member", () =>
+      unwrap<void>(
+        requireSupabase().rpc("update_member_profile", {
+          _residential_id: residentialId,
+          _user_id: userId,
+          _first_name: fields.firstName,
+          _last_name: fields.lastName,
+          _phone: fields.phone,
+        }),
       ),
     );
   },

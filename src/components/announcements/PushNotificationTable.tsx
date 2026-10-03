@@ -3,7 +3,7 @@
  * scaffolding as the other tables.
  */
 
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge, type StatusTone } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -19,17 +19,16 @@ import { DeleteIcon } from "@/components/icons";
 import { confirmDeleteToast } from "@/lib/confirmDeleteToast";
 import { usePaginatedSortedData } from "@/hooks/usePaginatedSortedData";
 import { useI18n } from "@/i18n/useI18n";
-import { cn } from "@/lib/utils";
 import type {
   PushNotificationWithAuthor,
   PushStatus,
 } from "@/types/pushNotification.types";
 
-const STATUS_STYLES: Record<PushStatus, string> = {
-  scheduled: "bg-blue-100 text-blue-700",
-  sending: "bg-amber-100 text-amber-700",
-  sent: "bg-green-100 text-green-700",
-  failed: "bg-red-100 text-red-700",
+const STATUS_TONES: Record<PushStatus, StatusTone> = {
+  scheduled: "info",
+  sending: "warning",
+  sent: "success",
+  failed: "error",
 };
 
 interface PushNotificationTableProps {
@@ -119,14 +118,7 @@ export function PushNotificationTable({
                   {new Date(n.sent_at ?? n.scheduled_at).toLocaleString()}
                 </TableCell>
                 <TableCell>
-                  <Badge
-                    className={cn(
-                      "border-transparent",
-                      STATUS_STYLES[n.status],
-                    )}
-                  >
-                    {t(`announcements.status.${n.status}`)}
-                  </Badge>
+                  <StatusBadge tone={STATUS_TONES[n.status]}>{t(`announcements.status.${n.status}`)}</StatusBadge>
                   {n.status === "sent" && (
                     <p className="mt-1 text-xs text-muted-foreground">
                       {t("announcements.table.devices", {

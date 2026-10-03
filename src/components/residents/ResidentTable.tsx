@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Spinner } from "@/components/LoadingStates";
 import { Pagination } from "@/components/Pagination";
 import { SortableTableHead } from "@/components/SortableTableHead";
-import { DeleteIcon } from "@/components/icons";
+import { DeleteIcon, EditIcon } from "@/components/icons";
 import { confirmDeleteToast } from "@/lib/confirmDeleteToast";
 import { usePaginatedSortedData } from "@/hooks/usePaginatedSortedData";
 import { navigateToUnitDetail } from "@/config/routes";
@@ -29,6 +29,7 @@ interface ResidentTableProps {
   onToggleActive: (id: string, currentStatus: boolean) => void;
   onDelete: (id: string) => Promise<boolean>;
   onInvite: (resident: ResidentWithStatus) => Promise<void>;
+  onEdit: (resident: ResidentWithStatus) => void;
 }
 
 export function ResidentTable({
@@ -39,6 +40,7 @@ export function ResidentTable({
   onToggleActive,
   onDelete,
   onInvite,
+  onEdit,
 }: ResidentTableProps) {
   const { t } = useI18n();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -210,6 +212,15 @@ export function ResidentTable({
                           <IconMailForward className="h-4 w-4" />
                         </Button>
                       )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => onEdit(resident)}
+                        disabled={isSubmitting}
+                        title={t("common.edit")}
+                      >
+                        <EditIcon />
+                      </Button>
                       <Button size="sm" variant="ghost" onClick={() => handleDelete(resident)} disabled={isSubmitting}>
                         <DeleteIcon />
                       </Button>

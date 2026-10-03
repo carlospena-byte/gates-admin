@@ -109,7 +109,7 @@ export function SettingsPage({ residentialId, role }: { residentialId: string; r
   const { data: residential } = useQuery(() => residentialService.getById(residentialId));
 
   return (
-    <div className="min-h-screen bg-gates-canvas">
+    <div className="min-h-screen">
       <AppSidebar userEmail={session?.user?.email} residentialId={residentialId} role={role} onSignOut={() => authService.signOut()} showUserMenu />
 
       <div className="lg:pl-64">

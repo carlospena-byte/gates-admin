@@ -9,6 +9,7 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { incidentTypeService } from "@/services";
 import type { IncidentType, IncidentTypeAssignableRole } from "@/types/incidentType.types";
+import { translate } from "@/i18n/translate";
 
 export function useIncidentTypeManagerData(residentialId: string, open: boolean) {
   const [items, setItems] = useState<IncidentType[]>([]);
@@ -52,7 +53,7 @@ export function useIncidentTypeManagerData(residentialId: string, open: boolean)
         return false;
       }
 
-      toast.success("Incident Type created successfully");
+      toast.success(translate("toast.incidentType.created"));
       await reload();
       return true;
     },
@@ -88,7 +89,7 @@ export function useIncidentTypeManagerData(residentialId: string, open: boolean)
       }
 
       setIsSubmitting(false);
-      toast.success("Incident Type updated successfully");
+      toast.success(translate("toast.incidentType.updated"));
       await reload();
       return true;
     },
@@ -106,7 +107,7 @@ export function useIncidentTypeManagerData(residentialId: string, open: boolean)
         return false;
       }
 
-      toast.success("Incident Type deleted successfully");
+      toast.success(translate("toast.incidentType.deleted"));
       await reload();
       return true;
     },
@@ -119,7 +120,7 @@ export function useIncidentTypeManagerData(residentialId: string, open: boolean)
       if (result.success) {
         await reload();
       } else {
-        toast.error("Failed to toggle incident type status");
+        toast.error(translate("toast.incidentType.toggleFailed"));
       }
     },
     [reload],

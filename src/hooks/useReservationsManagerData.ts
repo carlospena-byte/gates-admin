@@ -23,6 +23,7 @@ import type {
 import type { PaymentMethod } from "@/types/billing.types";
 import type { UnitWithOwner } from "@/services/api.service";
 import type { Location, ResidentWithStatus } from "@/types/unit-wizard.types";
+import { translate } from "@/i18n/translate";
 
 export interface ReservationFormPayload {
   amenityId: string;
@@ -127,18 +128,18 @@ export function useReservationsManagerData(residentialId: string) {
         // Postgres exclusion-constraint violation — the DB itself rejected
         // an overlapping time slot for this amenity.
         if (result.error.code === "23P01") {
-          toast.error("This time slot is already booked for this amenity.");
+          toast.error(translate("toast.reservation.slotTaken"));
         } else if (result.error.code === "AM001") {
           // Trigger rejection — the amenity has a blackout range covering
           // these dates (maintenance, board-only use, etc).
-          toast.error("This amenity is closed for the selected dates.");
+          toast.error(translate("toast.reservation.closed"));
         } else {
           toast.error(result.error.message);
         }
         return false;
       }
 
-      toast.success("Reservation created");
+      toast.success(translate("toast.reservation.created"));
       await loadBookings();
       return true;
     },
@@ -158,7 +159,7 @@ export function useReservationsManagerData(residentialId: string) {
         toast.error(result.error.message);
         return;
       }
-      toast.success("Reservation cancelled");
+      toast.success(translate("toast.reservation.cancelled"));
       await loadBookings();
     },
     [loadBookings],
@@ -185,7 +186,7 @@ export function useReservationsManagerData(residentialId: string) {
         const charge = await billingService.getByBooking(id);
         if (!charge.success || !charge.data) {
           // Nothing to pay against: typically the booking has no resolvable unit.
-          toast.warning("Reservation approved, but no charge was generated, so no payment was recorded");
+          toast.warning(translate("toast.reservation.approvedNoCharge"));
           message = "";
         } else {
           const paid = await billingService.addPayments([
@@ -201,7 +202,7 @@ export function useReservationsManagerData(residentialId: string) {
           ]);
           if (paid.success) message = "Reservation approved and payment recorded";
           else {
-            toast.error(`Reservation approved, but the payment failed: ${paid.error.message}`);
+            toast.error(translate("toast.reservation.paymentFailed", { message: paid.error.message }));
             message = "";
           }
         }
@@ -229,7 +230,7 @@ export function useReservationsManagerData(residentialId: string) {
 
       const failures = results.filter((result) => !result.success);
       if (failures.length > 0) {
-        toast.error(`${failures.length} of ${ids.length} reservations could not be updated`);
+        toast.error(translate("toast.reservation.bulkFailed", { failed: failures.length, total: ids.length }));
       } else {
         toast.success(
           status === "confirmed"

@@ -95,6 +95,7 @@ export function useAccess({
         .from("residential_users")
         .select("residential_id, role")
         .eq("user_id", userId)
+        .eq("is_active", true)
         .in("role", ["owner", "admin", "security", "member"])
         .order("created_at", { ascending: true })
         .limit(1)

@@ -119,6 +119,24 @@ export function useResidentsManagerData(residentialId: string) {
     [reload, t],
   );
 
+  const updateResident = useCallback(
+    async (id: string, fields: NewResidentFields): Promise<boolean> => {
+      setIsSubmitting(true);
+      const result = await unitResidentService.updateResident(id, fields);
+      setIsSubmitting(false);
+
+      if (!result.success) {
+        toast.error(result.error.message);
+        return false;
+      }
+
+      toast.success(t("residents.edit.success"));
+      await reload();
+      return true;
+    },
+    [reload, t],
+  );
+
   const toggleActive = useCallback(
     async (id: string, currentStatus: boolean) => {
       const result = await unitResidentService.toggleActive(id, currentStatus);
@@ -140,6 +158,7 @@ export function useResidentsManagerData(residentialId: string) {
     reload,
     createResidentAndInvite,
     deleteResident,
+    updateResident,
     toggleActive,
     inviteResident,
   };

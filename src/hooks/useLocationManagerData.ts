@@ -10,6 +10,7 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { locationService, locationTypeService } from "@/services";
 import type { Location, LocationTypeDefinition, CreateLocationDto, UpdateLocationDto } from "@/types/unit-wizard.types";
+import { translate } from "@/i18n/translate";
 
 export function useLocationManagerData(residentialId: string, open: boolean) {
   const [locations, setLocations] = useState<Location[]>([]);
@@ -57,7 +58,7 @@ export function useLocationManagerData(residentialId: string, open: boolean) {
         return false;
       }
 
-      toast.success("Location created successfully");
+      toast.success(translate("toast.location.created"));
       await reloadLocations();
       return true;
     },
@@ -75,7 +76,7 @@ export function useLocationManagerData(residentialId: string, open: boolean) {
         return false;
       }
 
-      toast.success("Location updated successfully");
+      toast.success(translate("toast.location.updated"));
       await reloadLocations();
       return true;
     },
@@ -93,7 +94,7 @@ export function useLocationManagerData(residentialId: string, open: boolean) {
         return false;
       }
 
-      toast.success("Location deleted successfully");
+      toast.success(translate("toast.location.deleted"));
       await reloadLocations();
       return true;
     },
@@ -106,7 +107,7 @@ export function useLocationManagerData(residentialId: string, open: boolean) {
       if (result.success) {
         await reloadLocations();
       } else {
-        toast.error("Failed to toggle location status");
+        toast.error(translate("toast.location.toggleFailed"));
       }
     },
     [reloadLocations],

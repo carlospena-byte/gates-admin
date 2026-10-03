@@ -8,6 +8,7 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { addonService, addonTypeService } from "@/services";
 import type { Addon, AddonType, UpdateAddonDto } from "@/types/unit-wizard.types";
+import { translate } from "@/i18n/translate";
 
 export interface AddonFormPayload {
   name: string;
@@ -61,7 +62,7 @@ export function useAddonManagerData(residentialId: string, open: boolean) {
         return false;
       }
 
-      toast.success("Addon created successfully");
+      toast.success(translate("toast.addon.created"));
       await reload();
       return true;
     },
@@ -79,7 +80,7 @@ export function useAddonManagerData(residentialId: string, open: boolean) {
         return false;
       }
 
-      toast.success("Addon updated successfully");
+      toast.success(translate("toast.addon.updated"));
       await reload();
       return true;
     },
@@ -97,7 +98,7 @@ export function useAddonManagerData(residentialId: string, open: boolean) {
         return false;
       }
 
-      toast.success("Addon deleted successfully");
+      toast.success(translate("toast.addon.deleted"));
       await reload();
       return true;
     },
@@ -110,7 +111,7 @@ export function useAddonManagerData(residentialId: string, open: boolean) {
       if (result.success) {
         await reload();
       } else {
-        toast.error("Failed to toggle addon status");
+        toast.error(translate("toast.addon.toggleFailed"));
       }
     },
     [reload],

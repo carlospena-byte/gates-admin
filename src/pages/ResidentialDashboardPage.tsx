@@ -1,6 +1,5 @@
 import { useState } from "react";
 
-import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -13,7 +12,6 @@ import { useSession } from "@/state/useSession";
 import { canManageResidential } from "@/state/useAccess";
 import { navigateTo } from "@/config/routes";
 import { OperationalMetricsRow } from "@/components/dashboard/OperationalMetricsRow";
-import { NotificationsBell } from "@/components/dashboard/NotificationsBell";
 import { RecentActivityCard } from "@/components/dashboard/RecentActivityCard";
 import { TodayInbox } from "@/components/dashboard/TodayInbox";
 import { requestCreate } from "@/lib/createIntent";
@@ -32,7 +30,7 @@ export function ResidentialDashboardPage({
   residentialId: string;
   role: ResidentialRole;
 }) {
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
   const { session, isLoading: sessionLoading } = useSession();
   const canManage = canManageResidential(role);
   const [activityLogOpen, setActivityLogOpen] = useState(false);
@@ -48,32 +46,14 @@ export function ResidentialDashboardPage({
     void refetchMetrics();
   });
 
-  const rawToday = new Date().toLocaleDateString(locale === "es" ? "es-ES" : "en-US", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-  const todayLabel = rawToday.charAt(0).toUpperCase() + rawToday.slice(1);
   const unassignedUnits = Math.max(0, (metrics?.activeProperties ?? 0) - (metrics?.activeResidents ?? 0));
 
   return (
-    <div className="min-h-screen bg-gates-canvas">
+    <div className="min-h-screen">
       <AppSidebar userEmail={session?.user?.email} residentialId={residentialId} role={role} onSignOut={() => authService.signOut()} showUserMenu />
 
       <div className="lg:pl-64">
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 space-y-6">
-          <div className="flex items-center gap-4">
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-medium uppercase tracking-tight text-gates-text-brand">
-                {t("dashboard.residential.title")}
-              </p>
-              <p className="text-sm text-gates-text-secondary">{todayLabel}</p>
-            </div>
-            <NotificationsBell residentialId={residentialId} />
-            <Avatar name={session?.user?.email ?? "U"} size="sm" />
-          </div>
-
           <div>
             <h1 className="text-[32px] font-medium leading-[40px] tracking-[-0.8px] text-gates-text-primary">
               {t("dashboard.hero.title")}
@@ -90,13 +70,11 @@ export function ResidentialDashboardPage({
               <CardTitle>{t("dashboard.yourResidential.title")}</CardTitle>
               <div className="grid grid-cols-2 gap-4">
                 <SummaryStat
-                  className="bg-gates-canvas"
                   title={t("dashboard.yourResidential.units")}
                   value={String(metrics?.activeProperties ?? 0)}
                   detail={t("dashboard.yourResidential.unitsDetail")}
                 />
                 <SummaryStat
-                  className="bg-gates-canvas"
                   title={t("dashboard.yourResidential.residents")}
                   value={String(metrics?.activeResidents ?? 0)}
                   detail={t("dashboard.yourResidential.residentsDetail")}

@@ -19,12 +19,14 @@ import { useI18n } from "@/i18n/useI18n";
 import { useCreateIntent } from "@/lib/createIntent";
 import { SectionTabs } from "@/components/SectionTabs";
 import type { ResidentialRole } from "@/types/database.types";
+import type { ResidentWithStatus } from "@/types/unit-wizard.types";
 
 export function ResidentsPage({ residentialId, role }: { residentialId: string; role: ResidentialRole }) {
   const { t } = useI18n();
   const { session } = useSession();
   const canManage = canManageResidential(role);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [editing, setEditing] = useState<ResidentWithStatus | null>(null);
   useCreateIntent("resident", () => setSheetOpen(true));
 
   const {
@@ -36,6 +38,7 @@ export function ResidentsPage({ residentialId, role }: { residentialId: string; 
     reload,
     createResidentAndInvite,
     deleteResident,
+    updateResident,
     toggleActive,
     inviteResident,
   } = useResidentsManagerData(residentialId);
@@ -57,7 +60,7 @@ export function ResidentsPage({ residentialId, role }: { residentialId: string; 
                 <Button variant="outline" size="icon" aria-label={t("common.refresh")} onClick={reload} disabled={isLoading}>
                   <IconRefresh className="h-4 w-4" />
                 </Button>
-                {canManage && <Button onClick={() => setSheetOpen(true)}>{t("residents.page.add")}</Button>}
+                {canManage && <Button onClick={() => { setEditing(null); setSheetOpen(true); }}>{t("residents.page.add")}</Button>}
               </div>
             </CardHeader>
             <CardContent>
@@ -69,6 +72,7 @@ export function ResidentsPage({ residentialId, role }: { residentialId: string; 
                 onToggleActive={toggleActive}
                 onDelete={deleteResident}
                 onInvite={inviteResident}
+                onEdit={(resident) => { setEditing(resident); setSheetOpen(true); }}
               />
             </CardContent>
           </Card>
@@ -82,6 +86,8 @@ export function ResidentsPage({ residentialId, role }: { residentialId: string; 
         locations={locations}
         isSubmitting={isSubmitting}
         onCreate={createResidentAndInvite}
+        editing={editing}
+        onUpdate={updateResident}
       />
     </div>
   );

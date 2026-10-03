@@ -8,6 +8,7 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { providerService } from "@/services";
 import type { Provider, ProviderKind } from "@/types/provider.types";
+import { translate } from "@/i18n/translate";
 
 export function useProviderManagerData(residentialId: string, open: boolean) {
   const [providers, setProviders] = useState<Provider[]>([]);
@@ -42,7 +43,7 @@ export function useProviderManagerData(residentialId: string, open: boolean) {
         return false;
       }
 
-      toast.success("Provider created successfully");
+      toast.success(translate("toast.provider.created"));
       await reload();
       return true;
     },
@@ -60,7 +61,7 @@ export function useProviderManagerData(residentialId: string, open: boolean) {
         return false;
       }
 
-      toast.success("Provider updated successfully");
+      toast.success(translate("toast.provider.updated"));
       await reload();
       return true;
     },
@@ -78,7 +79,7 @@ export function useProviderManagerData(residentialId: string, open: boolean) {
         return false;
       }
 
-      toast.success("Provider deleted successfully");
+      toast.success(translate("toast.provider.deleted"));
       await reload();
       return true;
     },
@@ -91,7 +92,7 @@ export function useProviderManagerData(residentialId: string, open: boolean) {
       if (result.success) {
         await reload();
       } else {
-        toast.error("Failed to toggle provider status");
+        toast.error(translate("toast.provider.toggleFailed"));
       }
     },
     [reload],

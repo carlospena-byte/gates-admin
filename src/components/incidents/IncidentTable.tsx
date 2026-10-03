@@ -5,7 +5,7 @@
 
 import { useState } from "react";
 
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge, type StatusTone } from "@/components/ui/status-badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -17,7 +17,6 @@ import { confirmDeleteToast } from "@/lib/confirmDeleteToast";
 import { usePaginatedSortedData } from "@/hooks/usePaginatedSortedData";
 import { useI18n } from "@/i18n/useI18n";
 import type { MessageKey } from "@/i18n/messages";
-import { cn } from "@/lib/utils";
 import type { IncidentPriority, IncidentStatus, IncidentWithRelations } from "@/types/incident.types";
 
 const PRIORITY_LABEL_KEYS: Record<IncidentPriority, MessageKey> = {
@@ -35,19 +34,19 @@ const STATUS_LABEL_KEYS: Record<IncidentStatus, MessageKey> = {
   cancelled: "incidents.status.cancelled",
 };
 
-const PRIORITY_STYLES: Record<IncidentPriority, string> = {
-  low: "bg-secondary text-secondary-foreground",
-  medium: "bg-blue-100 text-blue-700",
-  high: "bg-orange-100 text-orange-700",
-  urgent: "bg-red-100 text-red-700",
+const PRIORITY_TONES: Record<IncidentPriority, StatusTone> = {
+  low: "neutral",
+  medium: "info",
+  high: "warning",
+  urgent: "error",
 };
 
-const STATUS_STYLES: Record<IncidentStatus, string> = {
-  new: "bg-blue-100 text-blue-700",
-  in_progress: "bg-orange-100 text-orange-700",
-  resolved: "bg-green-100 text-green-700",
-  closed: "bg-secondary text-secondary-foreground",
-  cancelled: "bg-secondary text-secondary-foreground",
+const STATUS_TONES: Record<IncidentStatus, StatusTone> = {
+  new: "info",
+  in_progress: "warning",
+  resolved: "success",
+  closed: "neutral",
+  cancelled: "neutral",
 };
 
 interface IncidentTableProps {
@@ -199,14 +198,12 @@ export function IncidentTable({
                 <TableCell className="text-sm text-muted-foreground">{incident.units?.name ?? "—"}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">{incident.incident_types?.name ?? "—"}</TableCell>
                 <TableCell>
-                  <Badge className={cn("border-transparent capitalize", PRIORITY_STYLES[incident.priority])}>
+                  <StatusBadge tone={PRIORITY_TONES[incident.priority]} hideDot>
                     {t(PRIORITY_LABEL_KEYS[incident.priority])}
-                  </Badge>
+                  </StatusBadge>
                 </TableCell>
                 <TableCell>
-                  <Badge className={cn("border-transparent capitalize", STATUS_STYLES[incident.status])}>
-                    {t(STATUS_LABEL_KEYS[incident.status])}
-                  </Badge>
+                  <StatusBadge tone={STATUS_TONES[incident.status]}>{t(STATUS_LABEL_KEYS[incident.status])}</StatusBadge>
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">
                   {incident.assignee?.email ?? t("incidents.unassigned")}

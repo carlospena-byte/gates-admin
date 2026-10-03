@@ -5,8 +5,9 @@
  * History tabs client-side.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useLiveRefresh } from "@/hooks/useLiveRefresh";
 import { requireSupabase } from "@/lib/supabaseClient";
 import { useI18n } from "@/i18n/useI18n";
 import {
@@ -71,8 +72,12 @@ export function useVisitorManagerData(residentialId: string) {
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const hasLoaded = useRef(false);
+
   const reload = useCallback(async () => {
-    setIsLoading(true);
+    // Spinner only on the first load; later reloads (after an entry/exit or a
+    // live change) swap the data in place instead of flashing the list away.
+    if (!hasLoaded.current) setIsLoading(true);
 
     const [visitorsResult, unitsResult, locationsResult, staffResult] = await Promise.all([
       visitorService.list(residentialId),
@@ -87,6 +92,7 @@ export function useVisitorManagerData(residentialId: string) {
     ]);
 
     setIsLoading(false);
+    hasLoaded.current = true;
 
     if (visitorsResult.success) {
       setVisitors(visitorsResult.data);
@@ -110,6 +116,9 @@ export function useVisitorManagerData(residentialId: string) {
   useEffect(() => {
     void reload();
   }, [reload]);
+
+  // Entries/exits made by another guard or from the resident app show up without a manual refresh.
+  useLiveRefresh(residentialId, ["visitors", "access_logs"], reload);
 
   /**
    * Uploads the optional ID photo for a just-created visit. The visit itself

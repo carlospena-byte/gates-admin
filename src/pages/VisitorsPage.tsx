@@ -23,6 +23,8 @@ import {
 import { AddFrequentVisitSheet, type NewFrequentVisitFields } from "@/components/visitors/AddFrequentVisitSheet";
 import { AddDeliveryVisitSheet, type NewDeliveryVisitFields } from "@/components/visitors/AddDeliveryVisitSheet";
 import { VisitorTable } from "@/components/visitors/VisitorTable";
+import { SecurityVisitorsView } from "@/components/visitors/security/SecurityVisitorsView";
+import { hasDocument, matchesSearch, type DocFilter, type SecurityFilters } from "@/components/visitors/security/securityVisits";
 import { STATUS_LABEL_KEYS, VISIT_TYPE_LABEL_KEYS } from "@/components/visitors/visitorLabels";
 import { useI18n } from "@/i18n/useI18n";
 import { useCreateIntent } from "@/lib/createIntent";
@@ -78,6 +80,9 @@ export function VisitorsPage({ residentialId, role }: { residentialId: string; r
   const [visitorQuery, setVisitorQuery] = useState("");
   const [invitedByQuery, setInvitedByQuery] = useState("");
   const [plateQuery, setPlateQuery] = useState("");
+  // Guard view only: one search box (name, plate or unit) + document filter.
+  const [searchQuery, setSearchQuery] = useState("");
+  const [docFilter, setDocFilter] = useState<DocFilter>("all");
   const [unitQuery, setUnitQuery] = useState("");
   const [historyRange, setHistoryRange] = useState<DateRange>(defaultHistoryRange);
 
@@ -124,9 +129,12 @@ export function VisitorsPage({ residentialId, role }: { residentialId: string; r
       if (plateQueryLower && !(visitor.plate ?? "").toLowerCase().includes(plateQueryLower)) return false;
       if (unitQueryLower && !(visitor.unit_id ? unitLabelById.get(visitor.unit_id) ?? "" : "").toLowerCase().includes(unitQueryLower))
         return false;
+      if (!matchesSearch(visitor, searchQuery, units, locations)) return false;
+      if (docFilter === "ready" && !hasDocument(visitor)) return false;
+      if (docFilter === "missing" && hasDocument(visitor)) return false;
       return true;
     });
-  }, [visitors, visitTypeFilter, visitorQuery, invitedByQuery, plateQuery, unitQuery, unitLabelById]);
+  }, [visitors, visitTypeFilter, visitorQuery, invitedByQuery, plateQuery, unitQuery, unitLabelById, searchQuery, docFilter, units, locations]);
 
   const buckets = useMemo(() => {
     const today: VisitorWithInviter[] = [];
@@ -240,6 +248,39 @@ export function VisitorsPage({ residentialId, role }: { residentialId: string; r
     onDelete: deleteVisitor,
     onUploadIdPhoto: uploadIdPhoto,
   };
+
+  if (role === "security") {
+    const filters: SecurityFilters = { type: visitTypeFilter, invitedBy: invitedByQuery, doc: docFilter };
+    return (
+      <SecurityVisitorsView
+        residentialId={residentialId}
+        userEmail={session?.user?.email}
+        buckets={buckets}
+        units={units}
+        locations={locations}
+        staffRoles={staffRoles}
+        isLoading={isLoading}
+        isSubmitting={isSubmitting}
+        canCreate={canManage}
+        canCheckInOut={canCheckInOut}
+        search={searchQuery}
+        onSearchChange={setSearchQuery}
+        filters={filters}
+        onFiltersChange={(next) => {
+          setVisitTypeFilter(next.type);
+          setInvitedByQuery(next.invitedBy);
+          setDocFilter(next.doc);
+        }}
+        historyRange={historyRange}
+        onHistoryRangeChange={setHistoryRange}
+        onNew={() => setActiveSheet("frequent")}
+        onCheckIn={checkIn}
+        onCheckOut={checkOut}
+        onUploadIdPhoto={uploadIdPhoto}
+        onSignOut={() => authService.signOut()}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen">

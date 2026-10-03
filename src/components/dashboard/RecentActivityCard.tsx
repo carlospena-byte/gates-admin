@@ -4,6 +4,7 @@
  * ActivityLogManager), not a new activity system.
  */
 
+import { Card, CardTitle } from "@/components/ui/card";
 import { useEffect, useState } from "react";
 import { Avatar } from "@/components/ui/avatar";
 import { Spinner } from "@/components/LoadingStates";
@@ -53,9 +54,9 @@ export function RecentActivityCard({
   }, [residentialId]);
 
   return (
-    <div className="flex flex-col gap-4 rounded-gates-lg bg-gates-surface p-6 shadow-gates-card">
+    <Card className="flex flex-col gap-4 p-4 sm:p-6">
       <div className="flex items-center gap-4">
-        <p className="text-xl font-semibold text-gates-text-primary">{t("dashboard.recentActivity.title")}</p>
+        <CardTitle>{t("dashboard.recentActivity.title")}</CardTitle>
         <div className="flex-1" />
         <p className="text-xs text-gates-text-secondary">{t("dashboard.recentActivity.latest")}</p>
       </div>
@@ -90,6 +91,6 @@ export function RecentActivityCard({
       >
         {t("dashboard.recentActivity.viewAll")} →
       </button>
-    </div>
+    </Card>
   );
 }

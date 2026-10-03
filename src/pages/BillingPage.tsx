@@ -8,20 +8,23 @@ import { IconDownload, IconRefresh, IconSearch } from "@tabler/icons-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AppSidebar } from "@/components/AppSidebar";
-import { ChargeSettingsPanel } from "@/components/ChargeManager";
 import { BillingKpis } from "@/components/billing/BillingKpis";
 import { BulkPayDialog } from "@/components/billing/BulkPayDialog";
+import { ImportPaymentsDialog } from "@/components/billing/ImportPaymentsDialog";
 import { DelinquencyTable } from "@/components/billing/DelinquencyTable";
 import { InstallmentTable } from "@/components/billing/InstallmentTable";
 import { PaymentDialog } from "@/components/billing/PaymentDialog";
+import { MonthPicker } from "@/components/ui/month-picker";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { navigateTo } from "@/config/routes";
 import { useBillingData } from "@/hooks/useBillingData";
 import { useI18n } from "@/i18n/useI18n";
 import { downloadCsv } from "@/lib/csv";
+import { downloadPaymentTemplate } from "@/lib/paymentImport";
 import { authService } from "@/services";
 import { useSession } from "@/state/useSession";
 import { canManageResidential } from "@/state/useAccess";
@@ -66,6 +69,7 @@ export function BillingPage({ residentialId, role }: { residentialId: string; ro
     isSubmitting,
     reload,
     recordPayments,
+    importPayments,
     deletePayment,
     setCancelled,
     generateMonth,
@@ -77,6 +81,7 @@ export function BillingPage({ residentialId, role }: { residentialId: string; ro
   const [statusFilter, setStatusFilter] = useState<StatusFilter>(ALL);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [paymentId, setPaymentId] = useState<string | null>(null);
 
   const unitLabel = (unitId: string, fallback: string) => {
@@ -237,37 +242,55 @@ export function BillingPage({ residentialId, role }: { residentialId: string; ro
       <AppSidebar userEmail={session?.user?.email} residentialId={residentialId} role={role} onSignOut={() => authService.signOut()} showUserMenu />
 
       <div className="lg:pl-64">
-        <div className="mx-auto max-w-7xl space-y-6 px-6 py-6">
+        <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6">
           <Card>
-            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
-              <div>
+            <CardHeader className="flex flex-col gap-5 space-y-0 border-b border-border pb-5 sm:pb-6 xl:flex-row xl:items-center xl:justify-between">
+              <div className="min-w-0 space-y-2 xl:max-w-xl">
                 <CardTitle>{t("billing.page.title")}</CardTitle>
-                <CardDescription>{t("billing.page.description")}</CardDescription>
+                <CardDescription className="text-sm leading-relaxed">{t("billing.page.description")}</CardDescription>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Input
-                  aria-label={t("billing.page.month")}
-                  type="month"
+              <div className="flex flex-wrap items-stretch gap-3">
+                <MonthPicker
+                  label={t("billing.page.month")}
                   value={month}
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      setMonth(e.target.value);
+                  onChange={(value) => {
+                    if (value) {
+                      setMonth(value);
                       setSelectedIds(new Set());
                     }
                   }}
-                  className="w-44"
+                  className="w-full sm:w-56"
                 />
-                {canManage && (
-                  <Button variant="outline" size="sm" onClick={() => void generateMonth()} disabled={isSubmitting}>
-                    {t("billing.page.generate")}
+                <div className="flex flex-1 items-stretch gap-2 sm:flex-none">
+                  {canManage && (
+                    <Button variant="outline" className="h-16 flex-1 px-5 sm:flex-none" onClick={() => navigateTo("settingsCharges")}>
+                      {t("billing.page.configure")}
+                    </Button>
+                  )}
+                  {canManage && (
+                    <Button variant="outline" className="h-16 flex-1 px-5 sm:flex-none" onClick={() => void generateMonth()} disabled={isSubmitting}>
+                      {t("billing.page.generate")}
+                    </Button>
+                  )}
+                  {canManage && (
+                    <Button variant="outline" className="h-16 flex-1 px-5 sm:flex-none" onClick={() => setImportOpen(true)} disabled={isSubmitting}>
+                      {t("billing.import.button")}
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-16 w-16 shrink-0"
+                    aria-label={t("common.refresh")}
+                    onClick={() => void reload()}
+                    disabled={isLoading}
+                  >
+                    <IconRefresh className="h-5 w-5" />
                   </Button>
-                )}
-                <Button variant="outline" size="sm" onClick={() => void reload()} disabled={isLoading}>
-                  <IconRefresh className="h-4 w-4" />
-                </Button>
+                </div>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-5 sm:pt-6">
               <BillingKpis summary={summary} />
             </CardContent>
           </Card>
@@ -282,12 +305,11 @@ export function BillingPage({ residentialId, role }: { residentialId: string; ro
                     {delinquents.length > 0 ? ` (${delinquents.length})` : ""}
                   </TabsTrigger>
                   <TabsTrigger value="history">{t("billing.tabs.history")}</TabsTrigger>
-                  {canManage && <TabsTrigger value="charges">{t("billing.tabs.charges")}</TabsTrigger>}
                 </TabsList>
 
                 <TabsContent value="period" className="space-y-4">
                   <div className="flex flex-wrap items-center gap-2">
-                    <div className="relative min-w-[220px] flex-1">
+                    <div className="relative w-full min-w-0 flex-1 sm:min-w-[220px] sm:w-auto">
                       <IconSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <Input
                         value={search}
@@ -297,7 +319,7 @@ export function BillingPage({ residentialId, role }: { residentialId: string; ro
                       />
                     </div>
                     <Select value={chargeFilter} onValueChange={setChargeFilter}>
-                      <SelectTrigger className="w-48">
+                      <SelectTrigger className="w-full sm:w-48">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -310,7 +332,7 @@ export function BillingPage({ residentialId, role }: { residentialId: string; ro
                       </SelectContent>
                     </Select>
                     <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
-                      <SelectTrigger className="w-44">
+                      <SelectTrigger className="w-full sm:w-44">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -341,10 +363,10 @@ export function BillingPage({ residentialId, role }: { residentialId: string; ro
                     <div className="flex items-center justify-between gap-2 rounded-md border bg-muted/40 p-2 text-sm">
                       <span>{t("billing.bulk.selected", { count: selectedRows.length })}</span>
                       <div className="flex gap-2">
-                        <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())}>
+                        <Button variant="ghost" onClick={() => setSelectedIds(new Set())}>
                           {t("billing.bulk.clear")}
                         </Button>
-                        <Button size="sm" onClick={() => setBulkOpen(true)} disabled={isSubmitting}>
+                        <Button onClick={() => setBulkOpen(true)} disabled={isSubmitting}>
                           {t("billing.bulk.markPaid")}
                         </Button>
                       </div>
@@ -377,13 +399,6 @@ export function BillingPage({ residentialId, role }: { residentialId: string; ro
                   />
                 </TabsContent>
 
-                {canManage && (
-                  <TabsContent value="charges" className="space-y-4">
-                    <p className="text-sm text-muted-foreground">{t("billing.charges.description")}</p>
-                    <ChargeSettingsPanel residentialId={residentialId} />
-                  </TabsContent>
-                )}
-
                 <TabsContent value="history" className="space-y-4">
                   <div className="flex flex-wrap items-end gap-2">
                     <Select
@@ -406,7 +421,7 @@ export function BillingPage({ residentialId, role }: { residentialId: string; ro
                       value={historyFilters.chargeId ?? ALL}
                       onValueChange={(v) => updateHistoryFilter({ chargeId: v === ALL ? undefined : v })}
                     >
-                      <SelectTrigger className="w-48" label={t("billing.table.charge")}>
+                      <SelectTrigger className="w-full sm:w-48" label={t("billing.table.charge")}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -418,26 +433,26 @@ export function BillingPage({ residentialId, role }: { residentialId: string; ro
                         ))}
                       </SelectContent>
                     </Select>
-                    <Input
+                    <MonthPicker
+                      clearable
                       label={t("billing.history.from")}
-                      type="month"
                       value={historyFilters.fromPeriod ?? ""}
-                      onChange={(e) => updateHistoryFilter({ fromPeriod: e.target.value || undefined })}
-                      className="w-44"
+                      onChange={(value) => updateHistoryFilter({ fromPeriod: value || undefined })}
+                      className="w-full sm:w-52"
                     />
-                    <Input
+                    <MonthPicker
+                      clearable
                       label={t("billing.history.to")}
-                      type="month"
                       value={historyFilters.toPeriod ?? ""}
-                      onChange={(e) => updateHistoryFilter({ toPeriod: e.target.value || undefined })}
-                      className="w-44"
+                      onChange={(value) => updateHistoryFilter({ toPeriod: value || undefined })}
+                      className="w-full sm:w-52"
                     />
                     {Object.values(historyFilters).some(Boolean) && (
                       <Button variant="ghost" size="sm" onClick={() => setHistoryFilters({})}>
                         {t("billing.filter.clear")}
                       </Button>
                     )}
-                    <Button variant="outline" size="sm" onClick={handleExport} disabled={history.length === 0}>
+                    <Button variant="outline" onClick={handleExport} disabled={history.length === 0}>
                       <IconDownload className="mr-1 h-4 w-4" /> {t("billing.history.export")}
                     </Button>
                   </div>
@@ -470,6 +485,16 @@ export function BillingPage({ residentialId, role }: { residentialId: string; ro
         }}
         onSubmit={handleSinglePayment}
         onDeletePayment={deletePayment}
+      />
+
+      <ImportPaymentsDialog
+        open={importOpen}
+        isSubmitting={isSubmitting}
+        onOpenChange={setImportOpen}
+        onDownloadTemplate={() =>
+          downloadPaymentTemplate(`plantilla-pagos-${month}.csv`, periodRows, unitLabel)
+        }
+        onImport={importPayments}
       />
 
       <BulkPayDialog

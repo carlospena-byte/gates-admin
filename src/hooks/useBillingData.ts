@@ -15,6 +15,8 @@ import type {
   HistoryFilters,
   Installment,
   NewChargePayment,
+  PaymentImportResponse,
+  PaymentImportRow,
 } from "@/types/billing.types";
 import type { Charge, Location, UnitWithWizardData } from "@/types/unit-wizard.types";
 
@@ -126,6 +128,27 @@ export function useBillingData(residentialId: string) {
     [refreshAll, t],
   );
 
+  /** Validates (dryRun) or records an imported batch; null when the call itself failed. */
+  const importPayments = useCallback(
+    async (rows: PaymentImportRow[], dryRun: boolean): Promise<PaymentImportResponse | null> => {
+      setIsSubmitting(true);
+      const result = await billingService.importPayments(residentialId, rows, dryRun);
+      setIsSubmitting(false);
+
+      if (!result.success) {
+        toast.error(result.error.message);
+        return null;
+      }
+
+      if (!dryRun) {
+        toast.success(t("billing.toast.paymentsRecorded", { count: result.data.payment_ids.length }));
+        await refreshAll();
+      }
+      return result.data;
+    },
+    [residentialId, refreshAll, t],
+  );
+
   const deletePayment = useCallback(
     async (paymentId: string): Promise<boolean> => {
       setIsSubmitting(true);
@@ -191,6 +214,7 @@ export function useBillingData(residentialId: string) {
     isSubmitting,
     reload: refreshAll,
     recordPayments,
+    importPayments,
     deletePayment,
     setCancelled,
     generateMonth,

@@ -20,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Spinner } from "@/components/LoadingStates";
 import { formatCurrency } from "@/lib/utils";
 import type { Installment, PaymentMethod } from "@/types/billing.types";
+import { DatePicker } from "@/components/ui/date-picker";
 
 const METHODS: PaymentMethod[] = ["cash", "transfer", "check", "other"];
 
@@ -65,11 +66,11 @@ export function BulkPayDialog({ open, installments, isSubmitting, onOpenChange, 
         </DialogHeader>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <Input
+          <DatePicker
+            mode="single"
             label={t("billing.payment.date")}
-            type="date"
             value={paidOn}
-            onChange={(e) => setPaidOn(e.target.value)}
+            onChange={setPaidOn}
             disabled={isSubmitting}
           />
           <Select value={method} onValueChange={(v) => setMethod(v as PaymentMethod)} disabled={isSubmitting}>

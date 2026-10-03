@@ -167,7 +167,12 @@ export function InstallmentTable({
                     {info?.path && <div className="text-xs text-muted-foreground">{info.path}</div>}
                   </TableCell>
                   {showPeriod && <TableCell className="text-sm">{row.period.slice(0, 7)}</TableCell>}
-                  <TableCell className="text-sm">{row.charge_name}</TableCell>
+                  <TableCell className="text-sm">
+                    {row.charge_name}
+                    {row.source === "booking" && (
+                      <div className="text-xs text-muted-foreground">{t("billing.source.booking")}</div>
+                    )}
+                  </TableCell>
                   <TableCell className="text-sm">{row.due_date}</TableCell>
                   <TableCell className="text-sm">
                     {formatCurrency(row.total_due)}

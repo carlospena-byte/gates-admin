@@ -10,7 +10,11 @@ export type PaymentMethod = "cash" | "transfer" | "check" | "other";
 export interface Installment {
   id: string;
   residential_id: string;
-  charge_id: string;
+  /** Null for installments born from an amenity booking. */
+  charge_id: string | null;
+  booking_id: string | null;
+  /** Where the installment came from. */
+  source: "charge" | "booking";
   unit_id: string;
   /** First day of the billed month (YYYY-MM-DD). */
   period: string;
@@ -85,4 +89,46 @@ export interface HistoryFilters {
   /** Inclusive YYYY-MM bounds on the billed month. */
   fromPeriod?: string;
   toPeriod?: string;
+}
+
+/** One row sent to import_charge_payments (see the migration for the contract). */
+export interface PaymentImportRow {
+  /** 1-based line in the uploaded file (header excluded), echoed back in results. */
+  row: number;
+  installment_id?: string;
+  unit?: string;
+  charge?: string;
+  /** YYYY-MM */
+  period?: string;
+  amount?: number;
+  paid_on?: string;
+  method?: PaymentMethod;
+  reference?: string;
+  notes?: string;
+}
+
+export type PaymentImportError =
+  | "installment_not_found"
+  | "installment_ambiguous"
+  | "installment_cancelled"
+  | "already_paid"
+  | "invalid_amount"
+  | "exceeds_balance"
+  | "invalid_method"
+  | "invalid_value"
+  | "duplicate";
+
+export interface PaymentImportRowResult {
+  row: number;
+  ok: boolean;
+  error?: PaymentImportError;
+  installment_id?: string | null;
+  amount?: number;
+  payment_id?: string | null;
+}
+
+export interface PaymentImportResponse {
+  batch_id: string;
+  results: PaymentImportRowResult[];
+  payment_ids: string[];
 }

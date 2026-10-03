@@ -17,6 +17,7 @@ import { confirmDeleteToast } from "@/lib/confirmDeleteToast";
 import { formatCurrency } from "@/lib/utils";
 import { billingService } from "@/services";
 import type { ChargePayment, Installment, PaymentMethod } from "@/types/billing.types";
+import { DatePicker } from "@/components/ui/date-picker";
 
 const METHODS: PaymentMethod[] = ["cash", "transfer", "check", "other"];
 
@@ -150,11 +151,11 @@ export function PaymentDialog({
                     onChange={(e) => setAmount(e.target.value)}
                     disabled={isSubmitting}
                   />
-                  <Input
+                  <DatePicker
+                    mode="single"
                     label={t("billing.payment.date")}
-                    type="date"
                     value={paidOn}
-                    onChange={(e) => setPaidOn(e.target.value)}
+                    onChange={setPaidOn}
                     disabled={isSubmitting}
                   />
                   <Select value={method} onValueChange={(v) => setMethod(v as PaymentMethod)} disabled={isSubmitting}>

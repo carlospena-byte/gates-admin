@@ -15,6 +15,8 @@ import type {
   HistoryFilters,
   Installment,
   NewChargePayment,
+  PaymentImportResponse,
+  PaymentImportRow,
 } from "@/types/billing.types";
 
 // The view isn't in the generated table types the CRUD factory is keyed on, and
@@ -70,9 +72,58 @@ function listPayments(installmentId: string): Promise<ApiResult<ChargePayment[]>
   });
 }
 
+/**
+ * Best effort: the payments are already recorded, so a failed push must not
+ * surface as a failed payment.
+ */
+async function notifyPayments(paymentIds: string[]): Promise<void> {
+  if (paymentIds.length === 0) return;
+  try {
+    // The function accepts at most 200 ids per call.
+    for (let i = 0; i < paymentIds.length; i += 200) {
+      await requireSupabase().functions.invoke("send-payment-notification", {
+        body: { paymentIds: paymentIds.slice(i, i + 200) },
+      });
+    }
+  } catch {
+    /* push is a courtesy, never blocks recording */
+  }
+}
+
+/** The installment an approved booking was billed as, or null when none was generated. */
+function getByBooking(bookingId: string): Promise<ApiResult<Installment | null>> {
+  return wrapResult("Failed to load booking charge", () =>
+    unwrap<Installment | null>(
+      db().from("v_charge_installments").select("*").eq("booking_id", bookingId).maybeSingle(),
+    ),
+  );
+}
+
 function addPayments(payments: NewChargePayment[]): Promise<ApiResult<void>> {
   if (payments.length === 0) return Promise.resolve({ success: true, data: undefined });
-  return wrapResult("Failed to record payment", () => unwrap<void>(db().from("charge_payments").insert(payments)));
+  return wrapResult("Failed to record payment", async () => {
+    const rows = await unwrap<{ id: string }[]>(db().from("charge_payments").insert(payments).select("id"));
+    await notifyPayments((rows ?? []).map((r) => r.id));
+  });
+}
+
+/**
+ * Validates (dryRun) or records a CSV import in one transaction. Invalid rows
+ * never abort the batch; they come back in `results` with an error code. On a
+ * real run, residents of the paid units are notified.
+ */
+function importPayments(
+  residentialId: string,
+  rows: PaymentImportRow[],
+  dryRun: boolean,
+): Promise<ApiResult<PaymentImportResponse>> {
+  return wrapResult("Failed to import payments", async () => {
+    const response = await unwrap<PaymentImportResponse>(
+      db().rpc("import_charge_payments", { _residential_id: residentialId, _rows: rows, _dry_run: dryRun }),
+    );
+    if (!dryRun) await notifyPayments(response.payment_ids);
+    return response;
+  });
 }
 
 function deletePayment(id: string): Promise<ApiResult<void>> {
@@ -112,7 +163,9 @@ export const billingService = {
   listByPeriod,
   listHistory,
   listPayments,
+  getByBooking,
   addPayments,
+  importPayments,
   deletePayment,
   setCancelled,
   getSummary,

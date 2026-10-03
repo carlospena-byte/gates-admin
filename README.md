@@ -1,4 +1,4 @@
-# gates-admin
+# Vecinoo Admin
 
 React + Vite + Supabase + shadcn/ui starter.
 

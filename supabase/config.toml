@@ -187,7 +187,7 @@ port = 1025
 user = "mailpit"
 pass = "mailpit"
 admin_email = "admin@local.test"
-sender_name = "gates-admin"
+sender_name = "Vecinoo"
 
 # signInWithOtp() uses the "magic_link" mail type. The default Supabase template only
 # includes a clickable ConfirmationURL, not the numeric code — but the login UI asks the

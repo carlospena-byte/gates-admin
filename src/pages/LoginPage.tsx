@@ -66,7 +66,7 @@ export function LoginPage({ onCreateResidential }: { onCreateResidential: () => 
         {/* Right panel — sign in form */}
         <div className="flex flex-col justify-center p-8 md:p-12">
           <div className="mb-8 flex items-center justify-between">
-            <p className="text-sm font-semibold tracking-[0.2em] text-gates-text-brand">GATES</p>
+            <p className="text-sm font-semibold tracking-[0.2em] text-gates-text-brand">VECINOO</p>
           </div>
 
           <h1 className="text-3xl font-semibold tracking-tight text-foreground">{t("login.title")}</h1>
@@ -101,11 +101,11 @@ export function LoginPage({ onCreateResidential }: { onCreateResidential: () => 
             ) : null}
 
             {phase === "enter_email" ? (
-              <Button size="xl" className="w-full" onClick={sendOtp} disabled={isSubmitting || !email.trim()}>
+              <Button size="lg" className="w-full" onClick={sendOtp} disabled={isSubmitting || !email.trim()}>
                 {isSubmitting ? <Spinner size="sm" /> : t("login.sendOtp")}
               </Button>
             ) : (
-              <Button size="xl" className="w-full" onClick={verifyOtp} disabled={isSubmitting || !token.trim()}>
+              <Button size="lg" className="w-full" onClick={verifyOtp} disabled={isSubmitting || !token.trim()}>
                 {isSubmitting ? <Spinner size="sm" /> : t("login.verify")}
               </Button>
             )}

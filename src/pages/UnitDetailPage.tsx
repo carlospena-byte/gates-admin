@@ -194,7 +194,7 @@ export function UnitDetailPage({
       <div className="min-h-screen">
         <AppSidebar userEmail={session?.user?.email} residentialId={residentialId} role={role} onSignOut={() => authService.signOut()} showUserMenu />
         <div className="lg:pl-64">
-          <div className="mx-auto max-w-3xl px-6 py-6 space-y-4">
+          <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 space-y-4">
             <BackButton />
             {isLoading ? (
               <div className="flex justify-center py-12">
@@ -214,7 +214,7 @@ export function UnitDetailPage({
       <AppSidebar userEmail={session?.user?.email} residentialId={residentialId} role={role} onSignOut={() => authService.signOut()} showUserMenu />
 
       <div className="lg:pl-64">
-        <div className={cn("mx-auto max-w-6xl px-6 py-6 space-y-6", isDirty && "pb-28")}>
+        <div className={cn("mx-auto max-w-6xl px-4 py-6 sm:px-6 space-y-6", isDirty && "pb-28")}>
           <div className="flex items-center justify-between">
             <BackButton />
             <div className="flex items-center gap-3">
@@ -405,7 +405,7 @@ export function UnitDetailPage({
 
       {isDirty && (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t bg-background lg:pl-64">
-          <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4">
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
             <div>
               <p className="text-sm font-medium">{t("common.unsavedChanges")}</p>
               <p className="text-xs text-muted-foreground">{t("units.detail.unsavedDescription")}</p>

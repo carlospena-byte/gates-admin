@@ -12,6 +12,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { IconPlus, IconX } from "@tabler/icons-react";
+import { TimePicker } from "@/components/ui/time-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -40,6 +41,7 @@ import type {
   BookingLimitPeriod,
   Service,
 } from "@/types/amenities.types";
+import { DatePicker } from "@/components/ui/date-picker";
 
 const DAYS: { code: string }[] = [
   { code: "mon" },
@@ -403,7 +405,7 @@ export function AmenityFormSheet({ open, onOpenChange, residentialId, amenityId,
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent side="right" className="flex h-full w-full flex-col gap-0 p-0 sm:max-w-[720px]">
-          <SheetHeader className="border-b px-6 py-4">
+          <SheetHeader className="border-b px-4 py-4 sm:px-6">
             <SheetTitle>{isEditMode ? t("amenities.form.title.edit") : t("amenities.form.title.create")}</SheetTitle>
             <SheetDescription>{t("amenities.form.description")}</SheetDescription>
           </SheetHeader>
@@ -413,7 +415,7 @@ export function AmenityFormSheet({ open, onOpenChange, residentialId, amenityId,
               <Spinner />
             </div>
           ) : (
-            <div className="flex-1 overflow-y-auto px-6 py-4">
+            <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6">
               <Tabs defaultValue="general" className="space-y-4">
                 <TabsList>
                   <TabsTrigger value="general">{t("amenities.form.tabs.general")}</TabsTrigger>
@@ -555,7 +557,7 @@ export function AmenityFormSheet({ open, onOpenChange, residentialId, amenityId,
                               <Button
                                 type="button"
                                 variant="ghost"
-                                size="icon"
+                                size="icon-sm"
                                 onClick={() => removeBookingLimit(index)}
                                 disabled={isSubmitting}
                               >
@@ -604,7 +606,7 @@ export function AmenityFormSheet({ open, onOpenChange, residentialId, amenityId,
                             <Button
                               type="button"
                               variant="ghost"
-                              size="icon"
+                              size="icon-sm"
                               onClick={() => removeScheduleBlock(index)}
                               disabled={isSubmitting}
                             >
@@ -630,19 +632,17 @@ export function AmenityFormSheet({ open, onOpenChange, residentialId, amenityId,
                             ))}
                           </div>
 
-                          <div className="grid grid-cols-2 gap-2">
-                            <Input
+                          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                            <TimePicker
                               label={t("amenities.form.openingTime.label")}
-                              type="time"
                               value={block.openTime}
-                              onChange={(e) => updateScheduleBlock(index, { openTime: e.target.value })}
+                              onChange={(value) => updateScheduleBlock(index, { openTime: value })}
                               disabled={isSubmitting}
                             />
-                            <Input
+                            <TimePicker
                               label={t("amenities.form.closingTime.label")}
-                              type="time"
                               value={block.closeTime}
-                              onChange={(e) => updateScheduleBlock(index, { closeTime: e.target.value })}
+                              onChange={(value) => updateScheduleBlock(index, { closeTime: value })}
                               disabled={isSubmitting}
                             />
                           </div>
@@ -667,7 +667,7 @@ export function AmenityFormSheet({ open, onOpenChange, residentialId, amenityId,
                               <Button
                                 type="button"
                                 variant="ghost"
-                                size="icon"
+                                size="icon-sm"
                                 onClick={() => removeBlackout(index)}
                                 disabled={isSubmitting}
                               >
@@ -675,23 +675,13 @@ export function AmenityFormSheet({ open, onOpenChange, residentialId, amenityId,
                               </Button>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-2">
-                              <Input
-                                label={t("amenities.form.blackout.startDate.label")}
-                                type="date"
-                                value={rule.startDate}
-                                onChange={(e) => updateBlackout(index, { startDate: e.target.value })}
-                                disabled={isSubmitting}
-                              />
-                              <Input
-                                label={t("amenities.form.blackout.endDate.label")}
-                                type="date"
-                                min={rule.startDate || undefined}
-                                value={rule.endDate}
-                                onChange={(e) => updateBlackout(index, { endDate: e.target.value })}
-                                disabled={isSubmitting}
-                              />
-                            </div>
+                            <DatePicker
+                              mode="range"
+                              label={`${t("amenities.form.blackout.startDate.label")} – ${t("amenities.form.blackout.endDate.label")}`}
+                              value={{ from: rule.startDate, to: rule.endDate }}
+                              onChange={(range) => updateBlackout(index, { startDate: range.from, endDate: range.to })}
+                              disabled={isSubmitting}
+                            />
 
                             <Input
                               label={t("amenities.form.blackout.reason.label")}
@@ -726,7 +716,7 @@ export function AmenityFormSheet({ open, onOpenChange, residentialId, amenityId,
             </div>
           )}
 
-          <SheetFooter className="border-t px-6 py-4">
+          <SheetFooter className="border-t px-4 py-4 sm:px-6">
             <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={isSubmitting}>
               {t("common.cancel")}
             </Button>

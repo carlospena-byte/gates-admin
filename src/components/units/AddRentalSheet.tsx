@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Spinner } from "@/components/LoadingStates";
 import type { RentalType } from "@/types/unit-wizard.types";
+import { DatePicker } from "@/components/ui/date-picker";
 
 export interface NewRentalFields {
   rentalType: RentalType;
@@ -118,18 +119,16 @@ export function AddRentalSheet({ open, onOpenChange, isSubmitting, onCreate }: A
           </div>
 
           <div className="grid gap-2 grid-cols-1">
-            <Input
-              label={t("rentals.add.startDate.label")}
-              type="date"
-              value={fields.startDate}
-              onChange={(e) => set("startDate", e.target.value)}
-              disabled={isSubmitting}
-            />
-            <Input
-              label={t("rentals.add.endDateOptional.label")}
-              type="date"
-              value={fields.endDate}
-              onChange={(e) => set("endDate", e.target.value)}
+            <DatePicker
+              mode="range"
+              allowOpenEnd
+              clearable
+              label={`${t("rentals.add.startDate.label")} – ${t("rentals.add.endDateOptional.label")}`}
+              value={{ from: fields.startDate, to: fields.endDate }}
+              onChange={(range) => {
+                set("startDate", range.from);
+                set("endDate", range.to);
+              }}
               disabled={isSubmitting}
             />
           </div>

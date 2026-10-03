@@ -146,12 +146,12 @@ export function AddAddonSheet({
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent side="right" className="flex h-full w-full flex-col gap-0 p-0 sm:max-w-[420px]">
-        <SheetHeader className="border-b px-6 py-4">
+        <SheetHeader className="border-b px-4 py-4 sm:px-6">
           <SheetTitle>{t("units.addSheet.title")}</SheetTitle>
           <SheetDescription>{t("units.addSheet.description")}</SheetDescription>
         </SheetHeader>
 
-        <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4">
+        <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-6">
           <div className="space-y-2">
             <p className="text-sm font-medium">{t("units.addSheet.filters")}</p>
             <div className="grid grid-cols-1 gap-2">
@@ -302,7 +302,7 @@ export function AddAddonSheet({
           </div>
         </div>
 
-        <SheetFooter className="border-t px-6 py-4">
+        <SheetFooter className="border-t px-4 py-4 sm:px-6">
           <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={disabled}>
             {t("common.cancel")}
           </Button>

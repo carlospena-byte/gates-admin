@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import {
   amenitiesService,
   amenityBookingService,
+  billingService,
   locationService,
   unitResidentService,
   unitService,
@@ -19,6 +20,7 @@ import type {
   AmenityBookingWithUser,
   CreateAmenityBookingDto,
 } from "@/types/amenities.types";
+import type { PaymentMethod } from "@/types/billing.types";
 import type { UnitWithOwner } from "@/services/api.service";
 import type { Location, ResidentWithStatus } from "@/types/unit-wizard.types";
 
@@ -29,6 +31,14 @@ export interface ReservationFormPayload {
   startTime: string;
   endTime: string;
   notes: string;
+}
+
+export interface ApprovalPayment {
+  amount: number;
+  paidOn: string;
+  method: PaymentMethod;
+  reference: string;
+  createdBy: string | null;
 }
 
 export function useReservationsManagerData(residentialId: string) {
@@ -154,20 +164,53 @@ export function useReservationsManagerData(residentialId: string) {
     [loadBookings],
   );
 
+  /**
+   * Approves a booking. Approval bills the unit (a DB trigger creates the
+   * installment); when `payment` is given it is recorded against that
+   * installment right away, which also pushes "payment verified" to the unit.
+   */
   const approveBooking = useCallback(
-    async (id: string) => {
+    async (id: string, payment?: ApprovalPayment) => {
       setIsSubmitting(true);
       const result = await amenityBookingService.update(id, { status: "confirmed" });
-      setIsSubmitting(false);
 
       if (!result.success) {
+        setIsSubmitting(false);
         toast.error(result.error.message);
         return;
       }
-      toast.success("Reservation approved");
+
+      let message = "Reservation approved";
+      if (payment) {
+        const charge = await billingService.getByBooking(id);
+        if (!charge.success || !charge.data) {
+          // Nothing to pay against: typically the booking has no resolvable unit.
+          toast.warning("Reservation approved, but no charge was generated, so no payment was recorded");
+          message = "";
+        } else {
+          const paid = await billingService.addPayments([
+            {
+              residential_id: residentialId,
+              installment_id: charge.data.id,
+              amount: payment.amount,
+              paid_on: payment.paidOn,
+              method: payment.method,
+              reference: payment.reference || null,
+              created_by: payment.createdBy,
+            },
+          ]);
+          if (paid.success) message = "Reservation approved and payment recorded";
+          else {
+            toast.error(`Reservation approved, but the payment failed: ${paid.error.message}`);
+            message = "";
+          }
+        }
+      }
+      setIsSubmitting(false);
+      if (message) toast.success(message);
       await loadBookings();
     },
-    [loadBookings],
+    [loadBookings, residentialId],
   );
 
   const updateBookingsStatus = useCallback(

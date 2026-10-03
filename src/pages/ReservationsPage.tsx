@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AddReservationSheet, type NewReservationFields } from "@/components/reservations/AddReservationSheet";
+import { ApproveReservationDialog, type ApprovalPaymentFields } from "@/components/reservations/ApproveReservationDialog";
 import { ReservationDetailSheet } from "@/components/reservations/ReservationDetailSheet";
 import { ReservationTable, type UnitInfo } from "@/components/reservations/ReservationTable";
 import { authService } from "@/services";
@@ -23,6 +24,9 @@ import { formatProfileName } from "@/lib/utils";
 import type { AmenityBookingStatus, AmenityBookingWithUser } from "@/types/amenities.types";
 import type { ResidentialRole } from "@/types/database.types";
 import { useI18n } from "@/i18n/useI18n";
+import { useCreateIntent } from "@/lib/createIntent";
+import { SectionTabs } from "@/components/SectionTabs";
+import { DatePicker } from "@/components/ui/date-picker";
 
 const ALL_AMENITIES = "all";
 const ALL_STATUSES = "all";
@@ -33,11 +37,15 @@ export function ReservationsPage({ residentialId, role }: { residentialId: strin
   const canManage = canManageResidential(role);
   const canCreate = canCreateReservation(role);
   const [sheetOpen, setSheetOpen] = useState(false);
+  useCreateIntent("reservation", () => {
+    if (canCreate) setSheetOpen(true);
+  });
   const [amenityFilter, setAmenityFilter] = useState(ALL_AMENITIES);
   const [statusFilter, setStatusFilter] = useState<typeof ALL_STATUSES | AmenityBookingStatus>(ALL_STATUSES);
   const [dateFilter, setDateFilter] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [approvingId, setApprovingId] = useState<string | null>(null);
   const [viewedBooking, setViewedBooking] = useState<AmenityBookingWithUser | null>(null);
 
   const {
@@ -141,9 +149,32 @@ export function ReservationsPage({ residentialId, role }: { residentialId: strin
     setSelectedIds(new Set());
   };
 
-  const handleApprove = async (id: string) => {
-    await approveBooking(id);
+  const markConfirmed = (id: string) =>
     setViewedBooking((prev) => (prev && prev.id === id ? { ...prev, status: "confirmed" } : prev));
+
+  // A paid amenity gets the approve-and-record-payment dialog; a free one
+  // is approved straight away.
+  const handleApprove = async (id: string) => {
+    const booking = bookings.find((b) => b.id === id);
+    const amenity = amenities.find((a) => a.id === booking?.amenity_id);
+    if (amenity?.requires_payment && (amenity.price ?? 0) > 0) {
+      setApprovingId(id);
+      return;
+    }
+    await approveBooking(id);
+    markConfirmed(id);
+  };
+
+  const approvingBooking = approvingId ? bookings.find((b) => b.id === approvingId) ?? null : null;
+  const approvingAmenity = amenities.find((a) => a.id === approvingBooking?.amenity_id);
+
+  const handleApproveWithPayment = async (payment: ApprovalPaymentFields | null) => {
+    if (!approvingBooking) return;
+    await approveBooking(
+      approvingBooking.id,
+      payment ? { ...payment, createdBy: session?.user?.id ?? null } : undefined,
+    );
+    markConfirmed(approvingBooking.id);
   };
 
   const handleCancel = async (id: string, reason?: string) => {
@@ -173,15 +204,16 @@ export function ReservationsPage({ residentialId, role }: { residentialId: strin
       <AppSidebar userEmail={session?.user?.email} residentialId={residentialId} role={role} onSignOut={() => authService.signOut()} showUserMenu />
 
       <div className="lg:pl-64">
-        <div className="mx-auto max-w-7xl px-6 py-6">
+        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
+          <SectionTabs section="operations" role={role} />
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <CardTitle>{t("reservations.page.title")}</CardTitle>
                 <CardDescription>{t("reservations.page.description")}</CardDescription>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={reload} disabled={isLoading}>
+                <Button variant="outline" size="icon" aria-label={t("common.refresh")} onClick={reload} disabled={isLoading}>
                   <IconRefresh className="h-4 w-4" />
                 </Button>
                 {canCreate && (
@@ -197,18 +229,18 @@ export function ReservationsPage({ residentialId, role }: { residentialId: strin
               ) : (
                 <>
                   <div className="flex flex-wrap items-center gap-2">
-                    <div className="relative min-w-[220px] flex-1">
-                      <IconSearch className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <div className="relative w-full min-w-0 flex-1 sm:min-w-[220px] sm:w-auto">
                       <Input
+                        label={t("reservations.filter.searchLabel")}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         placeholder={t("reservations.filter.searchPlaceholder")}
-                        className="pl-9"
                       />
+                      <IconSearch className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                     </div>
 
                     <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
-                      <SelectTrigger className="w-44">
+                      <SelectTrigger label={t("reservations.filter.statusLabel")} className="w-full sm:w-48">
                         <SelectValue placeholder={t("reservations.filter.statusPlaceholder")} />
                       </SelectTrigger>
                       <SelectContent>
@@ -221,7 +253,7 @@ export function ReservationsPage({ residentialId, role }: { residentialId: strin
                     </Select>
 
                     <Select value={amenityFilter} onValueChange={setAmenityFilter}>
-                      <SelectTrigger className="w-48">
+                      <SelectTrigger label={t("reservations.filter.amenityLabel")} className="w-full sm:w-56">
                         <SelectValue placeholder={t("reservations.filter.placeholder")} />
                       </SelectTrigger>
                       <SelectContent>
@@ -234,11 +266,13 @@ export function ReservationsPage({ residentialId, role }: { residentialId: strin
                       </SelectContent>
                     </Select>
 
-                    <Input
-                      type="date"
+                    <DatePicker
+                      mode="single"
+                      clearable
+                      label={t("reservations.filter.date")}
                       value={dateFilter}
-                      onChange={(e) => setDateFilter(e.target.value)}
-                      className="w-40"
+                      onChange={setDateFilter}
+                      className="w-full sm:w-56"
                     />
 
                     {hasActiveFilters && (
@@ -284,6 +318,20 @@ export function ReservationsPage({ residentialId, role }: { residentialId: strin
           units={units.map((u) => ({ id: u.id, name: unitLabelById.get(u.id) ?? u.name }))}
           isSubmitting={isSubmitting}
           onCreate={handleCreate}
+        />
+      )}
+
+      {approvingBooking && approvingAmenity && (
+        <ApproveReservationDialog
+          open
+          amenityName={approvingAmenity.name}
+          unitLabel={unitLabelById.get(approvingBooking.unit_id ?? "")}
+          price={approvingAmenity.price ?? 0}
+          isSubmitting={isSubmitting}
+          onOpenChange={(open) => {
+            if (!open) setApprovingId(null);
+          }}
+          onConfirm={handleApproveWithPayment}
         />
       )}
 

@@ -22,7 +22,7 @@ const SelectTrigger = React.forwardRef<
     ref={ref}
     className={cn(
       label
-        ? "flex h-14 w-full items-center justify-between gap-2 rounded-lg border border-input bg-gates-surface px-4 py-1.5 text-sm ring-offset-background focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-45 disabled:bg-muted [&>span]:line-clamp-1"
+        ? "flex h-16 w-full items-center justify-between gap-2 rounded-lg border border-input bg-gates-surface px-4 py-3 text-base ring-offset-background focus:outline-none focus:border-ring focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-45 disabled:bg-muted [&>span]:line-clamp-1"
         : "flex h-11 w-full items-center justify-between rounded-lg border border-input bg-gates-surface px-3.5 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-45 [&>span]:line-clamp-1",
       className,
     )}
@@ -30,8 +30,8 @@ const SelectTrigger = React.forwardRef<
   >
     {label ? (
       <>
-        <div className="flex min-w-0 flex-1 flex-col items-start gap-0.5 text-left">
-          <span className="text-[11px] font-medium leading-none text-muted-foreground">{label}</span>
+        <div className="flex min-w-0 flex-1 flex-col items-start gap-1 text-left">
+          <span className="text-xs font-medium leading-4 text-muted-foreground">{label}</span>
           {children}
         </div>
         <SelectPrimitive.Icon asChild>

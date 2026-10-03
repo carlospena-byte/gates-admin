@@ -30,17 +30,17 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     return (
       <div
         className={cn(
-          "flex h-14 w-full flex-col justify-center gap-0.5 rounded-lg border border-input bg-gates-surface px-4 py-1.5 ring-offset-background focus-within:border-ring focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-45 has-[:disabled]:bg-muted",
+          "flex h-16 w-full flex-col justify-center gap-1 rounded-lg border border-input bg-gates-surface px-4 py-3 ring-offset-background focus-within:border-ring focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-45 has-[:disabled]:bg-muted",
           className,
         )}
       >
-        <label htmlFor={inputId} className="text-[11px] font-medium leading-none text-muted-foreground">
+        <label htmlFor={inputId} className="text-xs font-medium leading-4 text-muted-foreground">
           {label}
         </label>
         <input
           id={inputId}
           type={type}
-          className="w-full border-0 bg-transparent p-0 text-sm leading-tight text-foreground outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed"
+          className="w-full border-0 bg-transparent p-0 text-base leading-6 text-foreground outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed"
           ref={ref}
           {...props}
         />

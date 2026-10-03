@@ -5,6 +5,9 @@
  * (RLS is the real gate — see the visitors_security migration).
  */
 
+import { useRef, useState } from "react";
+import { toast } from "sonner";
+import { IconCamera, IconId } from "@tabler/icons-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -16,6 +19,8 @@ import { confirmDeleteToast } from "@/lib/confirmDeleteToast";
 import { usePaginatedSortedData } from "@/hooks/usePaginatedSortedData";
 import { useI18n } from "@/i18n/useI18n";
 import { cn } from "@/lib/utils";
+import { visitorService } from "@/services";
+import { ImageViewerDialog } from "@/components/ui/image-viewer-dialog";
 import { STATUS_LABEL_KEYS, VISIT_TYPE_LABEL_KEYS } from "./visitorLabels";
 import type { UnitWithOwner } from "@/services";
 import type { VisitorStatus, VisitorWithInviter } from "@/types/visitor.types";
@@ -52,6 +57,8 @@ interface VisitorTableProps {
   onCheckIn: (id: string) => void;
   onCheckOut: (id: string) => void;
   onDelete: (id: string) => Promise<boolean>;
+  /** Admin or security — attach/replace the visitor's document photo. */
+  onUploadIdPhoto: (id: string, file: File) => Promise<boolean>;
 }
 
 export function VisitorTable({
@@ -65,8 +72,27 @@ export function VisitorTable({
   onCheckIn,
   onCheckOut,
   onDelete,
+  onUploadIdPhoto,
 }: VisitorTableProps) {
   const { t } = useI18n();
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const photoTargetRef = useRef<string | null>(null);
+  const [viewer, setViewer] = useState<{ src: string; title: string } | null>(null);
+
+  const pickPhoto = (visitorId: string, source: "camera" | "file") => {
+    photoTargetRef.current = visitorId;
+    (source === "camera" ? cameraInputRef : photoInputRef).current?.click();
+  };
+
+  const viewPhoto = async (path: string, name: string | null) => {
+    const result = await visitorService.getIdPhotoUrl(path);
+    if (!result.success) {
+      toast.error(result.error.message);
+      return;
+    }
+    setViewer({ src: result.data, title: name ?? t("visitors.table.pendingRegistration") });
+  };
   const {
     paginatedData: paginatedVisitors,
     totalItems,
@@ -157,6 +183,34 @@ export function VisitorTable({
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
+                    {visitor.id_photo_path && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => viewPhoto(visitor.id_photo_path!, visitor.name)}
+                        title={t("visitors.idPhoto.view")}
+                        aria-label={t("visitors.idPhoto.view")}
+                      >
+                        <IconId className="h-4 w-4 text-green-600" />
+                      </Button>
+                    )}
+                    {canCheckInOut && !HISTORY_STATUSES.has(visitor.status) && (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => pickPhoto(visitor.id, "camera")}
+                          disabled={isSubmitting}
+                          title={t("visitors.idPhoto.takePhoto")}
+                          aria-label={t("visitors.idPhoto.takePhoto")}
+                        >
+                          <IconCamera className="h-4 w-4" />
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => pickPhoto(visitor.id, "file")} disabled={isSubmitting}>
+                          {visitor.id_photo_path ? t("visitors.idPhoto.replace") : t("visitors.idPhoto.upload")}
+                        </Button>
+                      </>
+                    )}
                     {canCheckInOut && visitor.status !== "inside" && !HISTORY_STATUSES.has(visitor.status) && (
                       <Button size="sm" variant="outline" onClick={() => onCheckIn(visitor.id)} disabled={isSubmitting}>
                         {t("visitors.table.checkIn")}
@@ -179,6 +233,45 @@ export function VisitorTable({
           </TableBody>
         </Table>
       </div>
+
+      <input
+        ref={photoInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={async (e) => {
+          const file = e.target.files?.[0];
+          const target = photoTargetRef.current;
+          e.target.value = "";
+          if (file && target) await onUploadIdPhoto(target, file);
+        }}
+      />
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={async (e) => {
+          const file = e.target.files?.[0];
+          const target = photoTargetRef.current;
+          e.target.value = "";
+          if (file && target) await onUploadIdPhoto(target, file);
+        }}
+      />
+      <ImageViewerDialog
+        src={viewer?.src ?? null}
+        title={viewer?.title ?? ""}
+        onOpenChange={(open) => !open && setViewer(null)}
+        labels={{
+          zoomIn: t("incidents.viewer.zoomIn"),
+          zoomOut: t("incidents.viewer.zoomOut"),
+          reset: t("incidents.viewer.reset"),
+          rotateLeft: t("incidents.viewer.rotateLeft"),
+          rotateRight: t("incidents.viewer.rotateRight"),
+          close: t("common.close"),
+        }}
+      />
 
       <Pagination
         currentPage={currentPage}

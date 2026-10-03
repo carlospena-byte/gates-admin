@@ -6,7 +6,7 @@
 
 @layer base {
   :root {
-    /* Gates UI Kit — raw palette (see Figma "Gates 26", —— Components ——) */
+    /* Vecinoo UI Kit — raw palette (see Figma "Vecinoo 26", —— Components ——) */
     --gates-bg-canvas: 75 22% 96%;
     --gates-bg-surface: 0 0% 100%;
     --gates-bg-subtle: 94 21% 94%;
@@ -29,7 +29,7 @@
     --gates-status-success-bg: 115 30% 92%;
     --gates-status-info-bg: 259 40% 92%;
 
-    /* shadcn/ui semantic tokens, remapped to the Gates palette */
+    /* shadcn/ui semantic tokens, remapped to the Vecinoo palette */
     --background: var(--gates-bg-canvas);
     --foreground: var(--gates-text-primary);
     --card: var(--gates-bg-surface);
@@ -78,7 +78,7 @@
 
 @layer utilities {
   /* Brand-only warm glow (amber + sage), matching the mobile app's auth
-     screens — no purple/lilac, which never appears in the Gates palette. */
+     screens — no purple/lilac, which never appears in the Vecinoo palette. */
   .mesh-bg {
     background:
       radial-gradient(1100px circle at 50% 8%, hsl(var(--gates-bg-warm) / 0.55), transparent 60%),
@@ -123,4 +123,17 @@
 
 [data-sonner-toast] {
   pointer-events: auto !important;
+}
+
+/* Desktop sidebar collapsed (see AppSidebar): pages reserve `lg:pl-64` for it; the icon rail needs only 6rem. */
+@media (min-width: 1024px) {
+  html[data-sidebar-collapsed] .lg\:pl-64 {
+    padding-left: 6rem;
+  }
+
+  /* With the rail the content has room to grow: lift the wide page containers' cap. */
+  html[data-sidebar-collapsed] .lg\:pl-64 .max-w-7xl,
+  html[data-sidebar-collapsed] .lg\:pl-64 .max-w-6xl {
+    max-width: 96rem;
+  }
 }

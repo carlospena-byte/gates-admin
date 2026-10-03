@@ -13,8 +13,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Spinner } from "@/components/LoadingStates";
 import { useI18n } from "@/i18n/useI18n";
+import { IdPhotoField } from "./IdPhotoField";
 import type { UnitWithOwner } from "@/services";
+import type { Location } from "@/types/unit-wizard.types";
+import { UnitCombobox } from "@/components/units/UnitCombobox";
 import type { ProviderKind } from "@/types/visitor.types";
+import { DatePicker } from "@/components/ui/date-picker";
 
 const NOTES_MAX_LENGTH = 120;
 const PROVIDER_KINDS: ProviderKind[] = ["proveedor", "delivery", "paqueteria"];
@@ -27,14 +31,18 @@ export interface NewDeliveryVisitFields {
   providerKind: ProviderKind;
   visitDate: string; // "YYYY-MM-DD"
   notes: string;
+  idPhoto: File | null;
 }
 
 interface AddDeliveryVisitSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   units: UnitWithOwner[];
+  locations?: Location[];
   isSubmitting: boolean;
   onCreate: (fields: NewDeliveryVisitFields) => Promise<boolean>;
+  /** Pre-selected type, set by the menu entry the admin picked. */
+  initialKind?: ProviderKind;
 }
 
 function toDateValue(date: Date): string {
@@ -42,26 +50,27 @@ function toDateValue(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
-function defaultFields(): NewDeliveryVisitFields {
+function defaultFields(providerKind: ProviderKind): NewDeliveryVisitFields {
   return {
     name: "",
     phone: "",
     plate: "",
     unitId: "",
-    providerKind: "delivery",
+    providerKind,
     visitDate: toDateValue(new Date()),
     notes: "",
+    idPhoto: null,
   };
 }
 
-export function AddDeliveryVisitSheet({ open, onOpenChange, units, isSubmitting, onCreate }: AddDeliveryVisitSheetProps) {
+export function AddDeliveryVisitSheet({ open, onOpenChange, units, locations = [], isSubmitting, onCreate, initialKind = "delivery" }: AddDeliveryVisitSheetProps) {
   const { t } = useI18n();
-  const [fields, setFields] = useState<NewDeliveryVisitFields>(defaultFields);
+  const [fields, setFields] = useState<NewDeliveryVisitFields>(() => defaultFields(initialKind));
   const set = <K extends keyof NewDeliveryVisitFields>(key: K, value: NewDeliveryVisitFields[K]) =>
     setFields((prev) => ({ ...prev, [key]: value }));
 
   const handleOpenChange = (nextOpen: boolean) => {
-    if (!nextOpen) setFields(defaultFields());
+    if (!nextOpen) setFields(defaultFields(initialKind));
     onOpenChange(nextOpen);
   };
 
@@ -71,7 +80,7 @@ export function AddDeliveryVisitSheet({ open, onOpenChange, units, isSubmitting,
     if (!isValid) return;
     const ok = await onCreate(fields);
     if (ok) {
-      setFields(defaultFields());
+      setFields(defaultFields(initialKind));
       onOpenChange(false);
     }
   };
@@ -124,29 +133,21 @@ export function AddDeliveryVisitSheet({ open, onOpenChange, units, isSubmitting,
             />
           </div>
 
-          <Select
-            value={fields.unitId || "none"}
-            onValueChange={(value) => set("unitId", value === "none" ? "" : value)}
+          <UnitCombobox
+            units={units}
+            locations={locations}
+            value={fields.unitId}
+            onChange={(unitId) => set("unitId", unitId)}
+            label={t("visitors.create.unitLabel")}
+            emptyLabel={t("visitors.create.noSpecificUnit")}
             disabled={isSubmitting}
-          >
-            <SelectTrigger label={t("visitors.create.unitLabel")}>
-              <SelectValue placeholder={t("visitors.create.noSpecificUnit")} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">{t("visitors.create.noSpecificUnit")}</SelectItem>
-              {units.map((unit) => (
-                <SelectItem key={unit.id} value={unit.id}>
-                  {unit.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          />
 
-          <Input
+          <DatePicker
+            mode="single"
             label={t("visitors.delivery.dateLabel")}
-            type="date"
             value={fields.visitDate}
-            onChange={(e) => set("visitDate", e.target.value)}
+            onChange={(v) => set("visitDate", v)}
             disabled={isSubmitting}
           />
 
@@ -158,6 +159,8 @@ export function AddDeliveryVisitSheet({ open, onOpenChange, units, isSubmitting,
             disabled={isSubmitting}
             helper={`${fields.notes.length}/${NOTES_MAX_LENGTH}`}
           />
+
+          <IdPhotoField file={fields.idPhoto} onChange={(file) => set("idPhoto", file)} disabled={isSubmitting} />
         </div>
 
         <SheetFooter>

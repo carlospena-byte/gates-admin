@@ -5,6 +5,7 @@ import { AddonTypeSettingsPanel } from "@/components/AddonTypeManager";
 import { IncidentTypeSettingsPanel } from "@/components/IncidentTypeManager";
 import { LocationSettingsPanel } from "@/components/LocationManager";
 import { AddonSettingsPanel } from "@/components/AddonManager";
+import { ChargeSettingsPanel } from "@/components/ChargeManager";
 import { UserRoleSettingsPanel } from "@/components/settings/UserRoleManager";
 import { authService, residentialService } from "@/services";
 import { useQuery } from "@/hooks";
@@ -32,6 +33,11 @@ const SECTIONS = [
     descriptionKey: "settings.sections.addons.description" as MessageKey,
   },
   {
+    route: "settingsCharges" as RouteType,
+    labelKey: "settings.sections.charges.label" as MessageKey,
+    descriptionKey: "settings.sections.charges.description" as MessageKey,
+  },
+  {
     route: "settingsIncidentTypes" as RouteType,
     labelKey: "settings.sections.incidentTypes.label" as MessageKey,
     descriptionKey: "settings.sections.incidentTypes.description" as MessageKey,
@@ -54,9 +60,14 @@ const SECTIONS = [
   },
 ];
 
-const NAV_SECTIONS = SECTIONS.filter(
-  (section) => section.route !== "settingsLocationTypes" && section.route !== "settingsAddonTypes",
-);
+const NAV_GROUPS: { labelKey: MessageKey; routes: RouteType[] }[] = [
+  {
+    labelKey: "settings.group.structure",
+    routes: ["settingsUnitTypes", "settingsLocations", "settingsAddons"],
+  },
+  { labelKey: "settings.group.finance", routes: ["settingsCharges"] },
+  { labelKey: "settings.group.team", routes: ["settingsIncidentTypes", "settingsUsers"] },
+];
 
 function SettingsSectionPanel({
   route,
@@ -78,6 +89,8 @@ function SettingsSectionPanel({
       return <LocationSettingsPanel residentialId={residentialId} />;
     case "settingsAddons":
       return <AddonSettingsPanel residentialId={residentialId} />;
+    case "settingsCharges":
+      return <ChargeSettingsPanel residentialId={residentialId} />;
     case "settingsIncidentTypes":
       return <IncidentTypeSettingsPanel residentialId={residentialId} />;
     case "settingsUsers":
@@ -100,7 +113,7 @@ export function SettingsPage({ residentialId, role }: { residentialId: string; r
       <AppSidebar userEmail={session?.user?.email} residentialId={residentialId} role={role} onSignOut={() => authService.signOut()} showUserMenu />
 
       <div className="lg:pl-64">
-        <div className="mx-auto max-w-7xl px-6 py-6 space-y-6">
+        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 space-y-6">
           {residential?.name && (
             <p className="text-xs font-medium uppercase tracking-tight text-gates-text-brand">
               {residential.name} / {t("settings.title")}
@@ -108,37 +121,43 @@ export function SettingsPage({ residentialId, role }: { residentialId: string; r
           )}
 
           <div>
-            <h1 className="text-[32px] font-medium leading-[40px] tracking-[-0.8px] text-gates-text-primary">
+            <h1 className="text-2xl font-medium leading-8 sm:text-[32px] sm:leading-[40px] tracking-[-0.8px] text-gates-text-primary">
               {t("settings.pageTitle")}
             </h1>
             <p className="text-base text-gates-text-secondary">{t("settings.subtitle")}</p>
           </div>
 
-          <div className="flex items-start gap-6">
-            <nav className="flex w-52 shrink-0 flex-col gap-1">
-              <p className="px-4 pb-1 text-xs font-medium uppercase tracking-tight text-gates-text-secondary">
-                {t("settings.category.residential")}
-              </p>
-              {NAV_SECTIONS.map((section) => {
-                const isActive = section.route === active.route;
-                return (
-                  <a
-                    key={section.route}
-                    href={ROUTES[section.route].hash}
-                    className={cn(
-                      "flex h-12 items-center rounded-full px-4 text-sm font-semibold transition-colors",
-                      isActive
-                        ? "bg-gates-accent text-gates-text-brand"
-                        : "text-gates-text-brand hover:bg-gates-subtle",
-                    )}
-                  >
-                    {t(section.labelKey)}
-                  </a>
-                );
-              })}
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
+            <nav className="-mx-4 flex gap-1 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:-mx-6 sm:px-6 lg:mx-0 lg:w-52 lg:shrink-0 lg:flex-col lg:overflow-visible lg:px-0">
+              {NAV_GROUPS.map((group) => (
+                <div key={group.labelKey} className="flex gap-1 lg:flex-col lg:pb-3">
+                  <p className="hidden px-4 pb-1 text-xs font-medium uppercase tracking-tight text-gates-text-secondary lg:block">
+                    {t(group.labelKey)}
+                  </p>
+                  {group.routes.map((route) => {
+                    const section = SECTIONS.find((entry) => entry.route === route);
+                    if (!section) return null;
+                    const isActive = section.route === active.route;
+                    return (
+                      <a
+                        key={section.route}
+                        href={ROUTES[section.route].hash}
+                        className={cn(
+                          "flex h-10 shrink-0 items-center whitespace-nowrap rounded-full px-4 text-sm font-semibold transition-colors lg:h-12",
+                          isActive
+                            ? "bg-gates-accent text-gates-text-brand"
+                            : "text-gates-text-brand hover:bg-gates-subtle",
+                        )}
+                      >
+                        {t(section.labelKey)}
+                      </a>
+                    );
+                  })}
+                </div>
+              ))}
             </nav>
 
-            <div className="flex-1 rounded-gates-lg bg-gates-surface p-6 shadow-gates-card">
+            <div className="w-full min-w-0 flex-1 rounded-gates-lg bg-gates-surface p-4 shadow-gates-card sm:p-6">
               <div className="mb-6 flex items-center gap-4">
                 <div className="min-w-0 flex-1">
                   <p className="text-2xl font-semibold tracking-tight text-gates-text-primary">{t(active.labelKey)}</p>

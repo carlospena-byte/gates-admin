@@ -24,8 +24,47 @@ const baseService = createCrudService<VisitorWithInviter, CreateVisitorDto, Upda
   selectClause: "*, profiles:invited_by(email)",
 });
 
+const ID_PHOTO_BUCKET = "visitor-id-photos";
+const ID_PHOTO_URL_TTL_SECONDS = 60 * 10;
+
 export const visitorService = {
   ...baseService,
+
+  /**
+   * Uploads a visitor's ID document photo to the private bucket and stores
+   * its path on the visitor. Admin creating a visit and security at the
+   * gate both use this (storage + visitors RLS allow both). Path layout
+   * matches fastlane-submit / the mobile app: <residential_id>/<file>.
+   */
+  async uploadIdPhoto(params: {
+    residentialId: string;
+    visitorId: string;
+    file: File;
+  }): Promise<ApiResult<string>> {
+    return wrapResult("uploadVisitorIdPhoto", async () => {
+      const client = requireSupabase();
+      const ext = (params.file.name.split(".").pop() || "jpg").toLowerCase();
+      const path = `${params.residentialId}/${params.visitorId}-${Date.now()}.${ext}`;
+
+      await unwrap<unknown>(
+        client.storage
+          .from(ID_PHOTO_BUCKET)
+          .upload(path, params.file, { contentType: params.file.type || "image/jpeg" }),
+      );
+      await unwrap<null>(client.from("visitors").update({ id_photo_path: path }).eq("id", params.visitorId));
+      return path;
+    });
+  },
+
+  /** Short-lived signed URL for viewing a stored ID photo. */
+  async getIdPhotoUrl(path: string): Promise<ApiResult<string>> {
+    return wrapResult("getVisitorIdPhotoUrl", async () => {
+      const { signedUrl } = await unwrap<{ signedUrl: string }>(
+        requireSupabase().storage.from(ID_PHOTO_BUCKET).createSignedUrl(path, ID_PHOTO_URL_TTL_SECONDS),
+      );
+      return signedUrl;
+    });
+  },
 
   /**
    * FastLane rows are created via a security-definer RPC (not a plain

@@ -7,12 +7,13 @@
 import { useMemo, useState } from "react";
 import { IconChevronDown, IconDownload, IconRefresh } from "@tabler/icons-react";
 import { AppSidebar } from "@/components/AppSidebar";
+import { DatePicker } from "@/components/ui/date-picker";
+import { fromIso, toIso } from "@/lib/date-iso";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DateRangePicker, type DateRange } from "@/components/ui/date-range-picker";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,18 +22,19 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { AddFrequentVisitSheet, type NewFrequentVisitFields } from "@/components/visitors/AddFrequentVisitSheet";
 import { AddDeliveryVisitSheet, type NewDeliveryVisitFields } from "@/components/visitors/AddDeliveryVisitSheet";
-import { AddFastlaneVisitSheet, type NewFastlaneVisitFields } from "@/components/visitors/AddFastlaneVisitSheet";
 import { VisitorTable } from "@/components/visitors/VisitorTable";
 import { STATUS_LABEL_KEYS, VISIT_TYPE_LABEL_KEYS } from "@/components/visitors/visitorLabels";
 import { useI18n } from "@/i18n/useI18n";
+import { useCreateIntent } from "@/lib/createIntent";
 import { authService } from "@/services";
 import { useSession } from "@/state/useSession";
 import { canManageResidential } from "@/state/useAccess";
 import { useVisitorManagerData } from "@/hooks/useVisitorManagerData";
 import type { ResidentialRole } from "@/types/database.types";
-import type { VisitorWithInviter, VisitType } from "@/types/visitor.types";
+import type { ProviderKind, VisitorWithInviter, VisitType } from "@/types/visitor.types";
 
-type ActiveSheet = "frequent" | "delivery" | "fastlane" | null;
+type ActiveSheet = "frequent" | "delivery" | null;
+const DELIVERY_MENU_KINDS: ProviderKind[] = ["delivery", "proveedor", "paqueteria"];
 type VisitTypeFilter = VisitType | "all";
 type VisitorsTab = "today" | "upcoming" | "inside" | "history";
 
@@ -42,6 +44,11 @@ function startOfDay(date: Date): Date {
 
 function endOfDay(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
+}
+
+interface DateRange {
+  from: Date;
+  to: Date;
 }
 
 function defaultHistoryRange(): DateRange {
@@ -56,11 +63,13 @@ function csvCell(value: string): string {
 }
 
 export function VisitorsPage({ residentialId, role }: { residentialId: string; role: ResidentialRole }) {
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
   const { session } = useSession();
   const canManage = canManageResidential(role);
   const canCheckInOut = canManage || role === "security";
   const [activeSheet, setActiveSheet] = useState<ActiveSheet>(null);
+  useCreateIntent("visitor", () => setActiveSheet("frequent"));
+  const [deliveryKind, setDeliveryKind] = useState<ProviderKind>("delivery");
   const [activeTab, setActiveTab] = useState<VisitorsTab>("today");
   const [visitTypeFilter, setVisitTypeFilter] = useState<VisitTypeFilter>("all");
   const [visitorQuery, setVisitorQuery] = useState("");
@@ -71,14 +80,14 @@ export function VisitorsPage({ residentialId, role }: { residentialId: string; r
   const {
     visitors,
     units,
+    locations,
     isLoading,
     isSubmitting,
     reload,
     createFrequentVisit,
     createDeliveryVisit,
-    createFastlaneVisit,
-    sendFastlaneNotification,
     deleteVisitor,
+    uploadIdPhoto,
     checkIn,
     checkOut,
   } = useVisitorManagerData(residentialId);
@@ -169,9 +178,6 @@ export function VisitorsPage({ residentialId, role }: { residentialId: string; r
   const handleCreateDelivery = async (fields: NewDeliveryVisitFields): Promise<boolean> =>
     createDeliveryVisit({ ...fields, invitedBy: session?.user?.id ?? null });
 
-  const handleCreateFastlane = async (fields: NewFastlaneVisitFields): Promise<VisitorWithInviter | null> =>
-    createFastlaneVisit(fields);
-
   const tableProps = {
     units,
     isLoading,
@@ -181,6 +187,7 @@ export function VisitorsPage({ residentialId, role }: { residentialId: string; r
     onCheckIn: checkIn,
     onCheckOut: checkOut,
     onDelete: deleteVisitor,
+    onUploadIdPhoto: uploadIdPhoto,
   };
 
   return (
@@ -188,15 +195,15 @@ export function VisitorsPage({ residentialId, role }: { residentialId: string; r
       <AppSidebar userEmail={session?.user?.email} residentialId={residentialId} role={role} onSignOut={() => authService.signOut()} showUserMenu />
 
       <div className="lg:pl-64">
-        <div className="mx-auto max-w-7xl px-6 py-6">
+        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <CardTitle>{t("visitors.title")}</CardTitle>
                 <CardDescription>{t("visitors.description")}</CardDescription>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={reload} disabled={isLoading}>
+                <Button variant="outline" size="icon" aria-label={t("common.refresh")} onClick={reload} disabled={isLoading}>
                   <IconRefresh className="h-4 w-4" />
                 </Button>
                 {canManage && (
@@ -209,23 +216,28 @@ export function VisitorsPage({ residentialId, role }: { residentialId: string; r
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => setActiveSheet("frequent")}>
-                        {t("visitors.frequent.menuLabel")}
+                        {t("visitors.menu.visit")}
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setActiveSheet("delivery")}>
-                        {t("visitors.delivery.menuLabel")}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setActiveSheet("fastlane")}>
-                        {t("visitors.fastlane.menuLabel")}
-                      </DropdownMenuItem>
+                      {DELIVERY_MENU_KINDS.map((kind) => (
+                        <DropdownMenuItem
+                          key={kind}
+                          onClick={() => {
+                            setDeliveryKind(kind);
+                            setActiveSheet("delivery");
+                          }}
+                        >
+                          {t(`visitors.delivery.type.${kind}`)}
+                        </DropdownMenuItem>
+                      ))}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 )}
               </div>
             </CardHeader>
             <CardContent>
-              <div className="mb-4 flex flex-wrap items-end gap-2">
+              <div className="mb-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-end">
                 <Select value={visitTypeFilter} onValueChange={(value) => setVisitTypeFilter(value as VisitTypeFilter)}>
-                  <SelectTrigger label={t("visitors.filters.typeLabel")} className="w-48">
+                  <SelectTrigger label={t("visitors.filters.typeLabel")} className="w-full sm:w-48">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -240,21 +252,21 @@ export function VisitorsPage({ residentialId, role }: { residentialId: string; r
                   placeholder={t("visitors.filters.visitorPlaceholder")}
                   value={visitorQuery}
                   onChange={(e) => setVisitorQuery(e.target.value)}
-                  className="flex-1 min-w-[160px]"
+                  className="min-w-0 sm:flex-1 sm:min-w-[160px]"
                 />
                 <Input
                   label={t("visitors.filters.invitedByLabel")}
                   placeholder={t("visitors.filters.invitedByPlaceholder")}
                   value={invitedByQuery}
                   onChange={(e) => setInvitedByQuery(e.target.value)}
-                  className="flex-1 min-w-[160px]"
+                  className="min-w-0 sm:flex-1 sm:min-w-[160px]"
                 />
                 <Input
                   label={t("visitors.filters.plateLabel")}
                   placeholder={t("visitors.filters.platePlaceholder")}
                   value={plateQuery}
                   onChange={(e) => setPlateQuery(e.target.value)}
-                  className="flex-1 min-w-[140px]"
+                  className="min-w-0 sm:flex-1 sm:min-w-[160px]"
                 />
               </div>
 
@@ -279,15 +291,18 @@ export function VisitorsPage({ residentialId, role }: { residentialId: string; r
                 </TabsContent>
                 <TabsContent value="history" className="pt-4">
                   <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
-                    <DateRangePicker
+                    <DatePicker
+                      mode="range"
                       label={t("visitors.history.dateRangeLabel")}
-                      value={historyRange}
-                      onChange={setHistoryRange}
-                      applyLabel={t("visitors.history.applyRange")}
-                      locale={locale}
-                      className="max-w-xs"
+                      value={{ from: toIso(historyRange.from), to: toIso(historyRange.to) }}
+                      onChange={(range) => {
+                        const from = fromIso(range.from);
+                        const to = fromIso(range.to);
+                        if (from && to) setHistoryRange({ from, to });
+                      }}
+                      className="w-full sm:max-w-xs"
                     />
-                    <Button variant="outline" size="sm" onClick={handleExportHistory} disabled={buckets.history.length === 0}>
+                    <Button variant="outline" onClick={handleExportHistory} disabled={buckets.history.length === 0}>
                       <IconDownload className="mr-1 h-4 w-4" />
                       {t("visitors.history.export")}
                     </Button>
@@ -304,23 +319,19 @@ export function VisitorsPage({ residentialId, role }: { residentialId: string; r
         open={activeSheet === "frequent"}
         onOpenChange={(open) => setActiveSheet(open ? "frequent" : null)}
         units={units}
+        locations={locations}
         isSubmitting={isSubmitting}
         onCreate={handleCreateFrequent}
       />
       <AddDeliveryVisitSheet
+        key={deliveryKind}
+        initialKind={deliveryKind}
         open={activeSheet === "delivery"}
         onOpenChange={(open) => setActiveSheet(open ? "delivery" : null)}
         units={units}
+        locations={locations}
         isSubmitting={isSubmitting}
         onCreate={handleCreateDelivery}
-      />
-      <AddFastlaneVisitSheet
-        open={activeSheet === "fastlane"}
-        onOpenChange={(open) => setActiveSheet(open ? "fastlane" : null)}
-        units={units}
-        isSubmitting={isSubmitting}
-        onCreate={handleCreateFastlane}
-        onResend={sendFastlaneNotification}
       />
     </div>
   );

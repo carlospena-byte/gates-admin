@@ -16,6 +16,7 @@ import { Spinner } from "@/components/LoadingStates";
 import { useI18n } from "@/i18n/useI18n";
 import type { UnitWithOwner } from "@/services";
 import type { NotificationChannel, VisitorWithInviter } from "@/types/visitor.types";
+import { DatePicker } from "@/components/ui/date-picker";
 
 const NOTES_MAX_LENGTH = 120;
 
@@ -154,11 +155,11 @@ export function AddFastlaneVisitSheet({ open, onOpenChange, units, isSubmitting,
             disabled={isSubmitting}
           />
 
-          <Input
+          <DatePicker
+            mode="single"
             label={t("visitors.delivery.dateLabel")}
-            type="date"
             value={fields.visitDate}
-            onChange={(e) => set("visitDate", e.target.value)}
+            onChange={(v) => set("visitDate", v)}
             disabled={isSubmitting}
           />
 

@@ -25,6 +25,8 @@ interface UnitComboboxProps {
   disabled?: boolean;
   label?: string;
   placeholder?: string;
+  /** When set, adds a top entry that clears the selection (value ""), e.g. "No specific unit". */
+  emptyLabel?: string;
 }
 
 const UNGROUPED_KEY = "__ungrouped__";
@@ -47,7 +49,7 @@ interface UnitEntry {
   groupName: string;
 }
 
-export function UnitCombobox({ units, locations, value, onChange, disabled, label, placeholder }: UnitComboboxProps) {
+export function UnitCombobox({ units, locations, value, onChange, disabled, label, placeholder, emptyLabel }: UnitComboboxProps) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -98,7 +100,7 @@ export function UnitCombobox({ units, locations, value, onChange, disabled, labe
           <div className="flex min-w-0 flex-1 flex-col items-start gap-0.5 text-left">
             <span className="text-[11px] font-medium leading-none text-muted-foreground">{resolvedLabel}</span>
             <span className={cn("truncate", !selected && "text-muted-foreground")}>
-              {selected ? selected.fullLabel : (placeholder ?? t("residents.create.selectUnitPlaceholder"))}
+              {selected ? selected.fullLabel : (emptyLabel ?? placeholder ?? t("residents.create.selectUnitPlaceholder"))}
             </span>
           </div>
           <IconChevronDown className="h-4 w-4 shrink-0 opacity-50" />
@@ -113,6 +115,20 @@ export function UnitCombobox({ units, locations, value, onChange, disabled, labe
           />
           <CommandList>
             <CommandEmpty>{t("units.location.noOptionsFound")}</CommandEmpty>
+            {emptyLabel && !search && (
+              <CommandGroup>
+                <CommandItem
+                  value="__none__"
+                  onSelect={() => {
+                    onChange("");
+                    setOpen(false);
+                  }}
+                >
+                  <IconCheck className={cn("mr-2 h-4 w-4", value === "" ? "opacity-100" : "opacity-0")} />
+                  {emptyLabel}
+                </CommandItem>
+              </CommandGroup>
+            )}
             {groups.map((group) => (
               <CommandGroup key={group.name} heading={group.name}>
                 {group.items.map((entry) => (

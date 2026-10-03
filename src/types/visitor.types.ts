@@ -73,6 +73,7 @@ export interface CreateVisitorDto {
   schedule_type?: ScheduleType;
   schedule_start?: string | null;
   schedule_end?: string | null;
+  id_photo_path?: string | null;
 }
 
 export interface UpdateVisitorDto {
@@ -92,6 +93,7 @@ export interface UpdateVisitorDto {
   schedule_type?: ScheduleType;
   schedule_start?: string | null;
   schedule_end?: string | null;
+  id_photo_path?: string | null;
 }
 
 // Visitor joined with the inviting profile's email, for the "Invited By"

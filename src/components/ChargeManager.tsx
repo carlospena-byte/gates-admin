@@ -1,18 +1,11 @@
 /**
- * Charge Manager
- * Side sheet for managing recurring monthly charges CRUD (e.g. "Seguridad").
- * Assigning a charge to units happens on the charge's own detail page
- * (see ChargeDetailPage) — Edit here navigates there.
+ * Charge settings panel (Settings -> Charges): recurring monthly charges CRUD
+ * (e.g. "Seguridad") plus the residential's late-fee policy. Who pays each
+ * charge is set on the charge's own detail page (see ChargeDetailPage) —
+ * creating or editing one navigates there.
  */
 
 import { useI18n } from "@/i18n/useI18n";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
 import { ChargeCreateForm } from "@/components/charges/ChargeCreateForm";
 import { ChargeTable } from "@/components/charges/ChargeTable";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -59,33 +52,5 @@ export function ChargeSettingsPanel({ residentialId }: { residentialId: string }
         onToggleActive={toggleActive}
       />
     </div>
-  );
-}
-
-interface ChargeManagerProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  residentialId: string;
-}
-
-export function ChargeManager({ open, onOpenChange, residentialId }: ChargeManagerProps) {
-  const { t } = useI18n();
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="right"
-        className="w-full sm:max-w-xl overflow-y-auto"
-        onInteractOutside={(e) => e.preventDefault()}
-      >
-        <SheetHeader>
-          <SheetTitle>{t("charges.manager.title")}</SheetTitle>
-          <SheetDescription>{t("charges.manager.description")}</SheetDescription>
-        </SheetHeader>
-
-        <div className="py-6">
-          <ChargeSettingsPanel residentialId={residentialId} />
-        </div>
-      </SheetContent>
-    </Sheet>
   );
 }

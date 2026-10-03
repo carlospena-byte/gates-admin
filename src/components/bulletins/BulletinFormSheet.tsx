@@ -118,7 +118,7 @@ export function BulletinFormSheet({ open, onOpenChange, bulletin, isSubmitting, 
   return (
     <Sheet open={open} onOpenChange={(next) => !isSubmitting && onOpenChange(next)}>
       <SheetContent side="right" className="flex h-full w-full flex-col gap-0 p-0 sm:max-w-[640px]">
-        <SheetHeader className="border-b px-6 py-4">
+        <SheetHeader className="border-b px-4 py-4 sm:px-6">
           <SheetTitle>{isEdit ? t("bulletins.form.title.edit") : t("bulletins.form.title.create")}</SheetTitle>
           <SheetDescription>{t("bulletins.form.description")}</SheetDescription>
         </SheetHeader>
@@ -128,7 +128,7 @@ export function BulletinFormSheet({ open, onOpenChange, bulletin, isSubmitting, 
             <Spinner />
           </div>
         ) : (
-          <div className="flex-1 space-y-5 overflow-y-auto px-6 py-4">
+          <div className="flex-1 space-y-5 overflow-y-auto px-4 py-4 sm:px-6">
             <div className="space-y-1.5">
               <Input
                 label={t("bulletins.form.titleLabel")}
@@ -166,7 +166,7 @@ export function BulletinFormSheet({ open, onOpenChange, bulletin, isSubmitting, 
           </div>
         )}
 
-        <SheetFooter className="border-t px-6 py-4">
+        <SheetFooter className="border-t px-4 py-4 sm:px-6">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
             {t("common.cancel")}
           </Button>

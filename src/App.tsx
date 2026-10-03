@@ -25,6 +25,7 @@ import { IncidentsPage } from "@/pages/IncidentsPage";
 import { AnnouncementsPage } from "@/pages/AnnouncementsPage";
 import { BulletinsPage } from "@/pages/BulletinsPage";
 import { ReservationsPage } from "@/pages/ReservationsPage";
+import { AmenitiesPage } from "@/pages/AmenitiesPage";
 import { BillingPage } from "@/pages/BillingPage";
 import { UnitDetailPage } from "@/pages/UnitDetailPage";
 import { AddonDetailPage } from "@/pages/AddonDetailPage";
@@ -359,6 +360,14 @@ export default function App() {
     return (
       <AppFrame>
         <ReservationsPage residentialId={access.residentialId} role={access.role} />
+      </AppFrame>
+    );
+  }
+
+  if (currentRoute === "amenities") {
+    return (
+      <AppFrame>
+        <AmenitiesPage residentialId={access.residentialId} role={access.role} />
       </AppFrame>
     );
   }

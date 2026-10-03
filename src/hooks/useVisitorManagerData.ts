@@ -7,14 +7,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { accessLogService, unitService, visitorService, type UnitWithOwner } from "@/services";
+import { accessLogService, locationService, unitService, visitorService, type UnitWithOwner } from "@/services";
+import type { Location } from "@/types/unit-wizard.types";
 import type {
   CreateVisitorDto,
   NotificationChannel,
   ProviderKind,
-  Recurrence,
-  RecurrenceDay,
-  ScheduleType,
   VisitorRole,
   VisitorWithInviter,
 } from "@/types/visitor.types";
@@ -25,12 +23,8 @@ export interface FrequentVisitFormPayload {
   plate: string;
   unitId: string;
   visitorRole: VisitorRole;
-  recurrence: Recurrence;
-  recurrenceDays: RecurrenceDay[];
-  scheduleType: ScheduleType;
-  scheduleStart: string;
-  scheduleEnd: string;
   notes: string;
+  idPhoto: File | null;
   invitedBy: string | null;
 }
 
@@ -42,6 +36,7 @@ export interface DeliveryVisitFormPayload {
   providerKind: ProviderKind;
   visitDate: string;
   notes: string;
+  idPhoto: File | null;
   invitedBy: string | null;
 }
 
@@ -55,15 +50,17 @@ export interface FastlaneVisitFormPayload {
 export function useVisitorManagerData(residentialId: string) {
   const [visitors, setVisitors] = useState<VisitorWithInviter[]>([]);
   const [units, setUnits] = useState<UnitWithOwner[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const reload = useCallback(async () => {
     setIsLoading(true);
 
-    const [visitorsResult, unitsResult] = await Promise.all([
+    const [visitorsResult, unitsResult, locationsResult] = await Promise.all([
       visitorService.list(residentialId),
       unitService.listByResidential(residentialId),
+      locationService.list(residentialId),
     ]);
 
     setIsLoading(false);
@@ -75,16 +72,50 @@ export function useVisitorManagerData(residentialId: string) {
     }
 
     if (unitsResult.success) setUnits(unitsResult.data);
+    if (locationsResult.success) setLocations(locationsResult.data);
   }, [residentialId]);
 
   useEffect(() => {
     void reload();
   }, [reload]);
 
+  /**
+   * Uploads the optional ID photo for a just-created visit. The visit itself
+   * already exists, so a failed upload only warns — the photo can still be
+   * attached later from the table.
+   */
+  const attachIdPhoto = useCallback(
+    async (visitorId: string, file: File | null) => {
+      if (!file) return;
+      const result = await visitorService.uploadIdPhoto({ residentialId, visitorId, file });
+      if (!result.success) toast.error(result.error.message);
+    },
+    [residentialId],
+  );
+
+  const uploadIdPhoto = useCallback(
+    async (visitorId: string, file: File): Promise<boolean> => {
+      setIsSubmitting(true);
+      const result = await visitorService.uploadIdPhoto({ residentialId, visitorId, file });
+      setIsSubmitting(false);
+
+      if (!result.success) {
+        toast.error(result.error.message);
+        return false;
+      }
+
+      toast.success("Document photo saved");
+      await reload();
+      return true;
+    },
+    [residentialId, reload],
+  );
+
   const createFrequentVisit = useCallback(
     async (payload: FrequentVisitFormPayload): Promise<boolean> => {
       setIsSubmitting(true);
 
+      const now = new Date();
       const dto: CreateVisitorDto = {
         residential_id: residentialId,
         unit_id: payload.unitId || null,
@@ -92,18 +123,12 @@ export function useVisitorManagerData(residentialId: string) {
         name: payload.name,
         phone: payload.phone || null,
         plate: payload.plate || null,
-        // Frequent visits are open-ended (active until cancelled), not tied
-        // to a single date/window — a wide window keeps them out of the
-        // Today/Upcoming date-based buckets and into the general list.
-        valid_from: new Date().toISOString(),
-        valid_until: new Date("2099-12-31").toISOString(),
+        // Admin-registered visits start now (entry time = creation time)
+        // and end when the admin registers the exit (check-out).
+        valid_from: now.toISOString(),
+        valid_until: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).toISOString(),
         visit_type: "frequent",
         visitor_role: payload.visitorRole,
-        recurrence: payload.recurrence,
-        recurrence_days: payload.recurrence === "custom" ? payload.recurrenceDays : null,
-        schedule_type: payload.scheduleType,
-        schedule_start: payload.scheduleType === "custom" ? payload.scheduleStart : null,
-        schedule_end: payload.scheduleType === "custom" ? payload.scheduleEnd : null,
         notes: payload.notes || null,
       };
 
@@ -115,11 +140,17 @@ export function useVisitorManagerData(residentialId: string) {
         return false;
       }
 
-      toast.success("Frequent visit authorized");
+      await attachIdPhoto(result.data.id, payload.idPhoto);
+
+      // Entry is logged at creation time, so the visit starts "inside".
+      const checkInResult = await accessLogService.checkIn(result.data.id, residentialId);
+      if (!checkInResult.success) toast.error(checkInResult.error.message);
+
+      toast.success("Visit registered");
       await reload();
       return true;
     },
-    [residentialId, reload],
+    [residentialId, reload, attachIdPhoto],
   );
 
   const createDeliveryVisit = useCallback(
@@ -151,11 +182,12 @@ export function useVisitorManagerData(residentialId: string) {
         return false;
       }
 
+      await attachIdPhoto(result.data.id, payload.idPhoto);
       toast.success("Delivery visit scheduled");
       await reload();
       return true;
     },
-    [residentialId, reload],
+    [residentialId, reload, attachIdPhoto],
   );
 
   const createFastlaneVisit = useCallback(
@@ -258,6 +290,7 @@ export function useVisitorManagerData(residentialId: string) {
   return {
     visitors,
     units,
+    locations,
     isLoading,
     isSubmitting,
     reload,
@@ -267,6 +300,7 @@ export function useVisitorManagerData(residentialId: string) {
     sendFastlaneNotification,
     deleteVisitor,
     cancelVisitor,
+    uploadIdPhoto,
     checkIn,
     checkOut,
   };

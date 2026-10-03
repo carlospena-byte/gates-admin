@@ -1,7 +1,7 @@
 /**
  * Application Routes Configuration
  *
- * Centralized routing configuration for the Gates Admin application.
+ * Centralized routing configuration for the Vecinoo Admin application.
  */
 
 import type { ResidentialRole } from "@/types/database.types";
@@ -34,12 +34,14 @@ export type RouteType =
   | "announcements"
   | "bulletins"
   | "reservations"
+  | "amenities"
   | "billing"
   | "settingsUnitTypes"
   | "settingsLocationTypes"
   | "settingsAddonTypes"
   | "settingsLocations"
   | "settingsAddons"
+  | "settingsCharges"
   | "settingsIncidentTypes"
   | "settingsUsers";
 
@@ -50,6 +52,7 @@ export const SETTINGS_ROUTES: RouteType[] = [
   "settingsAddonTypes",
   "settingsLocations",
   "settingsAddons",
+  "settingsCharges",
   "settingsIncidentTypes",
   "settingsUsers",
 ];
@@ -206,6 +209,12 @@ export const ROUTES: Record<RouteType, RouteConfig> = {
     requiresAuth: true,
     requiresResidentialAccess: true,
   },
+  amenities: {
+    id: "amenities",
+    hash: "#amenities",
+    requiresAuth: true,
+    requiresResidentialAccess: true,
+  },
   billing: {
     id: "billing",
     hash: "#billing",
@@ -263,6 +272,12 @@ export const ROUTES: Record<RouteType, RouteConfig> = {
   settingsAddons: {
     id: "settingsAddons",
     hash: "#settings/addons",
+    requiresAuth: true,
+    requiresResidentialAccess: true,
+  },
+  settingsCharges: {
+    id: "settingsCharges",
+    hash: "#settings/charges",
     requiresAuth: true,
     requiresResidentialAccess: true,
   },

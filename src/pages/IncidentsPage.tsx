@@ -13,11 +13,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AddIncidentSheet, type NewIncidentFields } from "@/components/incidents/AddIncidentSheet";
 import { IncidentDetailSheet } from "@/components/incidents/IncidentDetailSheet";
 import { IncidentTable } from "@/components/incidents/IncidentTable";
-import { authService } from "@/services";
+import { toast } from "sonner";
+import { authService, incidentService } from "@/services";
 import { useSession } from "@/state/useSession";
 import { canManageResidential } from "@/state/useAccess";
 import { useIncidentManagerData, type IncidentFormPayload } from "@/hooks/useIncidentManagerData";
 import { useI18n } from "@/i18n/useI18n";
+import { useCreateIntent } from "@/lib/createIntent";
+import { SectionTabs } from "@/components/SectionTabs";
 import type { ResidentialRole } from "@/types/database.types";
 import type { IncidentWithRelations } from "@/types/incident.types";
 
@@ -26,6 +29,7 @@ export function IncidentsPage({ residentialId, role }: { residentialId: string; 
   const { session } = useSession();
   const canManage = canManageResidential(role);
   const [sheetOpen, setSheetOpen] = useState(false);
+  useCreateIntent("incident", () => setSheetOpen(true));
   const [selectedIncident, setSelectedIncident] = useState<IncidentWithRelations | null>(null);
 
   const {
@@ -68,10 +72,36 @@ export function IncidentsPage({ residentialId, role }: { residentialId: string; 
   // mutation (setStatus/assignTo update `incidents`, not `selectedIncident`).
   const openIncident = incidents.find((i) => i.id === selectedIncident?.id) ?? null;
 
+  const canOperate = canManage || role === "security";
+
+  const takeIncident = async (id: string) => {
+    const result = await incidentService.update(id, { status: "in_progress", assigned_to: session?.user?.id ?? null });
+    if (!result.success) {
+      toast.error(result.error.message);
+      return;
+    }
+    toast.success(t("inbox.incident.taken"));
+    await reload();
+  };
+
+  const resolveIncidents = async (ids: string[]) => {
+    const resolvedAt = new Date().toISOString();
+    const results = await Promise.all(
+      ids.map((id) => incidentService.update(id, { status: "resolved", resolved_at: resolvedAt })),
+    );
+    const failures = results.filter((result) => !result.success).length;
+    if (failures > 0) toast.error(t("incidents.bulk.failed", { count: failures }));
+    else toast.success(t("incidents.bulk.resolved", { count: ids.length }));
+    await reload();
+  };
+
   const tableProps = {
     isLoading,
     isSubmitting,
     canManage,
+    canOperate,
+    onTake: takeIncident,
+    onResolve: resolveIncidents,
     onOpen: setSelectedIncident,
     onDelete: deleteIncident,
   };
@@ -81,15 +111,16 @@ export function IncidentsPage({ residentialId, role }: { residentialId: string; 
       <AppSidebar userEmail={session?.user?.email} residentialId={residentialId} role={role} onSignOut={() => authService.signOut()} showUserMenu />
 
       <div className="lg:pl-64">
-        <div className="mx-auto max-w-7xl px-6 py-6">
+        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
+          <SectionTabs section="operations" role={role} />
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <CardTitle>{t("incidents.page.title")}</CardTitle>
                 <CardDescription>{t("incidents.page.description")}</CardDescription>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={reload} disabled={isLoading}>
+                <Button variant="outline" size="icon" aria-label={t("common.refresh")} onClick={reload} disabled={isLoading}>
                   <IconRefresh className="h-4 w-4" />
                 </Button>
                 <Button onClick={() => setSheetOpen(true)}>{t("incidents.page.reportIncident")}</Button>

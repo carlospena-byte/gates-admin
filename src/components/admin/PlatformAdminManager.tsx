@@ -71,7 +71,7 @@ export function PlatformAdminManager({ currentUserId }: { currentUserId?: string
 
   return (
     <div className="space-y-4">
-      <div className="flex items-end gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
         <Input
           label={t("platformAdmin.admins.addByEmail.label")}
           type="email"

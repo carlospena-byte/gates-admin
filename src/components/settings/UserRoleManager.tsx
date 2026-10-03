@@ -109,7 +109,7 @@ export function UserRoleSettingsPanel({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-end gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
         <Input
           label={t("settings.users.addByEmail.label")}
           type="email"
@@ -120,7 +120,7 @@ export function UserRoleSettingsPanel({
           className="flex-1"
         />
         <Select value={newRole} onValueChange={(v) => setNewRole(v as ResidentialRole)} disabled={isSubmitting}>
-          <SelectTrigger label={t("common.role")} className="w-36">
+          <SelectTrigger label={t("common.role")} className="w-full sm:w-36">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

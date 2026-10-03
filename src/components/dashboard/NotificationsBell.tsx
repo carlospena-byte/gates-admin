@@ -1,10 +1,16 @@
 import { IconBell } from "@tabler/icons-react";
+import { useState } from "react";
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { navigateTo, type RouteType } from "@/config/routes";
+import { navigateTo, navigateToNotification, type RouteType } from "@/config/routes";
+import { useAdminAlerts } from "@/hooks/useAdminAlerts";
 import { usePendingCounts } from "@/hooks/usePendingCounts";
 import { useI18n } from "@/i18n/useI18n";
 import type { MessageKey } from "@/i18n/messages";
+import { alertSummary, alertTitle, relativeTime } from "@/lib/notificationText";
+import { cn } from "@/lib/utils";
+import { canManageResidential } from "@/state/useAccess";
+import type { ResidentialRole } from "@/types/database.types";
 
 const ITEMS: { key: "payments" | "incidents" | "reservations"; labelKey: MessageKey; route: RouteType }[] = [
   { key: "payments", labelKey: "inbox.bell.payments", route: "billing" },
@@ -12,14 +18,33 @@ const ITEMS: { key: "payments" | "incidents" | "reservations"; labelKey: Message
   { key: "reservations", labelKey: "inbox.bell.reservations", route: "reservations" },
 ];
 
-/** Header bell: live count of pending work with a jump to each queue. */
-export function NotificationsBell({ residentialId }: { residentialId: string }) {
-  const { t } = useI18n();
+const RECENT = 5;
+
+/**
+ * Header bell: quick look at the latest notifications still pending action
+ * plus the live count of pending work. The full inbox lives on the Notifications page.
+ */
+export function NotificationsBell({ residentialId, role }: { residentialId: string; role: ResidentialRole }) {
+  const { t, locale } = useI18n();
+  const [open, setOpen] = useState(false);
+  const canSeeNotifications = canManageResidential(role);
   const { counts } = usePendingCounts(residentialId);
-  const total = counts ? counts.payments + counts.incidents + counts.reservations : 0;
+  const { alerts, unreadCount, setRead } = useAdminAlerts(residentialId, canSeeNotifications);
+
+  const queueTotal = counts ? counts.payments + counts.incidents + counts.reservations : 0;
+  const total = queueTotal + (canSeeNotifications ? unreadCount : 0);
+  // Only what still needs action; resolved ones stay in the inbox page.
+  const recent = alerts.filter((a) => !a.archived_at && !a.resolved_at).slice(0, RECENT);
+  const unreadIds = alerts.filter((a) => !a.read_at && !a.archived_at).map((a) => a.id);
+  const queues = ITEMS.filter((item) => (counts?.[item.key] ?? 0) > 0);
+
+  const go = (action: () => void) => {
+    setOpen(false);
+    action();
+  };
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
           type="button"
@@ -34,21 +59,89 @@ export function NotificationsBell({ residentialId }: { residentialId: string }) 
           )}
         </button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-72 p-2">
-        <p className="px-3 py-2 text-sm font-semibold text-gates-text-primary">{t("inbox.bell.title")}</p>
-        {total === 0 ? (
-          <p className="px-3 pb-3 text-sm text-gates-text-secondary">{t("inbox.allClear")}</p>
-        ) : (
-          ITEMS.filter((item) => (counts?.[item.key] ?? 0) > 0).map((item) => (
+      <PopoverContent align="end" className="max-h-[80vh] w-[22rem] overflow-y-auto p-0">
+        <div className="flex items-center justify-between px-4 py-3">
+          <p className="text-sm font-semibold text-gates-text-primary">{t("notifications.page.title")}</p>
+          {canSeeNotifications && unreadIds.length > 0 && (
             <button
-              key={item.key}
               type="button"
-              onClick={() => navigateTo(item.route)}
-              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm hover:bg-gates-subtle"
+              onClick={() => void setRead(unreadIds, true)}
+              className="text-xs font-medium text-gates-text-brand hover:underline"
             >
-              <span className="flex-1 text-gates-text-primary">{t(item.labelKey, { count: counts?.[item.key] ?? 0 })}</span>
+              {t("notifications.markAllRead")}
             </button>
-          ))
+          )}
+        </div>
+
+        {canSeeNotifications && recent.length > 0 && (
+          <ul className="divide-y divide-border border-y border-border">
+            {recent.map((alert) => {
+              const unread = !alert.read_at;
+              return (
+                <li key={alert.id}>
+                  <button
+                    type="button"
+                    onClick={() => go(() => navigateToNotification(alert.id))}
+                    className="flex w-full gap-3 px-4 py-3 text-left hover:bg-gates-subtle"
+                  >
+                    <span
+                      className={cn("mt-1.5 size-2 shrink-0 rounded-full", unread ? "bg-gates-error" : "bg-transparent")}
+                      aria-hidden
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-baseline justify-between gap-2">
+                        <span className={cn("truncate text-sm text-gates-text-primary", unread && "font-semibold")}>
+                          {alertTitle(t, alert)}
+                        </span>
+                        <span className="shrink-0 text-xs text-gates-text-secondary">
+                          {relativeTime(alert.created_at, locale)}
+                        </span>
+                      </span>
+                      <span className="mt-0.5 line-clamp-2 text-xs text-gates-text-secondary">
+                        {alertSummary(t, alert)}
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+
+        {canSeeNotifications && recent.length === 0 && queues.length === 0 && (
+          <p className="px-4 pb-3 text-sm text-gates-text-secondary">{t("inbox.allClear")}</p>
+        )}
+
+        {queues.length > 0 && (
+          <div className="p-2">
+            <p className="px-2 pb-1 pt-2 text-xs font-medium uppercase tracking-tight text-gates-text-secondary">
+              {t("inbox.bell.title")}
+            </p>
+            {queues.map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                onClick={() => go(() => navigateTo(item.route))}
+                className="flex w-full items-center rounded-xl px-2 py-2 text-left text-sm text-gates-text-primary hover:bg-gates-subtle"
+              >
+                {t(item.labelKey, { count: counts?.[item.key] ?? 0 })}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {!canSeeNotifications && queues.length === 0 && (
+          <p className="px-4 pb-3 text-sm text-gates-text-secondary">{t("inbox.allClear")}</p>
+        )}
+
+        {canSeeNotifications && (
+          <button
+            type="button"
+            onClick={() => go(() => navigateToNotification())}
+            className="w-full border-t border-border px-4 py-3 text-center text-sm font-medium text-gates-text-brand hover:bg-gates-subtle"
+          >
+            {t("notifications.viewAll")}
+          </button>
         )}
       </PopoverContent>
     </Popover>

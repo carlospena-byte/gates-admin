@@ -7,6 +7,7 @@
 // unpublish never pushes residents twice.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getFcmAccessToken, sendPush, type ServiceAccount } from "../_shared/fcm.ts";
+import { recordNotifications } from "../_shared/inbox.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -104,6 +105,19 @@ Deno.serve(async (req) => {
       return Response.json({ sent: 0, failed: 0, recipients: 0 });
     }
 
+    const bulletinData = { type: "bulletin", bulletin_id: bulletin.id, residential_id: bulletin.residential_id };
+    await recordNotifications(
+      service,
+      userIds.map((userId) => ({
+        userId,
+        residentialId: bulletin.residential_id,
+        type: "bulletin",
+        title: "Nuevo boletín",
+        body: bulletin.title,
+        data: bulletinData,
+      })),
+    );
+
     const { data: tokenRows, error: tokensError } = await service
       .from("device_tokens")
       .select("id, token")
@@ -122,7 +136,7 @@ Deno.serve(async (req) => {
       tokens: tokenRows,
       title: "Nuevo boletín",
       body: bulletin.title,
-      data: { type: "bulletin", bulletin_id: bulletin.id, residential_id: bulletin.residential_id },
+      data: bulletinData,
     });
 
     if (result.deadTokenIds.length) {

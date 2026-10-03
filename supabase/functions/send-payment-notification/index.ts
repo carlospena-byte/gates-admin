@@ -9,6 +9,7 @@
 // push instead of one per installment.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getFcmAccessToken, sendPush, type ServiceAccount } from "../_shared/fcm.ts";
+import { recordNotifications } from "../_shared/inbox.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -116,6 +117,32 @@ Deno.serve(async (req) => {
       return Response.json({ sent: 0, failed: 0, recipients: 0 });
     }
 
+    // The inbox entry is recorded for every member, device registered or not.
+    const noticeFor = (entry: { total: number; charges: Set<string> }) => {
+      const charge = entry.charges.size === 1 ? [...entry.charges][0] : null;
+      return {
+        title: "Pago verificado",
+        body: charge
+          ? `Tu pago de ${formatAmount(entry.total)} (${charge}) se verificó con éxito.`
+          : `Tu pago de ${formatAmount(entry.total)} se verificó con éxito.`,
+      };
+    };
+    for (const [unitId, entry] of byUnit) {
+      const { title, body } = noticeFor(entry);
+      const data = { type: "payment", unit_id: unitId, residential_id: entry.residentialId };
+      await recordNotifications(
+        service,
+        (userIdsByUnit.get(unitId) ?? []).map((userId) => ({
+          userId,
+          residentialId: entry.residentialId,
+          type: "payment",
+          title,
+          body,
+          data,
+        })),
+      );
+    }
+
     const { data: tokenRows, error: tokensError } = await service
       .from("device_tokens")
       .select("id, token, user_id")
@@ -135,15 +162,13 @@ Deno.serve(async (req) => {
       const tokens = tokenRows.filter((t) => userIds.has(t.user_id as string));
       if (!tokens.length) continue;
 
-      const charge = entry.charges.size === 1 ? [...entry.charges][0] : null;
+      const { title, body } = noticeFor(entry);
       const result = await sendPush({
         projectId: FCM_PROJECT_ID,
         accessToken,
         tokens: tokens.map((t) => ({ id: t.id as string, token: t.token as string })),
-        title: "Pago verificado",
-        body: charge
-          ? `Tu pago de ${formatAmount(entry.total)} (${charge}) se verificó con éxito.`
-          : `Tu pago de ${formatAmount(entry.total)} se verificó con éxito.`,
+        title,
+        body,
         data: { type: "payment", unit_id: unitId, residential_id: entry.residentialId },
       });
       sent += result.sent;

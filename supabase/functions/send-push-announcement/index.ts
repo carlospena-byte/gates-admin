@@ -11,6 +11,7 @@
 // cron can never both send it.
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getFcmAccessToken, sendPush, type ServiceAccount } from "../_shared/fcm.ts";
+import { recordNotifications } from "../_shared/inbox.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -146,6 +147,18 @@ async function dispatch(service: SupabaseClient, row: PushRow, accessToken: stri
       residential_id: row.residential_id,
     };
     if (route) data.route = route;
+
+    await recordNotifications(
+      service,
+      userIds.map((userId) => ({
+        userId,
+        residentialId: row.residential_id,
+        type: "deeplink",
+        title: row.title,
+        body: row.body,
+        data,
+      })),
+    );
 
     const payloadBytes = new TextEncoder().encode(JSON.stringify({ title: row.title, body: row.body, data })).length;
     if (payloadBytes > MAX_PAYLOAD_BYTES) {

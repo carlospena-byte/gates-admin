@@ -23,7 +23,7 @@ const TABS: { id: InboxTab; labelKey: MessageKey }[] = [
 
 function Row({ title, subtitle, actions }: { title: string; subtitle?: string; actions: ReactNode }) {
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-gates-canvas px-4 py-3">
+    <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-border px-4 py-3">
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold text-gates-text-primary">{title}</p>
         {subtitle && <p className="truncate text-xs text-gates-text-secondary">{subtitle}</p>}
@@ -79,7 +79,7 @@ export function TodayInbox({
   const askReason = (promptKey: MessageKey): string | null => window.prompt(t(promptKey));
 
   const renderEmpty = (key: MessageKey) => (
-    <div className="flex items-center gap-3 rounded-2xl bg-gates-canvas px-4 py-6 text-sm text-gates-text-secondary">
+    <div className="flex items-center gap-3 px-1 py-4 text-sm text-gates-text-secondary">
       <IconCircleCheck className="size-5 text-gates-text-brand" />
       {t(key)}
     </div>

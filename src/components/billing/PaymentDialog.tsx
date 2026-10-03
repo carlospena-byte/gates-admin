@@ -116,6 +116,13 @@ export function PaymentDialog({
               <dd className="text-right font-medium">{formatCurrency(installment.balance)}</dd>
             </dl>
 
+            {installment.source === "booking" && installment.notes && (
+              <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">
+                <p className="font-medium">{t("billing.payment.bookingNoteTitle")}</p>
+                <p className="whitespace-pre-line">{installment.notes}</p>
+              </div>
+            )}
+
             {payments.length > 0 && (
               <div className="space-y-1">
                 <p className="text-sm font-medium">{t("billing.payment.recorded")}</p>

@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { inboxService, type PendingCounts } from "@/services";
 import { useLiveRefresh } from "@/hooks/useLiveRefresh";
 
-const LIVE_TABLES = ["unit_rental_payments", "incidents", "amenity_bookings"] as const;
+const LIVE_TABLES = ["unit_rental_payments", "incidents", "amenity_bookings", "admin_alerts"] as const;
 
 /** Pending-work counts for sidebar badges and the bell; refreshes live. */
 export function usePendingCounts(residentialId: string | undefined, enabled = true) {

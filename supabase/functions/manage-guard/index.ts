@@ -6,14 +6,14 @@
 //
 //   { action: "create", residentialId, firstName, lastName, username?, pin? }
 //     (pin: 4 digits chosen by the admin, required)
-//     -> { userId, username, pin }
+//     -> { userId, username, pin, code }   (code: the residential code the guard signs in with)
 //   { action: "reset_pin", residentialId, userId, pin? }   (pin: 4 digits; random when omitted)
 //     -> { pin }   (also ends that guard's open sessions)
 //
 // The PIN is generated here and returned exactly once; it is never stored in
 // plain text anywhere (Auth keeps only its hash).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { CORS_HEADERS, generatePin, guardEmail, normalizeUsername, pinPassword } from "../_shared/guard.ts";
+import { attemptKey, CORS_HEADERS, generatePin, guardEmail, normalizeUsername, pinPassword } from "../_shared/guard.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -64,10 +64,26 @@ async function handle(req: Request): Promise<Response> {
 
 type AdminClient = ReturnType<typeof createClient>;
 
-async function pickUsername(admin: AdminClient, base: string, exact: boolean): Promise<string | null> {
+async function residentialCode(admin: AdminClient, residentialId: string): Promise<string | null> {
+  const { data } = await admin.from("residentials").select("code").eq("id", residentialId).maybeSingle();
+  return data?.code ?? null;
+}
+
+// Usernames only have to be unique inside the residential.
+async function pickUsername(
+  admin: AdminClient,
+  residentialId: string,
+  base: string,
+  exact: boolean,
+): Promise<string | null> {
   for (let n = 1; n <= 99; n++) {
     const candidate = n === 1 ? base : `${base}${n}`;
-    const { data } = await admin.from("profiles").select("user_id").ilike("username", candidate).maybeSingle();
+    const { data } = await admin
+      .from("profiles")
+      .select("user_id")
+      .eq("guard_residential_id", residentialId)
+      .ilike("username", candidate)
+      .maybeSingle();
     if (!data) return candidate;
     if (exact) return null; // an admin-chosen username must be used as typed
   }
@@ -89,7 +105,9 @@ async function createGuard(admin: AdminClient, body: Extract<Body, { action: "cr
   if (base.length < 3) {
     return Response.json({ error: "Could not build a username from that name" }, { status: 400 });
   }
-  const username = await pickUsername(admin, base, Boolean(typed));
+  const code = await residentialCode(admin, body.residentialId);
+  if (!code) return Response.json({ error: "Residential not found" }, { status: 404 });
+  const username = await pickUsername(admin, body.residentialId, base, Boolean(typed));
   if (!username) return Response.json({ error: "That username is already taken" }, { status: 409 });
 
   if (!/^\d{4}$/.test(body.pin ?? "")) {
@@ -97,7 +115,7 @@ async function createGuard(admin: AdminClient, body: Extract<Body, { action: "cr
   }
   const pin = body.pin;
   const { data: created, error: createError } = await admin.auth.admin.createUser({
-    email: guardEmail(username),
+    email: guardEmail(username, body.residentialId),
     password: pinPassword(pin),
     email_confirm: true,
     user_metadata: { first_name: firstName, last_name: lastName },
@@ -115,7 +133,7 @@ async function createGuard(admin: AdminClient, body: Extract<Body, { action: "cr
 
   const { error: profileError } = await admin
     .from("profiles")
-    .update({ first_name: firstName, last_name: lastName, username })
+    .update({ first_name: firstName, last_name: lastName, username, guard_residential_id: body.residentialId })
     .eq("user_id", userId);
   if (profileError) return rollback(profileError.message);
 
@@ -124,7 +142,7 @@ async function createGuard(admin: AdminClient, body: Extract<Body, { action: "cr
     .insert({ residential_id: body.residentialId, user_id: userId, role: "security" });
   if (roleError) return rollback(roleError.message);
 
-  return Response.json({ userId, username, pin });
+  return Response.json({ userId, username, pin, code });
 }
 
 async function resetPin(admin: AdminClient, body: Extract<Body, { action: "reset_pin" }>): Promise<Response> {
@@ -156,7 +174,10 @@ async function resetPin(admin: AdminClient, body: Extract<Body, { action: "reset
   // New PIN also ends whatever sessions were open (lost phone, ex-guard…),
   // and clears any lockout so the new PIN works right away.
   await admin.rpc("revoke_user_sessions", { _user_id: body.userId });
-  await admin.from("guard_login_attempts").delete().eq("username", profile.username.toLowerCase());
+  const code = await residentialCode(admin, body.residentialId);
+  if (code) {
+    await admin.from("guard_login_attempts").delete().eq("key", attemptKey(code, profile.username.toLowerCase()));
+  }
 
   return Response.json({ pin });
 }

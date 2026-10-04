@@ -17,7 +17,6 @@ import { PlatformAdminsPage } from "@/pages/PlatformAdminsPage";
 import { PlatformAuditLogPage } from "@/pages/PlatformAuditLogPage";
 import { PlatformAppSettingsPage } from "@/pages/PlatformAppSettingsPage";
 import { ResidentialDashboardPage } from "@/pages/ResidentialDashboardPage";
-import { ResidentialSignupPage } from "@/pages/ResidentialSignupPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { UnitsPage } from "@/pages/UnitsPage";
 import { ResidentsPage } from "@/pages/ResidentsPage";
@@ -130,23 +129,11 @@ export default function App() {
     );
   }
 
-  // Signup route (requires being logged in for tenant creation)
-  if (currentRoute === "signup") {
-    return (
-      <AppFrame>
-        <ResidentialSignupPage
-          onBackToLogin={() => navigateTo("login")}
-          onComplete={() => navigateTo("residential")}
-        />
-      </AppFrame>
-    );
-  }
-
   // Not logged in - show login
   if (!session) {
     return (
       <AppFrame>
-        <LoginPage onCreateResidential={() => navigateTo("signup")} />
+        <LoginPage />
       </AppFrame>
     );
   }

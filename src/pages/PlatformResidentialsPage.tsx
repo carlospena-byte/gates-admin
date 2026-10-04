@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { NewResidentialSheet } from "@/components/admin/NewResidentialSheet";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -21,6 +22,7 @@ export function PlatformResidentialsPage() {
   const [residentials, setResidentials] = useState<ResidentialWithOwner[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [newOpen, setNewOpen] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -80,10 +82,14 @@ export function PlatformResidentialsPage() {
       />
       <div className="lg:pl-64">
         <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 space-y-6">
-          <div>
-            <h1 className="text-2xl font-semibold text-foreground">{t("platformAdmin.residentials.title")}</h1>
-            <p className="text-sm text-muted-foreground">{t("platformAdmin.residentials.description")}</p>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-semibold text-foreground">{t("platformAdmin.residentials.title")}</h1>
+              <p className="text-sm text-muted-foreground">{t("platformAdmin.residentials.description")}</p>
+            </div>
+            <Button onClick={() => setNewOpen(true)}>{t("platformAdmin.residentials.new.button")}</Button>
           </div>
+          <NewResidentialSheet open={newOpen} onOpenChange={setNewOpen} onCreated={() => void load()} />
 
           <Card>
             <CardHeader>

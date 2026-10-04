@@ -1,5 +1,5 @@
 /**
- * Security-guard accounts (username + 6-digit PIN, no email). Creation and PIN
+ * Security-guard accounts (residential code + username + PIN, no email). Creation and PIN
  * reset go through the manage-guard Edge Function (needs the service role);
  * sign-in goes through guard-login, which adds a wrong-PIN lockout in front of
  * Supabase Auth and returns a normal session to install client-side.
@@ -12,6 +12,8 @@ export interface CreatedGuard {
   userId: string;
   username: string;
   pin: string;
+  /** Residential code the guard types on the login screen. */
+  code: string;
 }
 
 export type GuardSignInError =
@@ -63,11 +65,15 @@ function resetPin(residentialId: string, userId: string, pin?: string): Promise<
   );
 }
 
-async function signIn(username: string, pin: string): Promise<{ ok: true } | { ok: false; error: GuardSignInError }> {
+async function signIn(
+  code: string,
+  username: string,
+  pin: string,
+): Promise<{ ok: true } | { ok: false; error: GuardSignInError }> {
   const client = requireSupabase();
   const { data, error } = await client.functions.invoke<{ access_token: string; refresh_token: string }>(
     "guard-login",
-    { body: { username, pin } },
+    { body: { code, username, pin } },
   );
 
   if (error || !data) {

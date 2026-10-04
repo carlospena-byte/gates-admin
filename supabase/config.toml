@@ -353,7 +353,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.guard-login]
-# Called from the login screen before any session exists. The username + PIN
+# Called from the login screen before any session exists. The code + username + PIN
 # are the credential; failed attempts are counted and locked out inside.
 verify_jwt = false
 

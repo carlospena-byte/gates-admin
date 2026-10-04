@@ -13,7 +13,7 @@ import {
   getLocationTypeLabel,
   sortLocationTypesByLevel,
 } from "@/lib/locationHierarchy";
-import { cn, formatCurrency } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 import { useI18n } from "@/i18n/useI18n";
 import type { AddonItem, AddonType, Location, LocationTypeDefinition } from "@/types/unit-wizard.types";
 
@@ -114,7 +114,7 @@ export function AddonItemPicker({
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3 pt-1">
       <div className="flex items-center justify-between">
         <label className="text-sm font-medium">{t("units.addonPicker.title")}</label>
         {selectedIds.length > 0 && (
@@ -124,7 +124,7 @@ export function AddonItemPicker({
         )}
       </div>
 
-      <div className={cn("grid gap-2 sm:grid-cols-3", subLocationOptions.length > 0 && "lg:grid-cols-4")}>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Select value={addonTypeId} onValueChange={setAddonTypeId} disabled={disabled}>
           <SelectTrigger label={t("units.addonPicker.addonType")}>
             <SelectValue placeholder={t("units.addonPicker.allAddonTypes")} />
@@ -199,7 +199,7 @@ export function AddonItemPicker({
         )}
       </div>
 
-      <div className="border rounded-md max-h-64 overflow-y-auto">
+      <div className="max-h-64 overflow-y-auto rounded-lg border border-input bg-gates-surface">
         {filteredItems.length > 0 ? (
           <Table>
             <TableHeader>
@@ -248,7 +248,7 @@ export function AddonItemPicker({
             </TableBody>
           </Table>
         ) : (
-          <p className="p-3 text-sm text-muted-foreground">{t("units.addonPicker.empty")}</p>
+          <p className="px-4 py-5 text-center text-sm text-muted-foreground">{t("units.addonPicker.empty")}</p>
         )}
       </div>
     </div>

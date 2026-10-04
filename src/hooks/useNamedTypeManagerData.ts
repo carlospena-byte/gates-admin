@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import type { ApiResult } from "@/services";
+import { translate } from "@/i18n/translate";
 
 export interface NamedTypeService<T> {
   list: (residentialId: string) => Promise<ApiResult<T[]>>;
@@ -58,7 +59,7 @@ export function useNamedTypeManagerData<T extends { id: string }>(
         return false;
       }
 
-      toast.success(`${entityLabel} created successfully`);
+      toast.success(translate("toast.namedType.created", { entity: entityLabel }));
       await reload();
       onTypesUpdated?.();
       return true;
@@ -77,7 +78,7 @@ export function useNamedTypeManagerData<T extends { id: string }>(
         return false;
       }
 
-      toast.success(`${entityLabel} updated successfully`);
+      toast.success(translate("toast.namedType.updated", { entity: entityLabel }));
       await reload();
       onTypesUpdated?.();
       return true;
@@ -96,7 +97,7 @@ export function useNamedTypeManagerData<T extends { id: string }>(
         return false;
       }
 
-      toast.success(`${entityLabel} deleted successfully`);
+      toast.success(translate("toast.namedType.deleted", { entity: entityLabel }));
       await reload();
       onTypesUpdated?.();
       return true;
@@ -111,7 +112,7 @@ export function useNamedTypeManagerData<T extends { id: string }>(
         await reload();
         onTypesUpdated?.();
       } else {
-        toast.error(`Failed to toggle ${lowerLabel} status`);
+        toast.error(translate("toast.namedType.toggleFailed", { entity: lowerLabel }));
       }
     },
     [service, reload, onTypesUpdated, lowerLabel],

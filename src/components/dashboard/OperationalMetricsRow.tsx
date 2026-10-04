@@ -33,7 +33,7 @@ export function OperationalMetricsRow({ metrics }: { metrics: OperationalMetrics
       <SummaryStat
         title={t("dashboard.today.visitors.title")}
         value={String(metrics.visitorsToday)}
-        detail={t("dashboard.today.visitors.detail", { count: metrics.visitorsInside })}
+        detail={t(metrics.visitorsInside === 1 ? "dashboard.today.visitors.detailOne" : "dashboard.today.visitors.detail", { count: metrics.visitorsInside })}
         status={t("dashboard.today.visitors.status")}
         statusTone="brand"
         className="cursor-pointer"

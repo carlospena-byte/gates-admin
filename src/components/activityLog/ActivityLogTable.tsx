@@ -7,7 +7,6 @@
 import { Fragment, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Spinner } from "@/components/LoadingStates";
@@ -17,6 +16,7 @@ import { usePaginatedSortedData } from "@/hooks/usePaginatedSortedData";
 import { useI18n } from "@/i18n/useI18n";
 import type { MessageKey } from "@/i18n/messages";
 import type { AuditAction, AuditLogWithActor } from "@/types/audit.types";
+import { DatePicker } from "@/components/ui/date-picker";
 
 interface ActivityLogTableProps {
   logs: AuditLogWithActor[];
@@ -184,20 +184,17 @@ export function ActivityLogTable({ logs, isLoading }: ActivityLogTableProps) {
           </SelectContent>
         </Select>
 
-        <div className="grid grid-cols-2 gap-2">
-          <Input
-            label={t("activityLog.filters.dateFrom")}
-            type="date"
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-          />
-          <Input
-            label={t("activityLog.filters.dateTo")}
-            type="date"
-            value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
-          />
-        </div>
+        <DatePicker
+          mode="range"
+          allowOpenEnd
+          clearable
+          label={`${t("activityLog.filters.dateFrom")} – ${t("activityLog.filters.dateTo")}`}
+          value={{ from: dateFrom, to: dateTo }}
+          onChange={(range) => {
+            setDateFrom(range.from);
+            setDateTo(range.to);
+          }}
+        />
       </div>
 
       {isLoading ? (

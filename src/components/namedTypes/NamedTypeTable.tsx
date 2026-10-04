@@ -114,7 +114,7 @@ export function NamedTypeTable<T extends NamedTypeEntity>({
         {t("namedType.table.count", { count: totalItems, entityLabel: lowerLabel })}
       </p>
 
-      <div className="flex items-center gap-4 rounded-xl bg-gates-canvas p-4 text-xs font-medium text-gates-text-secondary">
+      <div className="flex items-center gap-4 rounded-xl border border-border p-4 text-xs font-medium text-gates-text-secondary">
         <button
           type="button"
           className="flex flex-1 cursor-pointer items-center gap-1 text-left"

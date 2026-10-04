@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { locationTypeService } from "@/services";
 import type { LocationTypeDefinition } from "@/types/unit-wizard.types";
+import { translate } from "@/i18n/translate";
 
 export function useLocationTypeManagerData(
   residentialId: string,
@@ -50,7 +51,7 @@ export function useLocationTypeManagerData(
         return false;
       }
 
-      toast.success("Location type created successfully");
+      toast.success(translate("toast.locationType.created"));
       await reload();
       onTypesUpdated?.();
       return true;
@@ -69,7 +70,7 @@ export function useLocationTypeManagerData(
         return false;
       }
 
-      toast.success("Location type updated successfully");
+      toast.success(translate("toast.locationType.updated"));
       await reload();
       onTypesUpdated?.();
       return true;
@@ -88,7 +89,7 @@ export function useLocationTypeManagerData(
         return false;
       }
 
-      toast.success("Location type deleted successfully");
+      toast.success(translate("toast.locationType.deleted"));
       await reload();
       onTypesUpdated?.();
       return true;
@@ -103,7 +104,7 @@ export function useLocationTypeManagerData(
         await reload();
         onTypesUpdated?.();
       } else {
-        toast.error("Failed to toggle location type status");
+        toast.error(translate("toast.locationType.toggleFailed"));
       }
     },
     [reload, onTypesUpdated],

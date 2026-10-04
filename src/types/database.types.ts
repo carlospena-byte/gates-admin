@@ -17,6 +17,9 @@ export type UnitMember = Tables<"unit_members">;
 export type Profile = Tables<"profiles">;
 export type PlatformAdmin = Tables<"platform_admins">;
 export type PlatformPlan = Tables<"platform_plans">;
+export type AppConfig = Tables<"app_config">;
+export type AppVersion = Tables<"app_versions">;
+export type PushCampaign = Tables<"push_campaigns">;
 
 export type InsertResidential = TablesInsert<"residentials">;
 export type InsertUnit = TablesInsert<"units">;

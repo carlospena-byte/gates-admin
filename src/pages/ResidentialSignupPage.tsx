@@ -122,7 +122,7 @@ export function ResidentialSignupPage({
   };
 
   return (
-    <div className="mx-auto max-w-xl px-6 py-12">
+    <div className="mx-auto max-w-xl px-4 py-12 sm:px-6">
       <Card>
         <CardHeader>
           <CardTitle>{t("signup.title")}</CardTitle>

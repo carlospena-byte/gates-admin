@@ -1,4 +1,5 @@
 import { toast } from "sonner";
+import { translate } from "@/i18n/translate";
 
 /**
  * Shows a "Delete X?" toast with Delete/Cancel actions instead of a native
@@ -8,18 +9,18 @@ import { toast } from "sonner";
  * active access will revoke it immediately.
  */
 export function confirmDeleteToast(label: string, onConfirm: () => void | Promise<void>, description?: string) {
-  const toastId = toast(`Delete "${label}"?`, {
-    description: description ?? "This action cannot be undone.",
+  const toastId = toast(translate("toast.confirmDelete.title", { label }), {
+    description: description ?? translate("toast.confirmDelete.description"),
     duration: Infinity,
     action: {
-      label: "Delete",
+      label: translate("common.delete"),
       onClick: async () => {
         toast.dismiss(toastId);
         await onConfirm();
       },
     },
     cancel: {
-      label: "Cancel",
+      label: translate("common.cancel"),
       onClick: () => {
         toast.dismiss(toastId);
       },

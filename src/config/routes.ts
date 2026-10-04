@@ -1,7 +1,7 @@
 /**
  * Application Routes Configuration
  *
- * Centralized routing configuration for the Gates Admin application.
+ * Centralized routing configuration for the Vecinoo Admin application.
  */
 
 import type { ResidentialRole } from "@/types/database.types";
@@ -21,6 +21,7 @@ export type RouteType =
   | "platformAmenitiesCatalog"
   | "platformAdmins"
   | "platformAuditLog"
+  | "platformAppSettings"
   | "residential"
   | "units"
   | "unitDetail"
@@ -31,12 +32,17 @@ export type RouteType =
   | "fastlanePublic"
   | "incidents"
   | "announcements"
+  | "bulletins"
   | "reservations"
+  | "amenities"
+  | "billing"
+  | "notifications"
   | "settingsUnitTypes"
   | "settingsLocationTypes"
   | "settingsAddonTypes"
   | "settingsLocations"
   | "settingsAddons"
+  | "settingsCharges"
   | "settingsIncidentTypes"
   | "settingsUsers";
 
@@ -47,6 +53,7 @@ export const SETTINGS_ROUTES: RouteType[] = [
   "settingsAddonTypes",
   "settingsLocations",
   "settingsAddons",
+  "settingsCharges",
   "settingsIncidentTypes",
   "settingsUsers",
 ];
@@ -60,6 +67,7 @@ export const PLATFORM_ROUTES: RouteType[] = [
   "platformAmenitiesCatalog",
   "platformAdmins",
   "platformAuditLog",
+  "platformAppSettings",
 ];
 
 export interface RouteConfig {
@@ -140,6 +148,12 @@ export const ROUTES: Record<RouteType, RouteConfig> = {
     requiresAuth: true,
     requiresPlatformAdmin: true,
   },
+  platformAppSettings: {
+    id: "platformAppSettings",
+    hash: "#platform/app-settings",
+    requiresAuth: true,
+    requiresPlatformAdmin: true,
+  },
   residential: {
     id: "residential",
     hash: "#residential",
@@ -184,9 +198,35 @@ export const ROUTES: Record<RouteType, RouteConfig> = {
     requiresAuth: true,
     requiresResidentialAccess: true,
   },
+  bulletins: {
+    id: "bulletins",
+    hash: "#bulletins",
+    requiresAuth: true,
+    requiresResidentialAccess: true,
+  },
   reservations: {
     id: "reservations",
     hash: "#reservations",
+    requiresAuth: true,
+    requiresResidentialAccess: true,
+  },
+  amenities: {
+    id: "amenities",
+    hash: "#amenities",
+    requiresAuth: true,
+    requiresResidentialAccess: true,
+  },
+  billing: {
+    id: "billing",
+    hash: "#billing",
+    requiresAuth: true,
+    requiresResidentialAccess: true,
+  },
+  // "#notifications" or "#notifications/<id>" (a message open in the reading
+  // pane); see getNotificationIdFromHash().
+  notifications: {
+    id: "notifications",
+    hash: "#notifications",
     requiresAuth: true,
     requiresResidentialAccess: true,
   },
@@ -244,6 +284,12 @@ export const ROUTES: Record<RouteType, RouteConfig> = {
     requiresAuth: true,
     requiresResidentialAccess: true,
   },
+  settingsCharges: {
+    id: "settingsCharges",
+    hash: "#settings/charges",
+    requiresAuth: true,
+    requiresResidentialAccess: true,
+  },
   settingsIncidentTypes: {
     id: "settingsIncidentTypes",
     hash: "#settings/incident-types",
@@ -266,6 +312,7 @@ const UNIT_DETAIL_HASH_PREFIX = "#units/";
 const ADDON_DETAIL_HASH_PREFIX = "#addons/";
 const CHARGE_DETAIL_HASH_PREFIX = "#charges/";
 const FASTLANE_PUBLIC_HASH_PREFIX = "#fastlane/";
+const NOTIFICATION_HASH_PREFIX = "#notifications/";
 const PLATFORM_RESIDENTIAL_DETAIL_HASH_PREFIX = "#platform/residentials/";
 
 /**
@@ -288,6 +335,10 @@ export function getCurrentRoute(): RouteType {
 
   if (hash.startsWith(FASTLANE_PUBLIC_HASH_PREFIX) && hash.length > FASTLANE_PUBLIC_HASH_PREFIX.length) {
     return "fastlanePublic";
+  }
+
+  if (hash.startsWith(NOTIFICATION_HASH_PREFIX) && hash.length > NOTIFICATION_HASH_PREFIX.length) {
+    return "notifications";
   }
 
   if (
@@ -332,6 +383,21 @@ export function getChargeIdFromHash(): string | null {
   const hash = window.location.hash;
   if (!hash.startsWith(CHARGE_DETAIL_HASH_PREFIX)) return null;
   return decodeURIComponent(hash.slice(CHARGE_DETAIL_HASH_PREFIX.length)) || null;
+}
+
+/**
+ * Extract the notification id from a "#notifications/<id>" hash. Null when
+ * no message is open.
+ */
+export function getNotificationIdFromHash(): string | null {
+  const hash = window.location.hash;
+  if (!hash.startsWith(NOTIFICATION_HASH_PREFIX)) return null;
+  return decodeURIComponent(hash.slice(NOTIFICATION_HASH_PREFIX.length)) || null;
+}
+
+/** Open the notifications inbox, optionally with one message selected. */
+export function navigateToNotification(id?: string): void {
+  window.location.hash = id ? `${NOTIFICATION_HASH_PREFIX}${encodeURIComponent(id)}` : ROUTES.notifications.hash;
 }
 
 /**

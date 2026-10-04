@@ -54,7 +54,7 @@ export function PlatformDashboardPage() {
         isPlatformAdmin
       />
       <div className="lg:pl-64">
-        <div className="mx-auto max-w-7xl px-6 py-6 space-y-6">
+        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 space-y-6">
           <div>
             <h1 className="text-2xl font-semibold text-foreground">{t("dashboard.platform.title")}</h1>
             <p className="text-sm text-muted-foreground">{t("dashboard.platform.description")}</p>
@@ -63,12 +63,12 @@ export function PlatformDashboardPage() {
           <PlatformMetricsRow metrics={metrics} />
 
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <CardTitle>{t("platformAdmin.residentials.recent.title")}</CardTitle>
                 <CardDescription>{t("platformAdmin.residentials.recent.description")}</CardDescription>
               </div>
-              <Button size="sm" variant="secondary" onClick={() => navigateTo("platformResidentials")}>
+              <Button variant="secondary" onClick={() => navigateTo("platformResidentials")}>
                 {t("common.viewAll")}
               </Button>
             </CardHeader>

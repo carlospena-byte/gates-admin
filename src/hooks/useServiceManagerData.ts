@@ -8,6 +8,7 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { servicesService } from "@/services";
 import type { Service } from "@/types/amenities.types";
+import { translate } from "@/i18n/translate";
 
 export function useServiceManagerData(residentialId: string, open: boolean) {
   const [services, setServices] = useState<Service[]>([]);
@@ -42,7 +43,7 @@ export function useServiceManagerData(residentialId: string, open: boolean) {
         return false;
       }
 
-      toast.success("Service created successfully");
+      toast.success(translate("toast.service.created"));
       await reload();
       return true;
     },
@@ -60,7 +61,7 @@ export function useServiceManagerData(residentialId: string, open: boolean) {
         return false;
       }
 
-      toast.success("Service updated successfully");
+      toast.success(translate("toast.service.updated"));
       await reload();
       return true;
     },
@@ -78,7 +79,7 @@ export function useServiceManagerData(residentialId: string, open: boolean) {
         return false;
       }
 
-      toast.success("Service deleted successfully");
+      toast.success(translate("toast.service.deleted"));
       await reload();
       return true;
     },
@@ -91,7 +92,7 @@ export function useServiceManagerData(residentialId: string, open: boolean) {
       if (result.success) {
         await reload();
       } else {
-        toast.error("Failed to toggle service status");
+        toast.error(translate("toast.service.toggleFailed"));
       }
     },
     [reload],

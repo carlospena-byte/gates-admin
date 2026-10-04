@@ -22,7 +22,7 @@ export function AuthLayout({
         <div className="relative hidden h-full flex-col bg-muted p-10 text-muted-foreground lg:flex dark:border-r">
           <div className="absolute inset-0 bg-gradient-to-br from-background via-background/70 to-muted" />
           <div className="relative z-10 flex items-center text-lg font-medium text-foreground">
-            gates-admin
+            Vecinoo
           </div>
           <div className="relative z-10 mt-auto space-y-2">
             <h2 className="text-xl font-semibold text-foreground">

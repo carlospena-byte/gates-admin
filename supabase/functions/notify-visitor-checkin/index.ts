@@ -5,6 +5,7 @@
 // derives its own recipients — the members of the visitor's unit — so a
 // guard can never push to an arbitrary user by passing an arbitrary id.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { recordNotifications } from "../_shared/inbox.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -148,6 +149,16 @@ Deno.serve(async (req) => {
     return Response.json({ sent: 0, failed: 0, invalidTokensRemoved: 0 });
   }
 
+  const title = "Tu visita está en camino";
+  const body = visitor.name
+    ? `${visitor.name} ya ingresó y va en camino a tu unidad`
+    : "Tu visita ya ingresó y va en camino a tu unidad";
+  const data = { type: "visitor_checkin", visitorId: visitor.id, residential_id: visitor.residential_id };
+  await recordNotifications(
+    serviceClient,
+    userIds.map((userId) => ({ userId, residentialId: visitor.residential_id, type: "visitor_checkin", title, body, data })),
+  );
+
   const { data: tokenRows, error: tokensError } = await serviceClient
     .from("device_tokens")
     .select("id, token")
@@ -162,37 +173,46 @@ Deno.serve(async (req) => {
   const serviceAccount = JSON.parse(FCM_SERVICE_ACCOUNT_JSON) as ServiceAccount;
   const accessToken = await getFcmAccessToken(serviceAccount);
 
-  const title = "Ingreso registrado";
-  const body = `${visitor.name ?? "Tu visita"} ha ingresado`;
+  // In parallel: a slow or failing token (e.g. a misconfigured iOS APNs
+  // key) must not delay or starve the healthy devices behind it.
+  const results = await Promise.allSettled(
+    tokenRows.map(async (row) => {
+      const res = await fetch(`https://fcm.googleapis.com/v1/projects/${FCM_PROJECT_ID}/messages:send`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: {
+            token: row.token,
+            notification: { title, body },
+            data,
+          },
+        }),
+      });
+      if (res.ok) return { id: row.id, ok: true as const, dead: false };
+      const errorBody = await res.text();
+      console.error(`FCM send failed (${res.status}) for device_token ${row.id}: ${errorBody}`);
+      return { id: row.id, ok: false as const, dead: isUnregistered(errorBody) };
+    }),
+  );
 
   let sent = 0;
   let failed = 0;
   const deadTokenIds: string[] = [];
-
-  for (const row of tokenRows) {
-    const res = await fetch(`https://fcm.googleapis.com/v1/projects/${FCM_PROJECT_ID}/messages:send`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        message: {
-          token: row.token,
-          notification: { title, body },
-          data: { type: "visitor_checkin", visitorId: visitor.id },
-        },
-      }),
-    });
-
-    if (res.ok) {
+  results.forEach((result, i) => {
+    if (result.status === "fulfilled" && result.value.ok) {
       sent++;
-    } else {
-      failed++;
-      const errorBody = await res.text();
-      if (isUnregistered(errorBody)) deadTokenIds.push(row.id);
+      return;
     }
-  }
+    failed++;
+    if (result.status === "rejected") {
+      console.error(`FCM request error for device_token ${tokenRows[i].id}:`, result.reason);
+    } else if (result.value.dead) {
+      deadTokenIds.push(result.value.id);
+    }
+  });
 
   let invalidTokensRemoved = 0;
   if (deadTokenIds.length) {

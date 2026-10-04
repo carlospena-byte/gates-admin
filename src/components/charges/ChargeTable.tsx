@@ -11,17 +11,20 @@ import { usePaginatedSortedData } from "@/hooks/usePaginatedSortedData";
 import { confirmDeleteToast } from "@/lib/confirmDeleteToast";
 import { navigateToChargeDetail } from "@/config/routes";
 import { EditIcon, DeleteIcon } from "@/components/icons";
+import { formatCurrency } from "@/lib/utils";
 import type { Charge } from "@/types/unit-wizard.types";
 
 interface ChargeTableProps {
   charges: Charge[];
+  /** charge_id -> units its rules currently cover. */
+  unitCounts: Record<string, number>;
   isLoading: boolean;
   isSubmitting: boolean;
   onDelete: (id: string) => Promise<boolean>;
   onToggleActive: (id: string, currentStatus: boolean) => Promise<void>;
 }
 
-export function ChargeTable({ charges, isLoading, isSubmitting, onDelete, onToggleActive }: ChargeTableProps) {
+export function ChargeTable({ charges, unitCounts, isLoading, isSubmitting, onDelete, onToggleActive }: ChargeTableProps) {
   const { t } = useI18n();
   const {
     paginatedData: paginatedCharges,
@@ -82,7 +85,8 @@ export function ChargeTable({ charges, isLoading, isSubmitting, onDelete, onTogg
                   >
                     {t("common.name")}
                   </SortableTableHead>
-                  <TableHead className="w-1/3">{t("common.description")}</TableHead>
+                  <TableHead className="w-[110px]">{t("charges.table.amount")}</TableHead>
+                  <TableHead className="w-[90px]">{t("charges.table.dueDay")}</TableHead>
                   <TableHead className="w-[90px]">{t("common.units")}</TableHead>
                   <TableHead className="w-[100px]">{t("common.active")}</TableHead>
                   <TableHead className="w-[140px] text-right">{t("common.actions")}</TableHead>
@@ -94,12 +98,11 @@ export function ChargeTable({ charges, isLoading, isSubmitting, onDelete, onTogg
                     <TableCell className="font-medium">
                       <span className="truncate">{charge.name}</span>
                     </TableCell>
-                    <TableCell>
-                      <span className="text-sm text-muted-foreground truncate">{charge.description || "—"}</span>
-                    </TableCell>
+                    <TableCell className="text-sm">{formatCurrency(charge.amount)}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{charge.due_day}</TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="cursor-default">
-                        {charge.unit_charges?.[0]?.count ?? 0}
+                        {unitCounts[charge.id] ?? 0}
                       </Badge>
                     </TableCell>
                     <TableCell>

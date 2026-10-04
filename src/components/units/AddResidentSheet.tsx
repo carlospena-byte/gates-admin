@@ -9,7 +9,7 @@
  * required unit Select appears.
  */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PhoneInput } from "@/components/ui/phone-input";
@@ -18,7 +18,7 @@ import { Spinner } from "@/components/LoadingStates";
 import { UnitCombobox } from "@/components/units/UnitCombobox";
 import { useI18n } from "@/i18n/useI18n";
 import type { UnitWithOwner } from "@/services";
-import type { Location } from "@/types/unit-wizard.types";
+import type { Location, ResidentWithStatus } from "@/types/unit-wizard.types";
 
 export interface NewResidentFields {
   firstName: string;
@@ -33,6 +33,9 @@ interface AddResidentSheetProps {
   onOpenChange: (open: boolean) => void;
   isSubmitting: boolean;
   onCreate: (fields: NewResidentFields) => Promise<boolean>;
+  /** When set, the sheet edits this resident instead of creating one. */
+  editing?: ResidentWithStatus | null;
+  onUpdate?: (id: string, fields: NewResidentFields) => Promise<boolean>;
   /** When provided, shows a required unit picker (residential-wide usage). */
   units?: UnitWithOwner[];
   /** Full location tree, used to label each unit with its building/floor path (e.g. "Edificio 1 → Piso 1 → 101"). */
@@ -41,9 +44,36 @@ interface AddResidentSheetProps {
 
 const EMPTY: NewResidentFields = { firstName: "", lastName: "", email: "", phone: "", unitId: "" };
 
-export function AddResidentSheet({ open, onOpenChange, isSubmitting, onCreate, units, locations = [] }: AddResidentSheetProps) {
+export function AddResidentSheet({
+  open,
+  onOpenChange,
+  isSubmitting,
+  onCreate,
+  editing = null,
+  onUpdate,
+  units,
+  locations = [],
+}: AddResidentSheetProps) {
   const { t } = useI18n();
   const [fields, setFields] = useState<NewResidentFields>(EMPTY);
+  const isEditing = !!editing;
+  // A registered resident's email belongs to their auth account.
+  const emailLocked = editing?.status === "active";
+
+  useEffect(() => {
+    if (!open) return;
+    setFields(
+      editing
+        ? {
+            firstName: editing.first_name,
+            lastName: editing.last_name ?? "",
+            email: editing.email,
+            phone: editing.phone ?? "",
+            unitId: editing.unit_id,
+          }
+        : EMPTY,
+    );
+  }, [open, editing]);
   const set = <K extends keyof NewResidentFields>(key: K, value: NewResidentFields[K]) =>
     setFields((prev) => ({ ...prev, [key]: value }));
 
@@ -57,7 +87,7 @@ export function AddResidentSheet({ open, onOpenChange, isSubmitting, onCreate, u
 
   const handleAdd = async () => {
     if (!isValid) return;
-    const ok = await onCreate(fields);
+    const ok = editing && onUpdate ? await onUpdate(editing.id, fields) : await onCreate(fields);
     if (ok) {
       setFields(EMPTY);
       onOpenChange(false);
@@ -68,8 +98,8 @@ export function AddResidentSheet({ open, onOpenChange, isSubmitting, onCreate, u
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
         <SheetHeader>
-          <SheetTitle>{t("residents.create.title")}</SheetTitle>
-          <SheetDescription>{t("residents.create.description")}</SheetDescription>
+          <SheetTitle>{t(isEditing ? "residents.edit.title" : "residents.create.title")}</SheetTitle>
+          <SheetDescription>{t(isEditing ? "residents.edit.description" : "residents.create.description")}</SheetDescription>
         </SheetHeader>
 
         <div className="space-y-4 py-6">
@@ -100,8 +130,9 @@ export function AddResidentSheet({ open, onOpenChange, isSubmitting, onCreate, u
             type="email"
             value={fields.email}
             onChange={(e) => set("email", e.target.value)}
-            disabled={isSubmitting}
+            disabled={isSubmitting || emailLocked}
           />
+          {emailLocked && <p className="-mt-2 text-xs text-muted-foreground">{t("residents.edit.emailLocked")}</p>}
           <PhoneInput
             label={t("residents.create.phoneLabel")}
             value={fields.phone}

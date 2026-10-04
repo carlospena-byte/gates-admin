@@ -19,12 +19,18 @@ const buttonVariants = cva(
         ghost: "rounded-md hover:bg-accent hover:text-accent-foreground",
         link: "rounded-none text-primary underline-offset-4 hover:underline",
       },
+      // Standard sizes — pick by role, never override heights with className:
+      //   sm      36px  compact, inside table rows / cards / inline filters
+      //   default 44px  page-header actions, toolbars, forms, sheet & dialog footers
+      //   lg      56px  hero / auth / full-width CTAs (same height as the date-picker confirm)
+      //   icon    44px  square, pairs with `default` (e.g. refresh next to "Add")
+      //   icon-sm 36px  square, pairs with `sm`
       size: {
-        default: "h-10 px-4 py-2",
         sm: "h-9 px-3",
-        lg: "h-12 px-6",
-        xl: "h-14 px-6",
-        icon: "h-10 w-10 rounded-full",
+        default: "h-11 px-5",
+        lg: "h-14 px-6",
+        icon: "h-11 w-11 rounded-full",
+        "icon-sm": "h-9 w-9 rounded-full",
       },
     },
     defaultVariants: {

@@ -24,6 +24,7 @@ import type {
   AddonType,
   UpdateAddonItemDto,
 } from "@/types/unit-wizard.types";
+import { translate } from "@/i18n/translate";
 
 export interface UnitFormPayload {
   name: string;
@@ -101,7 +102,7 @@ export function useUnitManagerData(residentialId: string, open: boolean, showLis
       if (!unitResult.success) {
         setIsSubmitting(false);
         if (unitResult.error?.code === "23505") {
-          toast.error("A unit with that name already exists");
+          toast.error(translate("toast.unit.duplicate"));
         } else {
           toast.error(unitResult.error?.message || "Failed to create unit");
         }
@@ -112,7 +113,7 @@ export function useUnitManagerData(residentialId: string, open: boolean, showLis
         await unitAddonService.createMany(unitResult.data.id, payload.addonItemIds);
       }
 
-      toast.success("Unit created successfully");
+      toast.success(translate("toast.unit.created"));
       await reload();
       setIsSubmitting(false);
       return true;
@@ -142,7 +143,7 @@ export function useUnitManagerData(residentialId: string, open: boolean, showLis
         await unitAddonService.createMany(id, payload.addonItemIds);
       }
 
-      toast.success("Unit updated successfully");
+      toast.success(translate("toast.unit.updated"));
       await reload();
       setIsSubmitting(false);
       return true;
@@ -161,7 +162,7 @@ export function useUnitManagerData(residentialId: string, open: boolean, showLis
         return false;
       }
 
-      toast.success("Unit deleted successfully");
+      toast.success(translate("toast.unit.deleted"));
       await reload();
       return true;
     },
@@ -172,7 +173,7 @@ export function useUnitManagerData(residentialId: string, open: boolean, showLis
     async (id: string, currentStatus: boolean) => {
       const result = await unitService.update(id, { is_active: !currentStatus });
       if (!result.success) {
-        toast.error("Failed to toggle unit status");
+        toast.error(translate("toast.unit.toggleFailed"));
         return;
       }
       await reload();
@@ -191,7 +192,7 @@ export function useUnitManagerData(residentialId: string, open: boolean, showLis
         return false;
       }
 
-      toast.success("Addon item updated successfully");
+      toast.success(translate("toast.addonItem.updated"));
       await reload();
       return true;
     },

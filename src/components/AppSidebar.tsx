@@ -1,23 +1,22 @@
-import { useState, type ComponentType } from "react";
+import { useState, useSyncExternalStore, type ComponentType } from "react";
 import {
-  IconAlertTriangle,
   IconBuildings,
-  IconCalendarEvent,
   IconCategory,
   IconHistory,
   IconHome,
   IconLayoutSidebarLeftCollapse,
+  IconLayoutSidebarLeftExpand,
   IconLogout,
   IconMenu2,
+  IconSearch,
   IconSettings,
+  IconDeviceMobile,
   IconShieldLock,
-  IconSpeakerphone,
   IconTicket,
   IconTruckDelivery,
   IconUser,
-  IconUserCheck,
-  IconUsers,
   type IconProps,
+  IconSwitchHorizontal,
 } from "@tabler/icons-react";
 
 import { Avatar } from "@/components/ui/avatar";
@@ -41,6 +40,11 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { CommandPalette } from "@/components/CommandPalette";
+import { CreateMenu } from "@/components/CreateMenu";
+import { NAV_SECTIONS, getAllowedSectionRoutes, isSectionActive } from "@/config/sections";
+import { NotificationsBell } from "@/components/dashboard/NotificationsBell";
+import { usePendingCounts } from "@/hooks/usePendingCounts";
 import { useI18n } from "@/i18n/useI18n";
 import type { Locale, MessageKey } from "@/i18n/messages";
 import {
@@ -51,7 +55,9 @@ import {
   ROUTES,
   type RouteType,
 } from "@/config/routes";
-import { residentialService } from "@/services";
+import { profileService, residentialService } from "@/services";
+import { useSession } from "@/state/useSession";
+import { guardUsernameFromEmail, isGuardEmail } from "@/lib/guardAccount";
 import { useQuery } from "@/hooks";
 import type { ResidentialRole } from "@/types/database.types";
 import { cn } from "@/lib/utils";
@@ -85,6 +91,10 @@ interface NavItem {
   route: RouteType;
   icon: ComponentType<IconProps>;
   active: boolean;
+  /** Pending-work count shown as a pill; hidden when 0/undefined. */
+  badge?: number;
+  /** Sibling pages of the section, listed under the item while it is active. */
+  children?: { href: string; label: string; active: boolean; badge?: number }[];
 }
 
 /** `label: null` renders as an ungrouped section (just Dashboard, at the top). */
@@ -93,8 +103,46 @@ interface NavGroup {
   items: NavItem[];
 }
 
+const COLLAPSED_KEY = "gates.sidebarCollapsed";
+const collapseListeners = new Set<() => void>();
+
+function readCollapsed(): boolean {
+  try {
+    return localStorage.getItem(COLLAPSED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+/** Desktop sidebar collapse, persisted. Page content padding follows via html[data-sidebar-collapsed] (index.css). */
+function setCollapsed(next: boolean) {
+  try {
+    localStorage.setItem(COLLAPSED_KEY, next ? "1" : "0");
+  } catch {
+    /* storage unavailable: collapse for this session only */
+  }
+  if (next) document.documentElement.setAttribute("data-sidebar-collapsed", "");
+  else document.documentElement.removeAttribute("data-sidebar-collapsed");
+  collapseListeners.forEach((listener) => listener());
+}
+
+if (typeof document !== "undefined" && readCollapsed()) {
+  document.documentElement.setAttribute("data-sidebar-collapsed", "");
+}
+
+function useSidebarCollapsed(): boolean {
+  return useSyncExternalStore(
+    (listener) => {
+      collapseListeners.add(listener);
+      return () => collapseListeners.delete(listener);
+    },
+    () => document.documentElement.hasAttribute("data-sidebar-collapsed"),
+    () => false,
+  );
+}
+
 const BrandMark = () => (
-  <p className="text-2xl font-semibold tracking-[-0.8px] text-gates-text-brand">GATES</p>
+  <p className="text-2xl font-semibold tracking-[-0.8px] text-gates-text-brand">VECINOO</p>
 );
 
 interface SidebarBodyProps {
@@ -114,7 +162,15 @@ interface SidebarBodyProps {
   onProfile?: () => void;
   onSettings?: () => void;
   onSignOut?: () => void;
+  /** Guard (username + PIN) accounts get a one-tap "switch guard" button above the user menu. */
+  isGuard?: boolean;
   onNavigate?: () => void;
+  /** Residential-scoped "+ Create" and ⌘K search entry points. */
+  showQuickActions: boolean;
+  role?: ResidentialRole;
+  onOpenSearch: () => void;
+  /** Desktop-only: shown when provided (hidden in the mobile drawer). */
+  onCollapse?: () => void;
 }
 
 function SidebarBody({
@@ -134,7 +190,12 @@ function SidebarBody({
   onProfile,
   onSettings,
   onSignOut,
+  isGuard,
   onNavigate,
+  showQuickActions,
+  role,
+  onOpenSearch,
+  onCollapse,
 }: SidebarBodyProps) {
   const { t } = useI18n();
   return (
@@ -142,12 +203,16 @@ function SidebarBody({
       <SidebarHeader>
         <div className="flex items-center justify-between gap-1">
           <BrandMark />
-          <span
-            aria-hidden
-            className="flex size-11 shrink-0 items-center justify-center rounded-full bg-gates-subtle"
-          >
-            <IconLayoutSidebarLeftCollapse className="h-5 w-5 text-gates-text-primary" />
-          </span>
+          {onCollapse && (
+            <button
+              type="button"
+              onClick={onCollapse}
+              aria-label={t("appSidebar.collapse")}
+              className="flex size-11 shrink-0 items-center justify-center rounded-full bg-gates-subtle transition-colors hover:bg-gates-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <IconLayoutSidebarLeftCollapse className="h-5 w-5 text-gates-text-primary" />
+            </button>
+          )}
         </div>
       </SidebarHeader>
 
@@ -155,6 +220,24 @@ function SidebarBody({
         <div className="mx-2 flex flex-col gap-1 rounded-2xl bg-gates-subtle p-4">
           <p className="text-xs font-medium uppercase tracking-tight text-gates-text-brand">{residentialName}</p>
           <p className="text-sm font-semibold text-gates-text-primary">{roleLabel}</p>
+        </div>
+      )}
+
+      {showUserMenu && showQuickActions && (
+        <div className="mx-2 mt-3 flex flex-col gap-2">
+          <CreateMenu role={role} onSelect={onNavigate} />
+          <button
+            type="button"
+            onClick={() => {
+              onNavigate?.();
+              onOpenSearch();
+            }}
+            className="flex h-10 w-full items-center gap-2 rounded-full bg-gates-subtle px-4 text-sm text-gates-text-secondary transition-colors hover:bg-gates-accent"
+          >
+            <IconSearch className="h-4 w-4" />
+            <span className="flex-1 text-left">{t("palette.search")}</span>
+            <kbd className="rounded bg-gates-surface px-1.5 py-0.5 text-[10px] font-medium">⌘K</kbd>
+          </button>
         </div>
       )}
 
@@ -183,9 +266,45 @@ function SidebarBody({
                     >
                       <a href={item.href}>
                         <item.icon className="h-5 w-5" />
-                        {item.label}
+                        <span className="flex-1">{item.label}</span>
+                        {item.badge ? (
+                          <span
+                            className={cn(
+                              "min-w-5 rounded-full px-1.5 py-0.5 text-center text-[11px] font-semibold leading-none",
+                              item.active ? "bg-gates-surface text-gates-text-brand" : "bg-gates-brand text-gates-text-inverse",
+                            )}
+                          >
+                            {item.badge > 99 ? "99+" : item.badge}
+                          </span>
+                        ) : null}
                       </a>
                     </SidebarMenuButton>
+                    {item.active && item.children && (
+                      <ul className="ml-[22px] mt-1 space-y-1 border-l border-gates-border pl-3">
+                        {item.children.map((child) => (
+                          <li key={child.href}>
+                            <a
+                              href={child.href}
+                              onClick={onNavigate}
+                              aria-current={child.active ? "page" : undefined}
+                              className={cn(
+                                "flex h-10 items-center rounded-full px-4 text-sm font-semibold transition-colors",
+                                child.active
+                                  ? "bg-gates-accent text-gates-text-brand"
+                                  : "text-gates-text-secondary hover:bg-gates-subtle hover:text-gates-text-primary",
+                              )}
+                            >
+                              <span className="flex-1">{child.label}</span>
+                              {child.badge ? (
+                                <span className="min-w-5 rounded-full bg-gates-brand px-1.5 py-0.5 text-center text-[11px] font-semibold leading-none text-gates-text-inverse">
+                                  {child.badge > 99 ? "99+" : child.badge}
+                                </span>
+                              ) : null}
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </SidebarMenuItem>
                 ))}
               </SidebarMenu>
@@ -239,6 +358,17 @@ function SidebarBody({
           </a>
         )}
 
+        {showUserMenu && isGuard && onSignOut && (
+          <Button
+            variant="outline"
+            className="h-12 w-full justify-start gap-3 rounded-full px-3 text-sm font-semibold"
+            onClick={onSignOut}
+          >
+            <IconSwitchHorizontal className="h-5 w-5" />
+            {t("appSidebar.switchGuard")}
+          </Button>
+        )}
+
         {showUserMenu && userEmail && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -255,7 +385,7 @@ function SidebarBody({
                 <Avatar name={displayName} size="sm" />
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-medium leading-none">{displayName}</p>
-                  <p className="text-xs text-muted-foreground">Senior Software Engineer • {userRole}</p>
+                  <p className="text-xs text-muted-foreground">{userRole}</p>
                 </div>
               </div>
 
@@ -294,10 +424,167 @@ function SidebarBody({
   );
 }
 
+interface SidebarRailProps {
+  navGroups: NavGroup[];
+  showUserMenu: boolean;
+  showQuickActions: boolean;
+  showSettingsShortcut: boolean;
+  isSettingsActive: boolean;
+  userEmail?: string;
+  displayName: string;
+  userRole: string;
+  locale: Locale;
+  onLocaleChange: (locale: Locale) => void;
+  onOpenSearch: () => void;
+  onExpand: () => void;
+  onProfile?: () => void;
+  onSettings?: () => void;
+  onSignOut?: () => void;
+}
+
+const railButton =
+  "relative flex size-11 shrink-0 items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
+/** Collapsed desktop sidebar: icon-only pill. Same destinations, labels move to tooltips. */
+function SidebarRail({
+  navGroups,
+  showUserMenu,
+  showQuickActions,
+  showSettingsShortcut,
+  isSettingsActive,
+  userEmail,
+  displayName,
+  userRole,
+  locale,
+  onLocaleChange,
+  onOpenSearch,
+  onExpand,
+  onProfile,
+  onSettings,
+  onSignOut,
+}: SidebarRailProps) {
+  const { t } = useI18n();
+  return (
+    <aside className="fixed inset-y-4 left-4 z-30 hidden w-[72px] flex-col items-center gap-3 rounded-[2rem] bg-gates-surface py-4 shadow-gates-card lg:flex">
+      <button
+        type="button"
+        onClick={onExpand}
+        aria-label={t("appSidebar.expand")}
+        title={t("appSidebar.expand")}
+        className={cn(railButton, "bg-gates-subtle hover:bg-gates-accent")}
+      >
+        <IconLayoutSidebarLeftExpand className="h-5 w-5 text-gates-text-primary" />
+      </button>
+      <div className="h-px w-8 bg-gates-border" />
+
+      {showUserMenu && showQuickActions && (
+        <button
+          type="button"
+          onClick={onOpenSearch}
+          aria-label={t("palette.search")}
+          title={t("palette.search")}
+          className={cn(railButton, "text-gates-text-secondary hover:bg-gates-subtle")}
+        >
+          <IconSearch className="h-5 w-5" />
+        </button>
+      )}
+
+      {showUserMenu && (
+        <nav className="flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto">
+          {navGroups.flatMap((group) => group.items).map((item) => (
+            <a
+              key={item.href}
+              href={item.href}
+              title={item.label}
+              aria-label={item.label}
+              aria-current={item.active ? "page" : undefined}
+              className={cn(
+                railButton,
+                item.active
+                  ? "bg-gates-brand text-gates-text-inverse"
+                  : "text-gates-text-primary hover:bg-gates-subtle",
+              )}
+            >
+              <item.icon className="h-5 w-5" />
+              {item.badge ? (
+                <span className="absolute right-2 top-2 size-2 rounded-full bg-gates-error ring-2 ring-gates-surface" />
+              ) : null}
+            </a>
+          ))}
+        </nav>
+      )}
+
+      <div className="flex flex-col items-center gap-1">
+        <button
+          type="button"
+          onClick={() => onLocaleChange(locale === "en" ? "es" : "en")}
+          title={locale === "en" ? "Español" : "English"}
+          className={cn(railButton, "text-xs font-semibold uppercase text-gates-text-secondary hover:bg-gates-subtle")}
+        >
+          {locale}
+        </button>
+        {showUserMenu && showSettingsShortcut && (
+          <a
+            href={ROUTES.settingsUnitTypes.hash}
+            title={t("common.settings")}
+            aria-label={t("common.settings")}
+            className={cn(
+              railButton,
+              isSettingsActive ? "bg-gates-brand text-gates-text-inverse" : "text-gates-text-brand hover:bg-gates-subtle",
+            )}
+          >
+            <IconSettings className="h-5 w-5" />
+          </a>
+        )}
+        {showUserMenu && userEmail && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button type="button" title={displayName} className={cn(railButton, "hover:bg-gates-subtle")}>
+                <Avatar name={displayName} size="sm" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-72" align="start" side="right" sideOffset={12}>
+              <div className="flex items-center gap-3 px-2 py-3">
+                <Avatar name={displayName} size="sm" />
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium leading-none">{displayName}</p>
+                  <p className="text-xs text-muted-foreground">{userRole}</p>
+                </div>
+              </div>
+              <DropdownMenuSeparator />
+              {onProfile && (
+                <DropdownMenuItem className="cursor-pointer py-2.5" onClick={onProfile}>
+                  <IconUser className="mr-3 h-4 w-4" />
+                  <span>{t("appSidebar.myProfile")}</span>
+                </DropdownMenuItem>
+              )}
+              {onSettings && (
+                <DropdownMenuItem className="cursor-pointer py-2.5" onClick={onSettings}>
+                  <IconSettings className="mr-3 h-4 w-4" />
+                  <span>{t("common.settings")}</span>
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              {onSignOut && (
+                <DropdownMenuItem
+                  className="cursor-pointer py-2.5 text-red-600 focus:text-red-600 dark:text-red-400 dark:focus:text-red-400"
+                  onClick={onSignOut}
+                >
+                  <IconLogout className="mr-3 h-4 w-4" />
+                  <span>{t("common.signOut")}</span>
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </div>
+    </aside>
+  );
+}
+
 export function AppSidebar({
   userEmail,
   userName,
-  userRole = "Engineering",
   residentialId,
   role,
   isPlatformAdmin = false,
@@ -308,6 +595,8 @@ export function AppSidebar({
 }: AppSidebarProps) {
   const { locale, setLocale, t } = useI18n();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const collapsed = useSidebarCollapsed();
   const currentRoute = getCurrentRoute();
 
   const { data: residential } = useQuery(
@@ -317,8 +606,18 @@ export function AppSidebar({
 
   const roleLabel = role ? t((`role.${role}`) as MessageKey) : t("appSidebar.tagline");
 
+  const { session } = useSession();
+  const { data: ownProfile } = useQuery(() => profileService.getProfile(session!.user.id), {
+    enabled: Boolean(session?.user.id) && !userName,
+  });
+  const profileName = [ownProfile?.first_name, ownProfile?.last_name].filter(Boolean).join(" ");
+  const isGuard = isGuardEmail(userEmail);
+  // Guards have no real mailbox; show their username where the email would go.
+  const shownEmail = isGuard && userEmail ? guardUsernameFromEmail(userEmail) : userEmail;
+
   const getDisplayName = () => {
     if (userName) return userName;
+    if (profileName) return profileName;
     if (userEmail) {
       const namePart = userEmail.split("@")[0];
       return namePart
@@ -345,32 +644,50 @@ export function AppSidebar({
         { label: t("appSidebar.nav.platformAmenitiesCatalog"), href: "#platform/amenities-catalog", route: "platformAmenitiesCatalog", icon: IconCategory, active: currentRoute === "platformAmenitiesCatalog" },
         { label: t("appSidebar.nav.platformAdmins"), href: "#platform/admins", route: "platformAdmins", icon: IconShieldLock, active: currentRoute === "platformAdmins" },
         { label: t("appSidebar.nav.platformAuditLog"), href: "#platform/audit-log", route: "platformAuditLog", icon: IconHistory, active: currentRoute === "platformAuditLog" },
+        { label: t("appSidebar.nav.platformAppSettings"), href: "#platform/app-settings", route: "platformAppSettings", icon: IconDeviceMobile, active: currentRoute === "platformAppSettings" },
       ],
     },
   ];
 
+  const { counts } = usePendingCounts(residentialId, Boolean(residentialId) && !isPlatformAdmin && showUserMenu);
+  const badgeBySection: Record<string, number | undefined> = {
+    billing: counts?.payments,
+    operations: counts ? counts.incidents + counts.reservations : undefined,
+  };
+
+  const badgeByRoute: Partial<Record<string, number>> = {
+    incidents: counts?.incidents,
+    reservations: counts?.reservations,
+    payments: counts?.payments,
+  };
+
   const residentialNavGroups: NavGroup[] = [
     {
       label: null,
-      items: [
-        { label: t("appSidebar.nav.home"), href: "#residential", route: "residential", icon: IconHome, active: currentRoute === "residential" },
-      ],
-    },
-    {
-      label: t("appSidebar.group.community"),
-      items: [
-        { label: t("appSidebar.nav.units"), href: "#units", route: "units", icon: IconBuildings, active: currentRoute === "units" },
-        { label: t("appSidebar.nav.residents"), href: "#residents", route: "residents", icon: IconUsers, active: currentRoute === "residents" },
-        { label: t("appSidebar.nav.visitors"), href: "#visitors", route: "visitors", icon: IconUserCheck, active: currentRoute === "visitors" },
-        { label: t("appSidebar.nav.reservations"), href: "#reservations", route: "reservations", icon: IconCalendarEvent, active: currentRoute === "reservations" },
-      ],
-    },
-    {
-      label: t("appSidebar.group.operations"),
-      items: [
-        { label: t("appSidebar.nav.incidents"), href: "#incidents", route: "incidents", icon: IconAlertTriangle, active: currentRoute === "incidents" },
-        { label: t("appSidebar.nav.announcements"), href: "#announcements", route: "announcements", icon: IconSpeakerphone, active: currentRoute === "announcements" },
-      ],
+      items: NAV_SECTIONS.flatMap((section) => {
+        const allowed = role ? getAllowedSectionRoutes(section, role) : section.routes;
+        if (allowed.length === 0) return [];
+        const target = allowed[0].route;
+        return [
+          {
+            label: t(section.labelKey),
+            href: ROUTES[target].hash,
+            route: target,
+            icon: section.icon,
+            active: isSectionActive(section, currentRoute),
+            badge: badgeBySection[section.id],
+            children:
+              allowed.length > 1
+                ? allowed.map((entry) => ({
+                    href: ROUTES[entry.route].hash,
+                    label: t(entry.labelKey),
+                    active: entry.route === currentRoute,
+                    badge: badgeByRoute[entry.route],
+                  }))
+                : undefined,
+          },
+        ];
+      }),
     },
   ];
 
@@ -394,19 +711,39 @@ export function AppSidebar({
     onLocaleChange: setLocale,
     labelEn: t("language.en"),
     labelEs: t("language.es"),
-    userEmail,
-    userRole,
+    userEmail: shownEmail,
+    isGuard,
+    userRole: roleLabel,
     displayName: getDisplayName(),
     onProfile,
     onSettings,
     onSignOut,
+    showQuickActions: !isPlatformAdmin && Boolean(residentialId),
+    role,
+    onOpenSearch: () => setPaletteOpen(true),
   };
 
   return (
     <>
+      {sharedProps.showQuickActions && showUserMenu && residentialId && (
+        <CommandPalette
+          residentialId={residentialId}
+          role={role}
+          open={paletteOpen}
+          onOpenChange={setPaletteOpen}
+        />
+      )}
       {/* Mobile top bar */}
-      <div className="sticky top-0 z-40 flex h-14 items-center justify-between gap-3 border-b border-border/20 bg-background/70 px-4 backdrop-blur-md supports-[backdrop-filter]:bg-background/40 lg:hidden">
+      <div className={"sticky top-0 z-40 flex h-14 items-center justify-between gap-3 border-b border-border/20 bg-background/70 px-4 backdrop-blur-md supports-[backdrop-filter]:bg-background/40 lg:hidden"}>
         <BrandMark />
+        <div className="flex items-center gap-2">
+        {isGuard && showUserMenu && onSignOut && (
+          <Button size="sm" variant="outline" className="max-w-[11rem] gap-2 rounded-full" onClick={onSignOut}>
+            <IconSwitchHorizontal className="h-4 w-4 shrink-0" />
+            <span className="truncate">{sharedProps.displayName}</span>
+          </Button>
+        )}
+        {residentialId && role && !isPlatformAdmin && showUserMenu && <NotificationsBell residentialId={residentialId} role={role} />}
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetTrigger asChild>
             <Button size="icon" variant="ghost" aria-label="Open menu">
@@ -419,12 +756,33 @@ export function AppSidebar({
             </Sidebar>
           </SheetContent>
         </Sheet>
+        </div>
       </div>
 
       {/* Desktop floating sidebar card */}
-      <Sidebar className="fixed inset-y-4 left-4 z-30 hidden w-60 rounded-[2rem] border-none bg-gates-surface shadow-gates-card lg:flex">
-        <SidebarBody {...sharedProps} />
-      </Sidebar>
+      {collapsed ? (
+        <SidebarRail
+          navGroups={navGroups}
+          showUserMenu={showUserMenu}
+          showQuickActions={sharedProps.showQuickActions}
+          showSettingsShortcut={sharedProps.showSettingsShortcut}
+          isSettingsActive={sharedProps.isSettingsActive}
+          userEmail={shownEmail}
+          displayName={sharedProps.displayName}
+          userRole={roleLabel}
+          locale={locale}
+          onLocaleChange={setLocale}
+          onOpenSearch={() => setPaletteOpen(true)}
+          onExpand={() => setCollapsed(false)}
+          onProfile={onProfile}
+          onSettings={onSettings}
+          onSignOut={onSignOut}
+        />
+      ) : (
+        <Sidebar className="fixed inset-y-4 left-4 z-30 hidden w-60 rounded-[2rem] border-none bg-gates-surface shadow-gates-card lg:flex">
+          <SidebarBody {...sharedProps} onCollapse={() => setCollapsed(true)} />
+        </Sidebar>
+      )}
     </>
   );
 }

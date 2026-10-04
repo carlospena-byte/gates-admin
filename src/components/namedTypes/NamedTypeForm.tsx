@@ -34,7 +34,7 @@ export function NamedTypeForm({ entityLabel, placeholder, isSubmitting, onCreate
   }
 
   return (
-    <div className="flex gap-2">
+    <div className="flex flex-wrap gap-2">
       <Input
         label={entityLabel}
         value={name}

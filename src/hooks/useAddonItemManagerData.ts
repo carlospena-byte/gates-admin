@@ -22,6 +22,7 @@ import type {
   UpdateAddonDto,
   UpdateAddonItemDto,
 } from "@/types/unit-wizard.types";
+import { translate } from "@/i18n/translate";
 
 export interface AddonItemFormPayload {
   name: string;
@@ -84,7 +85,7 @@ export function useAddonItemManagerData(residentialId: string, addonId: string) 
         return false;
       }
 
-      toast.success("Addon updated successfully");
+      toast.success(translate("toast.addon.updated"));
       await reload();
       return true;
     },
@@ -97,7 +98,7 @@ export function useAddonItemManagerData(residentialId: string, addonId: string) 
         (item) => item.name.trim().toLowerCase() === payload.name.trim().toLowerCase(),
       );
       if (isDuplicateName) {
-        toast.warning(`Another item named "${payload.name}" already exists for this addon`);
+        toast.warning(translate("toast.addonItem.duplicate", { name: payload.name }));
       }
 
       setIsSubmitting(true);
@@ -115,7 +116,7 @@ export function useAddonItemManagerData(residentialId: string, addonId: string) 
         return false;
       }
 
-      toast.success("Addon item created successfully");
+      toast.success(translate("toast.addonItem.created"));
       await reload();
       return true;
     },
@@ -129,7 +130,7 @@ export function useAddonItemManagerData(residentialId: string, addonId: string) 
           (item) => item.id !== id && item.name.trim().toLowerCase() === dto.name!.trim().toLowerCase(),
         );
         if (isDuplicateName) {
-          toast.warning(`Another item named "${dto.name}" already exists for this addon`);
+          toast.warning(translate("toast.addonItem.duplicate", { name: dto.name }));
         }
       }
 
@@ -142,7 +143,7 @@ export function useAddonItemManagerData(residentialId: string, addonId: string) 
         return false;
       }
 
-      toast.success("Addon item updated successfully");
+      toast.success(translate("toast.addonItem.updated"));
       await reload();
       return true;
     },
@@ -160,7 +161,7 @@ export function useAddonItemManagerData(residentialId: string, addonId: string) 
         return false;
       }
 
-      toast.success("Addon item deleted successfully");
+      toast.success(translate("toast.addonItem.deleted"));
       await reload();
       return true;
     },
@@ -173,7 +174,7 @@ export function useAddonItemManagerData(residentialId: string, addonId: string) 
       if (result.success) {
         await reload();
       } else {
-        toast.error("Failed to toggle addon item status");
+        toast.error(translate("toast.addonItem.toggleFailed"));
       }
     },
     [reload],

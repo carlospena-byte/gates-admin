@@ -79,7 +79,7 @@ export function AddonDetailPage({
       <div className="min-h-screen">
         <AppSidebar userEmail={session?.user?.email} residentialId={residentialId} role={role} onSignOut={() => authService.signOut()} showUserMenu />
         <div className="lg:pl-64">
-          <div className="mx-auto max-w-3xl px-6 py-6 space-y-4">
+          <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6 space-y-4">
             <BackButton />
             {isLoading ? (
               <div className="flex justify-center py-12">
@@ -99,7 +99,7 @@ export function AddonDetailPage({
       <AppSidebar userEmail={session?.user?.email} residentialId={residentialId} role={role} onSignOut={() => authService.signOut()} showUserMenu />
 
       <div className="lg:pl-64">
-        <div className="mx-auto max-w-4xl px-6 py-6 space-y-6">
+        <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 space-y-6">
           <BackButton />
 
           <Card>

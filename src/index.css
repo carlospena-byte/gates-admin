@@ -6,7 +6,7 @@
 
 @layer base {
   :root {
-    /* Gates UI Kit — raw palette (see Figma "Gates 26", —— Components ——) */
+    /* Vecinoo UI Kit — raw palette (see Figma "Vecinoo 26", —— Components ——) */
     --gates-bg-canvas: 75 22% 96%;
     --gates-bg-surface: 0 0% 100%;
     --gates-bg-subtle: 94 21% 94%;
@@ -29,7 +29,7 @@
     --gates-status-success-bg: 115 30% 92%;
     --gates-status-info-bg: 259 40% 92%;
 
-    /* shadcn/ui semantic tokens, remapped to the Gates palette */
+    /* shadcn/ui semantic tokens, remapped to the Vecinoo palette */
     --background: var(--gates-bg-canvas);
     --foreground: var(--gates-text-primary);
     --card: var(--gates-bg-surface);
@@ -73,12 +73,20 @@
     --border: 150 10% 22%;
     --input: 150 10% 22%;
     --ring: 97 28% 80%;
+    --gates-status-error: 6 60% 72%;
+    --gates-status-error-bg: 6 35% 22%;
+    --gates-status-warning: 44 75% 70%;
+    --gates-status-warning-bg: 41 40% 20%;
+    --gates-status-success: 120 35% 72%;
+    --gates-status-success-bg: 140 22% 21%;
+    --gates-status-info-bg: 259 20% 25%;
+    --gates-text-brand: 97 28% 80%;
   }
 }
 
 @layer utilities {
   /* Brand-only warm glow (amber + sage), matching the mobile app's auth
-     screens — no purple/lilac, which never appears in the Gates palette. */
+     screens — no purple/lilac, which never appears in the Vecinoo palette. */
   .mesh-bg {
     background:
       radial-gradient(1100px circle at 50% 8%, hsl(var(--gates-bg-warm) / 0.55), transparent 60%),
@@ -123,4 +131,17 @@
 
 [data-sonner-toast] {
   pointer-events: auto !important;
+}
+
+/* Desktop sidebar collapsed (see AppSidebar): pages reserve `lg:pl-64` for it; the icon rail needs only 6rem. */
+@media (min-width: 1024px) {
+  html[data-sidebar-collapsed] .lg\:pl-64 {
+    padding-left: 6rem;
+  }
+
+  /* With the rail the content has room to grow: lift the wide page containers' cap. */
+  html[data-sidebar-collapsed] .lg\:pl-64 .max-w-7xl,
+  html[data-sidebar-collapsed] .lg\:pl-64 .max-w-6xl {
+    max-width: 96rem;
+  }
 }

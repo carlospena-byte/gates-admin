@@ -133,7 +133,7 @@ export function ProviderCatalogEditor({
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Select value={kindFilter} onValueChange={(v) => setKindFilter(v as KindFilter)}>
-          <SelectTrigger className="w-44">
+          <SelectTrigger className="w-full sm:w-44">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

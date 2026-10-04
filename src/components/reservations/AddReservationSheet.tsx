@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Spinner } from "@/components/LoadingStates";
 import { useI18n } from "@/i18n/useI18n";
+import { DatePicker } from "@/components/ui/date-picker";
 
 const MAX_HOURS = 6;
 
@@ -116,11 +117,12 @@ export function AddReservationSheet({ open, onOpenChange, amenities, units, isSu
           </Select>
 
           <div className="grid gap-2 grid-cols-1">
-            <Input
+            <DatePicker
+              mode="single"
               label={t("reservations.add.start.label")}
-              type="datetime-local"
               value={fields.startTime}
-              onChange={(e) => set("startTime", e.target.value)}
+              onChange={(v) => set("startTime", v)}
+            withTime
               disabled={isSubmitting}
             />
             <Input

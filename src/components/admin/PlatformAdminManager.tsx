@@ -22,6 +22,8 @@ export function PlatformAdminManager({ currentUserId }: { currentUserId?: string
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [email, setEmail] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
 
   const load = async () => {
     setIsLoading(true);
@@ -39,22 +41,29 @@ export function PlatformAdminManager({ currentUserId }: { currentUserId?: string
   }, []);
 
   const handleAdd = async () => {
-    if (!email.trim()) return;
+    if (!email.trim() || !firstName.trim() || !lastName.trim()) return;
     setIsSubmitting(true);
     const result = await platformAdminService.addByEmail(email.trim());
-    setIsSubmitting(false);
 
     if (!result.success) {
+      setIsSubmitting(false);
       toast.error(result.error.message);
       return;
     }
     if (!result.data) {
+      setIsSubmitting(false);
       toast.error(t("platformAdmin.admins.noAccountFound"));
       return;
     }
 
+    const nameResult = await platformAdminService.setName(result.data, firstName.trim(), lastName.trim());
+    setIsSubmitting(false);
+    if (!nameResult.success) toast.error(nameResult.error.message);
+
     toast.success(t("platformAdmin.admins.added"));
     setEmail("");
+    setFirstName("");
+    setLastName("");
     await load();
   };
 
@@ -71,7 +80,21 @@ export function PlatformAdminManager({ currentUserId }: { currentUserId?: string
 
   return (
     <div className="space-y-4">
-      <div className="flex items-end gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+        <Input
+          label={t("common.firstName")}
+          value={firstName}
+          onChange={(e) => setFirstName(e.target.value)}
+          disabled={isSubmitting}
+          className="sm:w-40"
+        />
+        <Input
+          label={t("common.lastName")}
+          value={lastName}
+          onChange={(e) => setLastName(e.target.value)}
+          disabled={isSubmitting}
+          className="sm:w-40"
+        />
         <Input
           label={t("platformAdmin.admins.addByEmail.label")}
           type="email"
@@ -81,7 +104,7 @@ export function PlatformAdminManager({ currentUserId }: { currentUserId?: string
           disabled={isSubmitting}
           className="flex-1"
         />
-        <Button onClick={handleAdd} disabled={isSubmitting || !email.trim()}>
+        <Button onClick={handleAdd} disabled={isSubmitting || !email.trim() || !firstName.trim() || !lastName.trim()}>
           {isSubmitting ? <Spinner size="sm" /> : t("common.add")}
         </Button>
       </div>
@@ -97,6 +120,7 @@ export function PlatformAdminManager({ currentUserId }: { currentUserId?: string
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>{t("common.name")}</TableHead>
                 <TableHead>{t("common.email")}</TableHead>
                 <TableHead className="text-right">{t("common.actions")}</TableHead>
               </TableRow>
@@ -106,6 +130,9 @@ export function PlatformAdminManager({ currentUserId }: { currentUserId?: string
                 const isSelf = admin.user_id === currentUserId;
                 return (
                   <TableRow key={admin.user_id}>
+                    <TableCell className="text-sm font-medium">
+                      {[admin.profiles?.first_name, admin.profiles?.last_name].filter(Boolean).join(" ") || "—"}
+                    </TableCell>
                     <TableCell className="text-sm">
                       {admin.profiles?.email ?? t("settings.users.unknownEmail")}
                       {isSelf ? (

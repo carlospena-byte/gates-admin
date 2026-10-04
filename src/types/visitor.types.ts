@@ -73,6 +73,7 @@ export interface CreateVisitorDto {
   schedule_type?: ScheduleType;
   schedule_start?: string | null;
   schedule_end?: string | null;
+  id_photo_path?: string | null;
 }
 
 export interface UpdateVisitorDto {
@@ -92,12 +93,13 @@ export interface UpdateVisitorDto {
   schedule_type?: ScheduleType;
   schedule_start?: string | null;
   schedule_end?: string | null;
+  id_photo_path?: string | null;
 }
 
 // Visitor joined with the inviting profile's email, for the "Invited By"
 // table column — same join-on-select shape as UnitWithOwner.
 export type VisitorWithInviter = Visitor & {
-  profiles: { email: string | null } | null;
+  profiles: { email: string | null; first_name: string | null; last_name: string | null } | null;
 };
 
 // A registered vehicle — optionally tied to a unit and/or a specific

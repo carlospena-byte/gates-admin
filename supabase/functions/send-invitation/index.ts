@@ -4,7 +4,7 @@
 // emails the code. The RPC always runs first, so a resident is never left
 // without an invitation just because the email failed — the response
 // reports emailSent separately and always includes the code so
-// gates-admin can show it for the admin to copy/share manually as a
+// the admin web can show it for the admin to copy/share manually as a
 // fallback (see the manual-code decision: no deep links in this version).
 //
 // Sending picks whichever transport is configured: SMTP_HOST (set for
@@ -13,24 +13,20 @@
 // local testing never needs a real Resend account; otherwise it falls
 // back to Resend via RESEND_API_KEY/RESEND_FROM_EMAIL for staging/prod.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { invitationEmail } from "../_shared/email.ts";
 import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
 const SMTP_HOST = Deno.env.get("SMTP_HOST");
 const SMTP_PORT = Number(Deno.env.get("SMTP_PORT") ?? "1025");
-const SMTP_FROM_EMAIL = Deno.env.get("SMTP_FROM_EMAIL") ?? "invitations@gates.local";
+const SMTP_FROM_EMAIL = Deno.env.get("SMTP_FROM_EMAIL") ?? "invitations@vecinoo.local";
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const RESEND_FROM_EMAIL = Deno.env.get("RESEND_FROM_EMAIL");
-const RESEND_FROM_NAME = Deno.env.get("RESEND_FROM_NAME") ?? "Gates";
+const RESEND_FROM_NAME = Deno.env.get("RESEND_FROM_NAME") ?? "Vecinoo";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
 function invitationHtml(code: string): string {
-  return `
-    <p>Te invitaron a unirte a tu residencial en la app.</p>
-    <p>Descarga la app y, al registrarte, ingresa este código de invitación:</p>
-    <h1 style="letter-spacing: 4px;">${code}</h1>
-    <p>Este código vence en 24 horas.</p>
-  `;
+  return invitationEmail(code);
 }
 
 /** Local dev only: delivers straight to Mailpit's SMTP, no auth needed. */
@@ -43,7 +39,7 @@ async function sendViaSmtp(to: string, code: string): Promise<void> {
   });
   try {
     await client.send({
-      from: `Gates <${SMTP_FROM_EMAIL}>`,
+      from: `Vecinoo <${SMTP_FROM_EMAIL}>`,
       to,
       subject: "Tu código de invitación",
       html: invitationHtml(code),
@@ -83,7 +79,7 @@ interface RequestBody {
   unitResidentId?: string;
 }
 
-// The browser (gates-admin) calls this cross-origin, so it needs a preflight
+// The browser (admin web) calls this cross-origin, so it needs a preflight
 // answer and CORS headers on every response.
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",

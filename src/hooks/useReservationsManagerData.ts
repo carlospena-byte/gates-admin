@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import {
   amenitiesService,
   amenityBookingService,
+  billingService,
   locationService,
   unitResidentService,
   unitService,
@@ -19,8 +20,10 @@ import type {
   AmenityBookingWithUser,
   CreateAmenityBookingDto,
 } from "@/types/amenities.types";
+import type { PaymentMethod } from "@/types/billing.types";
 import type { UnitWithOwner } from "@/services/api.service";
 import type { Location, ResidentWithStatus } from "@/types/unit-wizard.types";
+import { translate } from "@/i18n/translate";
 
 export interface ReservationFormPayload {
   amenityId: string;
@@ -29,6 +32,14 @@ export interface ReservationFormPayload {
   startTime: string;
   endTime: string;
   notes: string;
+}
+
+export interface ApprovalPayment {
+  amount: number;
+  paidOn: string;
+  method: PaymentMethod;
+  reference: string;
+  createdBy: string | null;
 }
 
 export function useReservationsManagerData(residentialId: string) {
@@ -117,18 +128,18 @@ export function useReservationsManagerData(residentialId: string) {
         // Postgres exclusion-constraint violation — the DB itself rejected
         // an overlapping time slot for this amenity.
         if (result.error.code === "23P01") {
-          toast.error("This time slot is already booked for this amenity.");
+          toast.error(translate("toast.reservation.slotTaken"));
         } else if (result.error.code === "AM001") {
           // Trigger rejection — the amenity has a blackout range covering
           // these dates (maintenance, board-only use, etc).
-          toast.error("This amenity is closed for the selected dates.");
+          toast.error(translate("toast.reservation.closed"));
         } else {
           toast.error(result.error.message);
         }
         return false;
       }
 
-      toast.success("Reservation created");
+      toast.success(translate("toast.reservation.created"));
       await loadBookings();
       return true;
     },
@@ -148,26 +159,59 @@ export function useReservationsManagerData(residentialId: string) {
         toast.error(result.error.message);
         return;
       }
-      toast.success("Reservation cancelled");
+      toast.success(translate("toast.reservation.cancelled"));
       await loadBookings();
     },
     [loadBookings],
   );
 
+  /**
+   * Approves a booking. Approval bills the unit (a DB trigger creates the
+   * installment); when `payment` is given it is recorded against that
+   * installment right away, which also pushes "payment verified" to the unit.
+   */
   const approveBooking = useCallback(
-    async (id: string) => {
+    async (id: string, payment?: ApprovalPayment) => {
       setIsSubmitting(true);
       const result = await amenityBookingService.update(id, { status: "confirmed" });
-      setIsSubmitting(false);
 
       if (!result.success) {
+        setIsSubmitting(false);
         toast.error(result.error.message);
         return;
       }
-      toast.success("Reservation approved");
+
+      let message = "Reservation approved";
+      if (payment) {
+        const charge = await billingService.getByBooking(id);
+        if (!charge.success || !charge.data) {
+          // Nothing to pay against: typically the booking has no resolvable unit.
+          toast.warning(translate("toast.reservation.approvedNoCharge"));
+          message = "";
+        } else {
+          const paid = await billingService.addPayments([
+            {
+              residential_id: residentialId,
+              installment_id: charge.data.id,
+              amount: payment.amount,
+              paid_on: payment.paidOn,
+              method: payment.method,
+              reference: payment.reference || null,
+              created_by: payment.createdBy,
+            },
+          ]);
+          if (paid.success) message = "Reservation approved and payment recorded";
+          else {
+            toast.error(translate("toast.reservation.paymentFailed", { message: paid.error.message }));
+            message = "";
+          }
+        }
+      }
+      setIsSubmitting(false);
+      if (message) toast.success(message);
       await loadBookings();
     },
-    [loadBookings],
+    [loadBookings, residentialId],
   );
 
   const updateBookingsStatus = useCallback(
@@ -186,7 +230,7 @@ export function useReservationsManagerData(residentialId: string) {
 
       const failures = results.filter((result) => !result.success);
       if (failures.length > 0) {
-        toast.error(`${failures.length} of ${ids.length} reservations could not be updated`);
+        toast.error(translate("toast.reservation.bulkFailed", { failed: failures.length, total: ids.length }));
       } else {
         toast.success(
           status === "confirmed"

@@ -9,7 +9,6 @@
  */
 
 import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -17,17 +16,17 @@ import { Spinner } from "@/components/LoadingStates";
 import { Pagination } from "@/components/Pagination";
 import { SortableTableHead } from "@/components/SortableTableHead";
 import { RejectReservationDialog } from "@/components/reservations/RejectReservationDialog";
-import { cn } from "@/lib/utils";
+import { StatusBadge, type StatusTone } from "@/components/ui/status-badge";
 import { formatReservationDateLabel, formatReservationTimeLabel, isPastPendingBooking } from "@/lib/reservationFormat";
 import { usePaginatedSortedData } from "@/hooks/usePaginatedSortedData";
 import { useI18n } from "@/i18n/useI18n";
 import type { AmenityBookingStatus, AmenityBookingWithUser } from "@/types/amenities.types";
 
-const STATUS_STYLES: Record<AmenityBookingStatus, string> = {
-  pending: "bg-amber-100 text-amber-800",
-  confirmed: "bg-green-100 text-green-700",
-  cancelled: "bg-secondary text-secondary-foreground",
-  expired: "bg-secondary text-secondary-foreground",
+const STATUS_TONES: Record<AmenityBookingStatus, StatusTone> = {
+  pending: "warning",
+  confirmed: "success",
+  cancelled: "neutral",
+  expired: "neutral",
 };
 
 export interface UnitInfo {
@@ -51,6 +50,9 @@ interface ReservationTableProps {
   onReview: (booking: AmenityBookingWithUser) => void;
   hasActiveFilters: boolean;
   onClearFilters: () => void;
+  /** Row checkboxes + bulk bar; only meaningful for the pending tab. */
+  allowBulk?: boolean;
+  emptyMessage?: string;
 }
 
 export function ReservationTable({
@@ -69,6 +71,8 @@ export function ReservationTable({
   onReview,
   hasActiveFilters,
   onClearFilters,
+  allowBulk = true,
+  emptyMessage,
 }: ReservationTableProps) {
   const { t, locale } = useI18n();
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
@@ -85,7 +89,8 @@ export function ReservationTable({
     setCurrentPage,
   } = usePaginatedSortedData({
     data: bookings,
-    defaultSortField: "start_time" as keyof AmenityBookingWithUser,
+    // Oldest request first, so the longest-waiting booking is on top.
+    defaultSortField: "created_at" as keyof AmenityBookingWithUser,
     itemsPerPage: 10,
   });
 
@@ -98,7 +103,7 @@ export function ReservationTable({
   }
 
   if (totalCount === 0) {
-    return <div className="py-8 text-center text-sm text-muted-foreground">{t("reservations.table.empty")}</div>;
+    return <div className="py-8 text-center text-sm text-muted-foreground">{emptyMessage ?? t("reservations.table.empty")}</div>;
   }
 
   if (bookings.length === 0) {
@@ -115,14 +120,14 @@ export function ReservationTable({
   }
 
   const selectableIds = paginatedBookings
-    .filter((booking) => canManage && booking.status !== "cancelled" && booking.status !== "expired")
+    .filter((booking) => canManage && allowBulk && booking.status !== "cancelled" && booking.status !== "expired")
     .map((booking) => booking.id);
   const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selectedIds.has(id));
   const selectedCount = selectedIds.size;
 
   return (
     <div className="space-y-2">
-      {canManage && selectedCount > 0 && (
+      {canManage && allowBulk && selectedCount > 0 && (
         <div className="flex items-center justify-between rounded-lg border bg-muted/50 px-4 py-2">
           <span className="text-sm font-medium">{t("reservations.bulk.selected", { count: selectedCount })}</span>
           <div className="flex gap-2">
@@ -140,7 +145,7 @@ export function ReservationTable({
         <Table>
           <TableHeader>
             <TableRow>
-              {canManage && (
+              {canManage && allowBulk && (
                 <TableHead className="w-10">
                   <Checkbox
                     className="size-5 rounded"
@@ -163,12 +168,12 @@ export function ReservationTable({
           </TableHeader>
           <TableBody>
             {paginatedBookings.map((booking) => {
-              const canSelect = canManage && booking.status !== "cancelled" && booking.status !== "expired";
+              const canSelect = canManage && allowBulk && booking.status !== "cancelled" && booking.status !== "expired";
               const unitInfo = booking.unit_id ? unitInfoById.get(booking.unit_id) : undefined;
               const pastDue = isPastPendingBooking(booking.start_time, booking.status);
               return (
                 <TableRow key={booking.id}>
-                  {canManage && (
+                  {canManage && allowBulk && (
                     <TableCell className="py-3">
                       <Checkbox
                         className="size-5 rounded"
@@ -205,9 +210,9 @@ export function ReservationTable({
                     {bookerNameById.get(booking.id) ?? "—"}
                   </TableCell>
                   <TableCell className="py-3">
-                    <Badge className={cn("border-transparent", STATUS_STYLES[booking.status])}>
+                    <StatusBadge tone={STATUS_TONES[booking.status]}>
                       {t(`reservations.status.${booking.status}`)}
-                    </Badge>
+                    </StatusBadge>
                   </TableCell>
                   <TableCell className="py-3 text-right">
                     <Button variant="link" className="h-auto p-0 font-semibold" onClick={() => onReview(booking)}>

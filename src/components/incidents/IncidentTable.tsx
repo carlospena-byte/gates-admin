@@ -3,7 +3,10 @@
  * Pagination scaffolding as VisitorTable/UnitTable.
  */
 
-import { Badge } from "@/components/ui/badge";
+import { useState } from "react";
+
+import { StatusBadge, type StatusTone } from "@/components/ui/status-badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Spinner } from "@/components/LoadingStates";
@@ -14,7 +17,6 @@ import { confirmDeleteToast } from "@/lib/confirmDeleteToast";
 import { usePaginatedSortedData } from "@/hooks/usePaginatedSortedData";
 import { useI18n } from "@/i18n/useI18n";
 import type { MessageKey } from "@/i18n/messages";
-import { cn } from "@/lib/utils";
 import type { IncidentPriority, IncidentStatus, IncidentWithRelations } from "@/types/incident.types";
 
 const PRIORITY_LABEL_KEYS: Record<IncidentPriority, MessageKey> = {
@@ -32,19 +34,19 @@ const STATUS_LABEL_KEYS: Record<IncidentStatus, MessageKey> = {
   cancelled: "incidents.status.cancelled",
 };
 
-const PRIORITY_STYLES: Record<IncidentPriority, string> = {
-  low: "bg-secondary text-secondary-foreground",
-  medium: "bg-blue-100 text-blue-700",
-  high: "bg-orange-100 text-orange-700",
-  urgent: "bg-red-100 text-red-700",
+const PRIORITY_TONES: Record<IncidentPriority, StatusTone> = {
+  low: "neutral",
+  medium: "info",
+  high: "warning",
+  urgent: "error",
 };
 
-const STATUS_STYLES: Record<IncidentStatus, string> = {
-  new: "bg-blue-100 text-blue-700",
-  in_progress: "bg-orange-100 text-orange-700",
-  resolved: "bg-green-100 text-green-700",
-  closed: "bg-secondary text-secondary-foreground",
-  cancelled: "bg-secondary text-secondary-foreground",
+const STATUS_TONES: Record<IncidentStatus, StatusTone> = {
+  new: "info",
+  in_progress: "warning",
+  resolved: "success",
+  closed: "neutral",
+  cancelled: "neutral",
 };
 
 interface IncidentTableProps {
@@ -53,6 +55,10 @@ interface IncidentTableProps {
   isSubmitting: boolean;
   canManage: boolean;
   emptyMessage: string;
+  /** One-click row actions (take / resolve); hidden when not provided. */
+  canOperate?: boolean;
+  onTake?: (id: string) => Promise<void>;
+  onResolve?: (ids: string[]) => Promise<void>;
   onOpen: (incident: IncidentWithRelations) => void;
   onDelete: (id: string) => Promise<boolean>;
 }
@@ -63,10 +69,14 @@ export function IncidentTable({
   isSubmitting,
   canManage,
   emptyMessage,
+  canOperate = false,
+  onTake,
+  onResolve,
   onOpen,
   onDelete,
 }: IncidentTableProps) {
   const { t } = useI18n();
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const {
     paginatedData: paginatedIncidents,
     totalItems,
@@ -84,6 +94,26 @@ export function IncidentTable({
     defaultSortOrder: "desc",
     itemsPerPage: 10,
   });
+
+  const isOpenStatus = (status: IncidentStatus) => status === "new" || status === "in_progress";
+  const resolvableIds = incidents.filter((incident) => isOpenStatus(incident.status)).map((incident) => incident.id);
+  const selectedResolvable = resolvableIds.filter((id) => selectedIds.has(id));
+  const allSelected = resolvableIds.length > 0 && selectedResolvable.length === resolvableIds.length;
+  const showSelection = canOperate && Boolean(onResolve) && resolvableIds.length > 0;
+
+  const toggleOne = (id: string) =>
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const toggleAll = () => setSelectedIds(allSelected ? new Set() : new Set(resolvableIds));
+
+  const resolveSelected = async () => {
+    await onResolve?.(selectedResolvable);
+    setSelectedIds(new Set());
+  };
 
   const handleDelete = (id: string, title: string) => {
     confirmDeleteToast(title, async () => {
@@ -105,10 +135,33 @@ export function IncidentTable({
 
   return (
     <div className="space-y-2">
+      {showSelection && selectedResolvable.length > 0 && (
+        <div className="flex items-center gap-3 rounded-lg bg-gates-accent px-4 py-2">
+          <p className="flex-1 text-sm font-medium text-gates-text-brand">
+            {t("incidents.bulk.selected", { count: selectedResolvable.length })}
+          </p>
+          <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())}>
+            {t("common.cancel")}
+          </Button>
+          <Button size="sm" onClick={() => void resolveSelected()} disabled={isSubmitting}>
+            {t("incidents.bulk.resolve")}
+          </Button>
+        </div>
+      )}
       <div className="rounded-lg border bg-card">
         <Table>
           <TableHeader>
             <TableRow>
+              {showSelection && (
+                <TableHead className="w-[44px]">
+                  <Checkbox
+                    checked={allSelected}
+                    onCheckedChange={toggleAll}
+                    disabled={isSubmitting}
+                    aria-label={t("incidents.bulk.selectAll")}
+                  />
+                </TableHead>
+              )}
               <SortableTableHead field="title" currentSortField={sortField} sortOrder={sortOrder} onSort={handleSort}>
                 {t("incidents.table.title")}
               </SortableTableHead>
@@ -131,18 +184,26 @@ export function IncidentTable({
           <TableBody>
             {paginatedIncidents.map((incident) => (
               <TableRow key={incident.id}>
+                {showSelection && (
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedIds.has(incident.id)}
+                      onCheckedChange={() => toggleOne(incident.id)}
+                      disabled={!isOpenStatus(incident.status) || isSubmitting}
+                      aria-label={incident.title}
+                    />
+                  </TableCell>
+                )}
                 <TableCell className="font-medium">{incident.title}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">{incident.units?.name ?? "—"}</TableCell>
                 <TableCell className="text-sm text-muted-foreground">{incident.incident_types?.name ?? "—"}</TableCell>
                 <TableCell>
-                  <Badge className={cn("border-transparent capitalize", PRIORITY_STYLES[incident.priority])}>
+                  <StatusBadge tone={PRIORITY_TONES[incident.priority]} hideDot>
                     {t(PRIORITY_LABEL_KEYS[incident.priority])}
-                  </Badge>
+                  </StatusBadge>
                 </TableCell>
                 <TableCell>
-                  <Badge className={cn("border-transparent capitalize", STATUS_STYLES[incident.status])}>
-                    {t(STATUS_LABEL_KEYS[incident.status])}
-                  </Badge>
+                  <StatusBadge tone={STATUS_TONES[incident.status]}>{t(STATUS_LABEL_KEYS[incident.status])}</StatusBadge>
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">
                   {incident.assignee?.email ?? t("incidents.unassigned")}
@@ -152,6 +213,16 @@ export function IncidentTable({
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
+                    {canOperate && onTake && incident.status === "new" && (
+                      <Button size="sm" variant="outline" onClick={() => void onTake(incident.id)} disabled={isSubmitting}>
+                        {t("inbox.incident.take")}
+                      </Button>
+                    )}
+                    {canOperate && onResolve && isOpenStatus(incident.status) && (
+                      <Button size="sm" onClick={() => void onResolve([incident.id])} disabled={isSubmitting}>
+                        {t("inbox.incident.resolve")}
+                      </Button>
+                    )}
                     <Button size="sm" variant="outline" onClick={() => onOpen(incident)} disabled={isSubmitting}>
                       {t("incidents.table.open")}
                     </Button>

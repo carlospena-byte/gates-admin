@@ -14,16 +14,94 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const MAX_PHOTO_BYTES = 8 * 1024 * 1024;
 
+// The visitor page lives on another origin (admin.vecinoo.app) and posts
+// multipart data, so the browser sends a preflight before every submit.
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+};
+
+function json(body: unknown, status = 200): Response {
+  return Response.json(body, { status, headers: corsHeaders });
+}
+
+// GET ?code=XXXX — what the visitor's page needs to render: who invited them
+// (resident name + unit location), the name the resident typed, and whether
+// the visit is already registered (then the page shows its QR directly).
+async function handleInfo(req: Request): Promise<Response> {
+  const code = (new URL(req.url).searchParams.get("code") ?? "").trim().toUpperCase();
+  if (!code) return json({ error: "code is required" }, 400);
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const { data: visitor, error } = await supabase
+    .from("visitors")
+    .select("name, plate, status, valid_from, valid_until, invited_by, unit_id, residential_id, residentials(name)")
+    .eq("access_code", code)
+    .eq("visit_type", "fastlane")
+    .maybeSingle();
+
+  if (error) return json({ error: error.message }, 500);
+  if (!visitor) return json({ error: "This link is invalid" }, 404);
+  if (visitor.status !== "pending_registration" && visitor.status !== "scheduled") {
+    return json({ error: "This link is no longer active" }, 410);
+  }
+
+  const [{ data: profile }, { data: unit }] = await Promise.all([
+    visitor.invited_by
+      ? supabase.from("profiles").select("first_name, last_name").eq("user_id", visitor.invited_by).maybeSingle()
+      : Promise.resolve({ data: null }),
+    visitor.unit_id
+      ? supabase.from("units").select("name, location_id").eq("id", visitor.unit_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+
+  // Walk location -> parent -> ... so the visitor sees "Torre 1 → Piso 1 → 101".
+  const path: string[] = [];
+  let locationId: string | null = unit?.location_id ?? null;
+  for (let depth = 0; locationId && depth < 8; depth++) {
+    const { data: loc } = await supabase
+      .from("locations")
+      .select("name, parent_id")
+      .eq("id", locationId)
+      .maybeSingle();
+    if (!loc) break;
+    path.unshift(loc.name);
+    locationId = loc.parent_id;
+  }
+  if (unit?.name) path.push(unit.name);
+
+  // deno-lint-ignore no-explicit-any
+  const residential = (visitor as any).residentials;
+  return json({
+    registered: visitor.status === "scheduled",
+    expired: new Date(visitor.valid_until) < new Date(),
+    visitor_name: visitor.name,
+    plate: visitor.plate,
+    valid_from: visitor.valid_from,
+    valid_until: visitor.valid_until,
+    resident_name: [profile?.first_name, profile?.last_name].filter(Boolean).join(" ") || null,
+    location_path: path.join(" → ") || null,
+    residential_name: residential?.name ?? null,
+  });
+}
+
 Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+  if (req.method === "GET") {
+    return await handleInfo(req);
+  }
   if (req.method !== "POST") {
-    return Response.json({ error: "Method not allowed" }, { status: 405 });
+    return json({ error: "Method not allowed" }, 405);
   }
 
   let form: FormData;
   try {
     form = await req.formData();
   } catch {
-    return Response.json({ error: "Invalid form data" }, { status: 400 });
+    return json({ error: "Invalid form data" }, 400);
   }
 
   const code = String(form.get("code") ?? "").trim().toUpperCase();
@@ -31,34 +109,41 @@ Deno.serve(async (req) => {
   const plate = String(form.get("plate") ?? "").trim();
   const photo = form.get("photo");
 
-  if (!code || !name) {
-    return Response.json({ error: "code and name are required" }, { status: 400 });
+  if (!code) {
+    return json({ error: "code is required" }, 400);
   }
   if (!(photo instanceof File)) {
-    return Response.json({ error: "A photo of your ID is required" }, { status: 400 });
+    return json({ error: "A photo of your ID is required" }, 400);
   }
   if (photo.size > MAX_PHOTO_BYTES) {
-    return Response.json({ error: "Photo is too large" }, { status: 400 });
+    return json({ error: "Photo is too large" }, 400);
   }
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   const { data: visitor, error: lookupError } = await supabase
     .from("visitors")
-    .select("id, residential_id, valid_until")
+    .select("id, residential_id, valid_until, name")
     .eq("access_code", code)
     .eq("visit_type", "fastlane")
     .eq("status", "pending_registration")
     .maybeSingle();
 
   if (lookupError) {
-    return Response.json({ error: lookupError.message }, { status: 500 });
+    return json({ error: lookupError.message }, 500);
   }
   if (!visitor) {
-    return Response.json({ error: "This link is invalid or has already been used" }, { status: 404 });
+    return json({ error: "This link is invalid or has already been used" }, 404);
   }
   if (new Date(visitor.valid_until) < new Date()) {
-    return Response.json({ error: "This link has expired" }, { status: 410 });
+    return json({ error: "This link has expired" }, 410);
+  }
+
+  // The resident already named the guest when creating the invitation; the
+  // visitor only has to supply a name if that was left blank (admin flow).
+  const finalName = visitor.name?.trim() || name;
+  if (!finalName) {
+    return json({ error: "name is required" }, 400);
   }
 
   const ext = (photo.name.split(".").pop() || "jpg").toLowerCase();
@@ -69,13 +154,13 @@ Deno.serve(async (req) => {
     .upload(storagePath, photo, { contentType: photo.type || "image/jpeg" });
 
   if (uploadError) {
-    return Response.json({ error: uploadError.message }, { status: 500 });
+    return json({ error: uploadError.message }, 500);
   }
 
   const { error: updateError } = await supabase
     .from("visitors")
     .update({
-      name,
+      name: finalName,
       plate: plate || null,
       id_photo_path: storagePath,
       status: "scheduled",
@@ -84,8 +169,8 @@ Deno.serve(async (req) => {
     .eq("id", visitor.id);
 
   if (updateError) {
-    return Response.json({ error: updateError.message }, { status: 500 });
+    return json({ error: updateError.message }, 500);
   }
 
-  return Response.json({ success: true });
+  return json({ success: true });
 });

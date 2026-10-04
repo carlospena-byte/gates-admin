@@ -2,29 +2,21 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 function extractObjectBlock(source, objectName) {
-  const startToken = `${objectName}: {`;
-  const startIndex = source.indexOf(startToken);
-  if (startIndex === -1) {
-    throw new Error(`Could not find locale block: ${startToken}`);
+  // Locale blocks are top-level properties of `messages`, indented two spaces.
+  // Anchoring to line starts avoids matching text inside message strings
+  // (e.g. "...: {count}") and brace-counting over placeholders like {count}.
+  const startMatch = new RegExp(`^  ${objectName}: \\{\\s*$`, "m").exec(source);
+  if (!startMatch) {
+    throw new Error(`Could not find locale block: ${objectName}`);
   }
 
-  // Find the opening "{"
-  const braceStart = source.indexOf("{", startIndex);
-  if (braceStart === -1) {
-    throw new Error(`Could not find opening brace for locale: ${objectName}`);
+  const bodyStart = startMatch.index + startMatch[0].length;
+  const endMatch = /^  \},?\s*$/m.exec(source.slice(bodyStart));
+  if (!endMatch) {
+    throw new Error(`Unterminated object block for locale: ${objectName}`);
   }
 
-  let depth = 0;
-  for (let i = braceStart; i < source.length; i++) {
-    const ch = source[i];
-    if (ch === "{") depth++;
-    else if (ch === "}") depth--;
-    if (depth === 0) {
-      return source.slice(braceStart + 1, i);
-    }
-  }
-
-  throw new Error(`Unterminated object block for locale: ${objectName}`);
+  return source.slice(bodyStart, bodyStart + endMatch.index);
 }
 
 function parseMessageEntries(block) {

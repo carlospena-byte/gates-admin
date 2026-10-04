@@ -19,6 +19,7 @@ import { confirmDeleteToast } from "@/lib/confirmDeleteToast";
 import { formatCurrency } from "@/lib/utils";
 import { unitRentalPaymentService } from "@/services";
 import type { RentalPaymentStatus, UnitRentalPayment } from "@/types/unit-wizard.types";
+import { DatePicker } from "@/components/ui/date-picker";
 
 const STATUS_VARIANT: Record<RentalPaymentStatus, "secondary" | "default" | "destructive" | "outline"> = {
   pending: "outline",
@@ -268,7 +269,7 @@ export function UnitRentalPayments({
       )}
 
       {canManage && (
-        <div className="flex items-end gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
           <Input
             label={t("rentals.payments.amount.label")}
             type="number"
@@ -279,11 +280,11 @@ export function UnitRentalPayments({
             disabled={isSubmitting}
             className="flex-1"
           />
-          <Input
+          <DatePicker
+            mode="single"
             label={t("rentals.payments.dueDate.label")}
-            type="date"
             value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
+            onChange={setDueDate}
             disabled={isSubmitting}
             className="flex-1"
           />

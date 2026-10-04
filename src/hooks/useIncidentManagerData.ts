@@ -16,6 +16,7 @@ import {
 } from "@/services";
 import type { CreateIncidentDto, IncidentPriority, IncidentStatus, IncidentWithRelations } from "@/types/incident.types";
 import type { IncidentType } from "@/types/incidentType.types";
+import { translate } from "@/i18n/translate";
 
 export interface IncidentFormPayload {
   title: string;
@@ -87,7 +88,7 @@ export function useIncidentManagerData(residentialId: string) {
         return false;
       }
 
-      toast.success("Incident reported");
+      toast.success(translate("toast.incident.reported"));
       await reload();
       return true;
     },
@@ -105,7 +106,7 @@ export function useIncidentManagerData(residentialId: string) {
         return false;
       }
 
-      toast.success("Incident deleted");
+      toast.success(translate("toast.incident.deleted"));
       await reload();
       return true;
     },

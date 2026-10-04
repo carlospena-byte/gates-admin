@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { IconRefresh } from "@tabler/icons-react";
+import { toast } from "sonner";
 
 import { AppSidebar } from "@/components/AppSidebar";
 import { SectionTabs } from "@/components/SectionTabs";
 import { TableSkeleton } from "@/components/LoadingStates";
 import { AmenityFormSheet } from "@/components/amenities/AmenityFormSheet";
 import { ServiceManager } from "@/components/amenities/ServiceManager";
-import { EditIcon } from "@/components/icons";
+import { DeleteIcon, EditIcon } from "@/components/icons";
 import { ProviderManager } from "@/components/providers/ProviderManager";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useQuery } from "@/hooks";
 import { useI18n } from "@/i18n/useI18n";
+import { confirmDeleteToast } from "@/lib/confirmDeleteToast";
 import { useCreateIntent } from "@/lib/createIntent";
 import { amenitiesService, amenityImageService, authService } from "@/services";
 import { canManageResidential } from "@/state/useAccess";
@@ -76,6 +78,18 @@ export function AmenitiesPage({ residentialId, role }: { residentialId: string; 
     if (result.success) await refetch();
   };
 
+  const handleDelete = (id: string, name: string) => {
+    confirmDeleteToast(
+      name,
+      async () => {
+        const result = await amenitiesService.delete(id);
+        if (result.success) await refetch();
+        else toast.error(result.error.message);
+      },
+      t("dashboard.residential.amenities.deleteWarning"),
+    );
+  };
+
   return (
     <div className="min-h-screen">
       <AppSidebar userEmail={session?.user?.email} residentialId={residentialId} role={role} onSignOut={() => authService.signOut()} showUserMenu />
@@ -121,7 +135,7 @@ export function AmenitiesPage({ residentialId, role }: { residentialId: string; 
                       <TableHead className="w-[56px]" />
                       <TableHead>{t("common.name")}</TableHead>
                       <TableHead className="w-[100px] text-right">{t("common.active")}</TableHead>
-                      <TableHead className="w-[60px] text-right">{t("common.edit")}</TableHead>
+                      <TableHead className="w-[110px] text-right">{t("common.edit")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -153,6 +167,9 @@ export function AmenitiesPage({ residentialId, role }: { residentialId: string; 
                             disabled={!canManage}
                           >
                             <EditIcon />
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => handleDelete(a.id, a.name)} disabled={!canManage}>
+                            <DeleteIcon />
                           </Button>
                         </TableCell>
                       </TableRow>

@@ -27,9 +27,17 @@ import { useI18n } from "@/i18n/useI18n";
 import { useCreateIntent } from "@/lib/createIntent";
 import { SectionTabs } from "@/components/SectionTabs";
 import { DatePicker } from "@/components/ui/date-picker";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const ALL_AMENITIES = "all";
-const ALL_STATUSES = "all";
+
+type ReservationsTab = "pending" | "approved" | "history";
+
+const TAB_STATUSES: Record<ReservationsTab, AmenityBookingStatus[]> = {
+  pending: ["pending"],
+  approved: ["confirmed"],
+  history: ["cancelled", "expired"],
+};
 
 export function ReservationsPage({ residentialId, role }: { residentialId: string; role: ResidentialRole }) {
   const { t } = useI18n();
@@ -41,7 +49,7 @@ export function ReservationsPage({ residentialId, role }: { residentialId: strin
     if (canCreate) setSheetOpen(true);
   });
   const [amenityFilter, setAmenityFilter] = useState(ALL_AMENITIES);
-  const [statusFilter, setStatusFilter] = useState<typeof ALL_STATUSES | AmenityBookingStatus>(ALL_STATUSES);
+  const [activeTab, setActiveTab] = useState<ReservationsTab>("pending");
   const [dateFilter, setDateFilter] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -101,20 +109,20 @@ export function ReservationsPage({ residentialId, role }: { residentialId: strin
   }, [bookings, residents]);
 
   const hasActiveFilters =
-    amenityFilter !== ALL_AMENITIES || statusFilter !== ALL_STATUSES || dateFilter !== "" || searchQuery.trim() !== "";
+    amenityFilter !== ALL_AMENITIES || dateFilter !== "" || searchQuery.trim() !== "";
 
   const clearFilters = () => {
     setAmenityFilter(ALL_AMENITIES);
-    setStatusFilter(ALL_STATUSES);
     setDateFilter("");
     setSearchQuery("");
   };
 
-  const filteredBookings = useMemo(() => {
+  // Search/amenity/date filters apply across tabs; the tab then picks the
+  // status bucket, so the tab counts reflect the other active filters.
+  const matchingBookings = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     return bookings.filter((booking) => {
       if (amenityFilter !== ALL_AMENITIES && booking.amenity_id !== amenityFilter) return false;
-      if (statusFilter !== ALL_STATUSES && booking.status !== statusFilter) return false;
       if (dateFilter && new Date(booking.start_time).toISOString().slice(0, 10) !== dateFilter) return false;
       if (query) {
         const bookerName = (bookerNameById.get(booking.id) ?? "").toLowerCase();
@@ -123,7 +131,23 @@ export function ReservationsPage({ residentialId, role }: { residentialId: strin
       }
       return true;
     });
-  }, [bookings, amenityFilter, statusFilter, dateFilter, searchQuery, bookerNameById, unitInfoById]);
+  }, [bookings, amenityFilter, dateFilter, searchQuery, bookerNameById, unitInfoById]);
+
+  const bucketCounts = useMemo(() => {
+    const countFor = (tab: ReservationsTab) =>
+      matchingBookings.filter((b) => TAB_STATUSES[tab].includes(b.status)).length;
+    return { pending: countFor("pending"), approved: countFor("approved"), history: countFor("history") };
+  }, [matchingBookings]);
+
+  const filteredBookings = useMemo(
+    () => matchingBookings.filter((b) => TAB_STATUSES[activeTab].includes(b.status)),
+    [matchingBookings, activeTab],
+  );
+
+  const handleTabChange = (tab: ReservationsTab) => {
+    setActiveTab(tab);
+    setSelectedIds(new Set());
+  };
 
   const toggleSelect = (id: string) =>
     setSelectedIds((prev) => {
@@ -239,19 +263,6 @@ export function ReservationsPage({ residentialId, role }: { residentialId: strin
                       <IconSearch className="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                     </div>
 
-                    <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
-                      <SelectTrigger label={t("reservations.filter.statusLabel")} className="w-full sm:w-48">
-                        <SelectValue placeholder={t("reservations.filter.statusPlaceholder")} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={ALL_STATUSES}>{t("reservations.filter.allStatuses")}</SelectItem>
-                        <SelectItem value="pending">{t("reservations.status.pending")}</SelectItem>
-                        <SelectItem value="confirmed">{t("reservations.status.confirmed")}</SelectItem>
-                        <SelectItem value="cancelled">{t("reservations.status.cancelled")}</SelectItem>
-                        <SelectItem value="expired">{t("reservations.status.expired")}</SelectItem>
-                      </SelectContent>
-                    </Select>
-
                     <Select value={amenityFilter} onValueChange={setAmenityFilter}>
                       <SelectTrigger label={t("reservations.filter.amenityLabel")} className="w-full sm:w-56">
                         <SelectValue placeholder={t("reservations.filter.placeholder")} />
@@ -282,6 +293,14 @@ export function ReservationsPage({ residentialId, role }: { residentialId: strin
                     )}
                   </div>
 
+                  <Tabs value={activeTab} onValueChange={(value) => handleTabChange(value as ReservationsTab)}>
+                    <TabsList>
+                      <TabsTrigger value="pending">{t("reservations.tabs.pending", { count: bucketCounts.pending })}</TabsTrigger>
+                      <TabsTrigger value="approved">{t("reservations.tabs.approved", { count: bucketCounts.approved })}</TabsTrigger>
+                      <TabsTrigger value="history">{t("reservations.tabs.history", { count: bucketCounts.history })}</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+
                   <p className="text-sm text-muted-foreground">
                     {t("reservations.filter.count", { count: filteredBookings.length })}
                   </p>
@@ -289,6 +308,8 @@ export function ReservationsPage({ residentialId, role }: { residentialId: strin
                   <ReservationTable
                     bookings={filteredBookings}
                     totalCount={bookings.length}
+                    allowBulk={activeTab === "pending"}
+                    emptyMessage={t(`reservations.empty.${activeTab}`)}
                     isLoading={isLoading}
                     isSubmitting={isSubmitting}
                     canManage={canManage}

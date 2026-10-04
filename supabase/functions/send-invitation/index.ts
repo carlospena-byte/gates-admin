@@ -13,6 +13,7 @@
 // local testing never needs a real Resend account; otherwise it falls
 // back to Resend via RESEND_API_KEY/RESEND_FROM_EMAIL for staging/prod.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { invitationEmail } from "../_shared/email.ts";
 import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
 const SMTP_HOST = Deno.env.get("SMTP_HOST");
@@ -25,12 +26,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
 function invitationHtml(code: string): string {
-  return `
-    <p>Te invitaron a unirte a tu residencial en la app.</p>
-    <p>Descarga la app y, al registrarte, ingresa este código de invitación:</p>
-    <h1 style="letter-spacing: 4px;">${code}</h1>
-    <p>Este código vence en 24 horas.</p>
-  `;
+  return invitationEmail(code);
 }
 
 /** Local dev only: delivers straight to Mailpit's SMTP, no auth needed. */

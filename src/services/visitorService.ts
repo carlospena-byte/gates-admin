@@ -56,6 +56,23 @@ export const visitorService = {
     });
   },
 
+  /**
+   * Looks a visit up by the access code in its QR. Scoped to the guard's
+   * residential (RLS enforces it too), so another building's QR reads as unknown.
+   */
+  async getByAccessCode(code: string, residentialId: string): Promise<ApiResult<VisitorWithInviter | null>> {
+    return wrapResult("getVisitorByAccessCode", async () =>
+      unwrap<VisitorWithInviter | null>(
+        requireSupabase()
+          .from("visitors")
+          .select("*, profiles:invited_by(email, first_name, last_name)")
+          .eq("residential_id", residentialId)
+          .eq("access_code", code)
+          .maybeSingle(),
+      ),
+    );
+  },
+
   /** Short-lived signed URL for viewing a stored ID photo. */
   async getIdPhotoUrl(path: string): Promise<ApiResult<string>> {
     return wrapResult("getVisitorIdPhotoUrl", async () => {

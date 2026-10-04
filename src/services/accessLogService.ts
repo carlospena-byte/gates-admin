@@ -25,6 +25,19 @@ async function checkIn(
     const client = requireSupabase();
     const { data: userData } = await client.auth.getUser();
 
+    // Claim the entry first, atomically: the update only matches a visit that
+    // hasn't been used yet, so a QR (or a second guard) can't admit the same
+    // visit twice. Once `inside`, the visit's QR is dead.
+    const claimed = await unwrap<{ id: string }[]>(
+      client
+        .from("visitors")
+        .update({ status: "inside" })
+        .eq("id", visitorId)
+        .in("status", ["pending_registration", "scheduled", "active"])
+        .select("id"),
+    );
+    if (claimed.length === 0) throw new Error("This visit was already used or is no longer valid");
+
     await unwrap<null>(
       client.from("access_logs").insert({
         residential_id: residentialId,
@@ -34,8 +47,6 @@ async function checkIn(
         checked_in_at: new Date().toISOString(),
       }),
     );
-
-    await unwrap<null>(client.from("visitors").update({ status: "inside" }).eq("id", visitorId));
 
     // Best-effort: the resident's app should update in real time via its own
     // Realtime subscription regardless, so a push failure here must not fail

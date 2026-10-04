@@ -12,6 +12,7 @@ import {
   IconAdjustmentsHorizontal,
   IconDots,
   IconPlus,
+  IconQrcode,
   IconSearch,
   IconX,
 } from "@tabler/icons-react";
@@ -40,6 +41,8 @@ import type { VisitorWithInviter } from "@/types/visitor.types";
 import { VisitDetail } from "./VisitDetail";
 import { VisitFilters } from "./VisitFilters";
 import { VisitItem } from "./VisitItem";
+import { QrScannerDialog } from "./QrScannerDialog";
+import { parseAccessCode, qrVerdict, type QrVerdict } from "./qrAccess";
 import { countActiveFilters, EMPTY_FILTERS, unitInfo, type SecurityFilters } from "./securityVisits";
 import { useMediaQuery } from "./useMediaQuery";
 
@@ -77,6 +80,12 @@ interface SecurityVisitorsViewProps {
   onSignOut: () => void;
 }
 
+/** Outcome of reading a QR: a visit that can enter, or why the QR is rejected. */
+type ScanResult =
+  | { kind: "unknown" }
+  | { kind: "rejected"; verdict: Exclude<QrVerdict, "ok">; visitor: VisitorWithInviter }
+  | { kind: "ok"; visitor: VisitorWithInviter };
+
 type Panel = { kind: "detail"; id: string } | { kind: "filters" } | null;
 
 export function SecurityVisitorsView(props: SecurityVisitorsViewProps) {
@@ -86,6 +95,8 @@ export function SecurityVisitorsView(props: SecurityVisitorsViewProps) {
   const [panel, setPanel] = useState<Panel>(null);
   const [exitTarget, setExitTarget] = useState<VisitorWithInviter | null>(null);
   const [viewer, setViewer] = useState<{ src: string; title: string } | null>(null);
+  const [scanOpen, setScanOpen] = useState(false);
+  const [scanResult, setScanResult] = useState<ScanResult | null>(null);
   const photoTarget = useRef<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const cameraInput = useRef<HTMLInputElement>(null);
@@ -130,6 +141,25 @@ export function SecurityVisitorsView(props: SecurityVisitorsViewProps) {
     const target = photoTarget.current;
     e.target.value = "";
     if (file && target) await props.onUploadIdPhoto(target, file);
+  };
+
+  const handleScan = async (raw: string) => {
+    setScanOpen(false);
+    const code = parseAccessCode(raw);
+    const result = code ? await visitorService.getByAccessCode(code, props.residentialId) : null;
+    if (result && !result.success) {
+      toast.error(result.error.message);
+      return;
+    }
+    const visitor = result?.data ?? null;
+    if (!visitor) return setScanResult({ kind: "unknown" });
+    const verdict = qrVerdict(visitor);
+    setScanResult(verdict === "ok" ? { kind: "ok", visitor } : { kind: "rejected", verdict, visitor });
+  };
+
+  const admitScanned = async (id: string) => {
+    setScanResult(null);
+    await props.onCheckIn(id);
   };
 
   const confirmExit = async () => {
@@ -187,12 +217,20 @@ export function SecurityVisitorsView(props: SecurityVisitorsViewProps) {
                 <h1 className="text-2xl font-semibold text-gates-text-primary">{t("visitors.title")}</h1>
                 {residential?.name && <p className="truncate text-sm text-gates-text-secondary">{residential.name}</p>}
               </div>
+              <div className="flex shrink-0 items-center gap-2">
+              {canCheckInOut && (
+                <Button variant="outline" onClick={() => setScanOpen(true)}>
+                  <IconQrcode aria-hidden />
+                  {t("security.visits.scan.button")}
+                </Button>
+              )}
               {props.canCreate && (
                 <Button onClick={props.onNew}>
                   <IconPlus aria-hidden />
                   {t("security.visits.new")}
                 </Button>
               )}
+              </div>
             </div>
           </header>
 
@@ -363,6 +401,43 @@ export function SecurityVisitorsView(props: SecurityVisitorsViewProps) {
             <SheetDescription className="sr-only">{panelTitle}</SheetDescription>
           </SheetHeader>
           {panelContent}
+        </SheetContent>
+      </Sheet>
+
+      <QrScannerDialog open={scanOpen} onOpenChange={setScanOpen} onScan={(raw) => void handleScan(raw)} />
+
+      {/* QR result: visit details with the entry action, or why the QR was rejected */}
+      <Sheet open={scanResult !== null} onOpenChange={(open) => !open && setScanResult(null)}>
+        <SheetContent side={isTablet ? "right" : "bottom"} className={cn("overflow-y-auto", isTablet ? "w-[400px] max-w-full sm:max-w-[400px]" : "h-auto max-h-[88vh] rounded-t-gates-lg pb-[calc(1.5rem+env(safe-area-inset-bottom))]")}>
+          <SheetHeader className="mb-4 pr-10">
+            <SheetTitle>{t("security.visits.scan.title")}</SheetTitle>
+            <SheetDescription className="sr-only">{t("security.visits.scan.hint")}</SheetDescription>
+          </SheetHeader>
+          {scanResult?.kind === "ok" && (
+            <VisitDetail
+              visitor={scanResult.visitor}
+              unit={unitInfo(scanResult.visitor.unit_id, units, locations)}
+              inviterRole={scanResult.visitor.invited_by ? staffRoles.get(scanResult.visitor.invited_by) : undefined}
+              busy={props.isSubmitting}
+              canCheckInOut={canCheckInOut}
+              onEnter={() => void admitScanned(scanResult.visitor.id)}
+              onExit={() => undefined}
+              onPickPhoto={(source) => pickPhoto(scanResult.visitor.id, source)}
+              onViewPhoto={() => void viewPhoto(scanResult.visitor)}
+            />
+          )}
+          {scanResult && scanResult.kind !== "ok" && (
+            <div className="space-y-4">
+              <p role="alert" className="rounded-gates-md bg-gates-subtle p-4 text-base font-semibold text-gates-text-primary">
+                {t(`security.visits.scan.reject.${scanResult.kind === "unknown" ? "unknown" : scanResult.verdict}` as MessageKey, {
+                  name: scanResult.kind === "rejected" ? (scanResult.visitor.name ?? t("visitors.table.pendingRegistration")) : "",
+                })}
+              </p>
+              <Button className="w-full" variant="outline" onClick={() => setScanResult(null)}>
+                {t("common.close")}
+              </Button>
+            </div>
+          )}
         </SheetContent>
       </Sheet>
 

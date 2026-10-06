@@ -50,13 +50,14 @@ export function NewResidentialSheet({
     name.trim() && address.trim() && location && codeValid && planId && /\S+@\S+\.\S+/.test(ownerEmail) && !isSubmitting;
 
   const submit = async () => {
+    if (!location) return;
     setIsSubmitting(true);
     setError(null);
     const result = await platformResidentialService.create({
       name: name.trim(),
       address: address.trim(),
-      lat: location?.lat,
-      lng: location?.lng,
+      lat: location.lat,
+      lng: location.lng,
       code,
       planId,
       ownerEmail: ownerEmail.trim(),

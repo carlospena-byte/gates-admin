@@ -20,8 +20,24 @@ export function pinPassword(pin: string): string {
   return `${pin}${pepper}`;
 }
 
-export function guardEmail(username: string): string {
-  return `${username}@${GUARD_EMAIL_DOMAIN}`;
+/**
+ * Synthetic auth email for a new guard. The residential id keeps it unique
+ * across residentials that reuse the same username. (Guards created before
+ * usernames became per-residential keep <username>@..., stored on their
+ * profile, which is what guard-login signs in with.)
+ */
+export function guardEmail(username: string, residentialId: string): string {
+  return `${username}.${residentialId.replace(/-/g, "")}@${GUARD_EMAIL_DOMAIN}`;
+}
+
+/** Residential codes are lowercase [a-z0-9] (see residentials_code_format). */
+export function normalizeCode(raw: string): string {
+  return raw.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+/** guard_login_attempts key for one guard of one residential. */
+export function attemptKey(code: string, username: string): string {
+  return `${code}:${username}`;
 }
 
 /** Lowercase, accent-free, [a-z0-9] only — safe as the local part of an email. */

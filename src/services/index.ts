@@ -50,3 +50,5 @@ export type { PlatformMetrics } from "./platformMetricsService";
 export type { TablesUpdate, TablesInsert } from "../types/database.types";
 export { guardService } from "./guardService";
 export type { CreatedGuard, GuardSignInError } from "./guardService";
+export { platformResidentialService, RESIDENTIAL_CODE_RE } from "./platformResidentialService";
+export type { CreateResidentialParams } from "./platformResidentialService";

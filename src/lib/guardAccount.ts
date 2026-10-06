@@ -1,6 +1,6 @@
 /**
  * Guard accounts sign in with username + PIN and have no real mailbox: their
- * auth email is a synthetic <username>@guardia.vecinoo.app (see the
+ * auth email is a synthetic <username>.<residential id>@guardia.vecinoo.app (see the
  * manage-guard Edge Function). The UI uses this to show the username instead.
  */
 
@@ -11,5 +11,6 @@ export function isGuardEmail(email: string | null | undefined): boolean {
 }
 
 export function guardUsernameFromEmail(email: string): string {
-  return email.split("@")[0];
+  // New accounts: <username>.<residential id>@..., legacy ones: <username>@...
+  return email.split("@")[0].split(".")[0];
 }

@@ -12,7 +12,6 @@ import type { ResidentialRole } from "@/types/database.types";
 
 export type RouteType =
   | "login"
-  | "signup"
   | "platform"
   | "platformResidentials"
   | "platformResidentialDetail"
@@ -91,11 +90,6 @@ export const ROUTES: Record<RouteType, RouteConfig> = {
   login: {
     id: "login",
     hash: "",
-    requiresAuth: false,
-  },
-  signup: {
-    id: "signup",
-    hash: "#signup",
     requiresAuth: false,
   },
   platform: {

@@ -1550,6 +1550,7 @@ export type Database = {
           deletion_scheduled_for: string | null
           email: string | null
           first_name: string | null
+          guard_residential_id: string | null
           last_name: string | null
           phone: string | null
           user_id: string
@@ -1561,6 +1562,7 @@ export type Database = {
           deletion_scheduled_for?: string | null
           email?: string | null
           first_name?: string | null
+          guard_residential_id?: string | null
           last_name?: string | null
           phone?: string | null
           user_id: string
@@ -1572,6 +1574,7 @@ export type Database = {
           deletion_scheduled_for?: string | null
           email?: string | null
           first_name?: string | null
+          guard_residential_id?: string | null
           last_name?: string | null
           phone?: string | null
           user_id?: string
@@ -1724,6 +1727,7 @@ export type Database = {
       residentials: {
         Row: {
           address: string | null
+          code: string
           created_at: string
           id: string
           is_active: boolean
@@ -1736,6 +1740,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          code?: string
           created_at?: string
           id?: string
           is_active?: boolean
@@ -1757,6 +1762,7 @@ export type Database = {
           owner_user_id?: string | null
           plan_id?: string | null
           plan_type?: string | null
+          code?: string
         }
         Relationships: [
           {

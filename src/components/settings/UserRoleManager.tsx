@@ -57,6 +57,7 @@ import {
   type ResidentialUserWithProfile,
 } from "@/services";
 import { isGuardEmail } from "@/lib/guardAccount";
+import { requireSupabase } from "@/lib/supabaseClient";
 import { useI18n } from "@/i18n/useI18n";
 import type { MessageKey } from "@/i18n/messages";
 import { useSession } from "@/state/useSession";
@@ -111,9 +112,11 @@ export function UserRoleSettingsPanel({
   const [guardLastName, setGuardLastName] = useState("");
   const [guardUsername, setGuardUsername] = useState("");
   const [guardPin, setGuardPin] = useState("");
+  const [residentialCode, setResidentialCode] = useState<string | null>(null);
   const [issuedPin, setIssuedPin] = useState<{
     name: string;
     username: string;
+    code: string;
     pin: string;
   } | null>(null);
   const [pinCopied, setPinCopied] = useState(false);
@@ -128,6 +131,22 @@ export function UserRoleSettingsPanel({
   const editingIsGuard =
     isGuardEmail(editing?.profiles?.email) && editing?.role === "security";
   const editPinValid = editPin === "" || /^\d{4}$/.test(editPin);
+
+  // Guards sign in with this code, so the admin needs to see it.
+  useEffect(() => {
+    let cancelled = false;
+    void requireSupabase()
+      .from("residentials")
+      .select("code")
+      .eq("id", residentialId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancelled) setResidentialCode(data?.code ?? null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [residentialId]);
 
   const load = async () => {
     setIsLoading(true);
@@ -211,6 +230,7 @@ export function UserRoleSettingsPanel({
     setIssuedPin({
       name: `${guardFirstName.trim()} ${guardLastName.trim()}`,
       username: result.data.username,
+      code: result.data.code,
       pin: result.data.pin,
     });
     setPinCopied(false);
@@ -454,6 +474,19 @@ export function UserRoleSettingsPanel({
               onChange={(e) => setGuardLastName(e.target.value)}
               disabled={isSubmitting}
             />
+            {residentialCode && (
+              <div className="rounded-lg border bg-gates-subtle p-3">
+                <p className="text-xs text-muted-foreground">
+                  {t("settings.guards.code")}
+                </p>
+                <p className="font-mono text-lg font-semibold">
+                  {residentialCode}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {t("settings.guards.codeHint")}
+                </p>
+              </div>
+            )}
             <div className="space-y-1.5">
               <Input
                 label={t("settings.guards.usernameLabel")}
@@ -536,6 +569,16 @@ export function UserRoleSettingsPanel({
               {t("settings.guards.pinTitle", { name: issuedPin.name })}
             </p>
             <div className="mt-2 flex flex-wrap items-center gap-4">
+              {issuedPin.code && (
+                <div>
+                  <p className="text-xs text-muted-foreground">
+                    {t("settings.guards.code")}
+                  </p>
+                  <p className="font-mono text-lg font-semibold">
+                    {issuedPin.code}
+                  </p>
+                </div>
+              )}
               {issuedPin.username && (
                 <div>
                   <p className="text-xs text-muted-foreground">

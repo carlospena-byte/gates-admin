@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { IconPhoto } from "@tabler/icons-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,11 +8,23 @@ import { useI18n } from "@/i18n/useI18n";
 import { authService, guardService } from "@/services";
 import { isGuardEmail } from "@/lib/guardAccount";
 
-export function LoginPage({ onCreateResidential }: { onCreateResidential: () => void }) {
+const GUARD_CODE_KEY = "guard_residential_code";
+
+// The code rarely changes for a guardhouse device: remember it so guards only type user + PIN.
+function readSavedCode(): string {
+  try {
+    return localStorage.getItem(GUARD_CODE_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+export function LoginPage() {
   const { t } = useI18n();
   const [email, setEmail] = useState("");
   const [token, setToken] = useState("");
   const [mode, setMode] = useState<"email" | "guard">("email");
+  const [code, setCode] = useState(readSavedCode);
   const [username, setUsername] = useState("");
   const [pin, setPin] = useState("");
   const [phase, setPhase] = useState<"enter_email" | "enter_token">("enter_email");
@@ -29,7 +40,7 @@ export function LoginPage({ onCreateResidential }: { onCreateResidential: () => 
     }
     setIsSubmitting(true);
     setError(null);
-    const result = await authService.signInWithOtp({ email: email.trim(), shouldCreateUser: true });
+    const result = await authService.signInWithOtp({ email: email.trim(), shouldCreateUser: false });
     setIsSubmitting(false);
     if (!result.success) {
       setError(result.error.message);
@@ -39,12 +50,19 @@ export function LoginPage({ onCreateResidential }: { onCreateResidential: () => 
   };
 
   const signInGuard = async () => {
-    if (!username.trim() || pin.length < 4) return;
+    if (!code.trim() || !username.trim() || pin.length < 4) return;
     setIsSubmitting(true);
     setError(null);
-    const result = await guardService.signIn(username.trim(), pin);
+    const result = await guardService.signIn(code.trim(), username.trim(), pin);
     setIsSubmitting(false);
-    if (result.ok) return;
+    if (result.ok) {
+      try {
+        localStorage.setItem(GUARD_CODE_KEY, code.trim().toLowerCase());
+      } catch {
+        /* storage unavailable: the guard just retypes the code next time */
+      }
+      return;
+    }
     setPin("");
     const { error: err } = result;
     if (err.kind === "locked") setError(t("login.guard.locked", { minutes: err.retryInMinutes }));
@@ -73,28 +91,18 @@ export function LoginPage({ onCreateResidential }: { onCreateResidential: () => 
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
-      <div className="grid w-full max-w-5xl md:grid-cols-2">
-        {/* Left panel — brand visual. Placeholder until real photography is ready. */}
-        <div className="relative hidden flex-col justify-between overflow-hidden rounded-gates-lg bg-gates-brand p-8 text-gates-text-inverse md:flex">
-          <div className="flex items-center justify-center rounded-gates-lg border border-dashed border-white/25 bg-white/5 py-24">
-            <div className="flex flex-col items-center gap-2 text-white/60">
-              <IconPhoto size={40} stroke={1.5} />
-              <span className="text-xs font-medium">Imagen próximamente</span>
-            </div>
-          </div>
-
-          <div>
-            <p className="text-xs font-semibold tracking-[0.2em]">G A T E S</p>
-            <p className="mt-4 text-3xl font-medium leading-tight tracking-tight">
-              Tu hogar.
-              <br />
-              Todo más cerca.
-            </p>
-          </div>
+      <div className="grid h-[640px] w-full max-w-5xl md:grid-cols-2">
+        {/* Left panel — brand visual */}
+        <div className="relative hidden overflow-hidden rounded-gates-lg bg-gates-brand md:block">
+          <img
+            src="/login-neighborhood.webp"
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover"
+          />
         </div>
 
         {/* Right panel — sign in form */}
-        <div className="flex flex-col justify-center p-8 md:p-12">
+        <div className="flex flex-col justify-center overflow-y-auto p-8 md:p-12">
           <div className="mb-8 flex items-center justify-between">
             <p className="text-sm font-semibold tracking-[0.2em] text-gates-text-brand">VECINOO</p>
           </div>
@@ -111,6 +119,14 @@ export function LoginPage({ onCreateResidential }: { onCreateResidential: () => 
 
             {mode === "guard" ? (
               <>
+            <Input
+              label={t("login.guard.codeLabel")}
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              autoComplete="off"
+              autoCapitalize="none"
+              disabled={isSubmitting}
+            />
             <Input
               label={t("login.guard.usernameLabel")}
               value={username}
@@ -137,7 +153,7 @@ export function LoginPage({ onCreateResidential }: { onCreateResidential: () => 
               size="lg"
               className="w-full"
               onClick={signInGuard}
-              disabled={isSubmitting || !username.trim() || pin.length < 4}
+              disabled={isSubmitting || !code.trim() || !username.trim() || pin.length < 4}
             >
               {isSubmitting ? <Spinner size="sm" /> : t("login.guard.submit")}
             </Button>
@@ -186,18 +202,6 @@ export function LoginPage({ onCreateResidential }: { onCreateResidential: () => 
                 disabled={isSubmitting}
               >
                 {mode === "guard" ? t("login.guard.backToEmail") : t("login.guard.switch")}
-              </button>
-            </p>
-
-            <p className="text-center text-sm text-muted-foreground">
-              {t("login.needTenant")}{" "}
-              <button
-                type="button"
-                className="font-semibold text-gates-text-brand underline underline-offset-4"
-                onClick={onCreateResidential}
-                disabled={isSubmitting}
-              >
-                {t("login.createResidential")}
               </button>
             </p>
           </div>

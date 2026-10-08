@@ -92,7 +92,9 @@ export async function sendPush(params: {
           result.sent++;
         } else {
           result.failed++;
-          if (isUnregistered(await res.text())) result.deadTokenIds.push(row.id);
+          const errorBody = await res.text();
+          console.error(`FCM send failed (${res.status}) for device_tokens ${row.id}: ${errorBody}`);
+          if (isUnregistered(errorBody)) result.deadTokenIds.push(row.id);
         }
       }),
     );

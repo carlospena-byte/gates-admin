@@ -76,7 +76,24 @@ function isUnregistered(fcmErrorBody: string): boolean {
   return fcmErrorBody.includes("UNREGISTERED") || fcmErrorBody.includes("NOT_FOUND");
 }
 
+// The browser (admin web) calls this cross-origin, so it needs a preflight
+// answer and CORS headers on every response.
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
 Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: CORS_HEADERS });
+  }
+  const res = await handle(req);
+  for (const [k, v] of Object.entries(CORS_HEADERS)) res.headers.set(k, v);
+  return res;
+});
+
+async function handle(req: Request): Promise<Response> {
   if (req.method !== "POST") {
     return Response.json({ error: "Method not allowed" }, { status: 405 });
   }
@@ -224,4 +241,4 @@ Deno.serve(async (req) => {
   }
 
   return Response.json({ sent, failed, invalidTokensRemoved });
-});
+}

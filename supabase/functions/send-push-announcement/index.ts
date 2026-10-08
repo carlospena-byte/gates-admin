@@ -199,6 +199,24 @@ async function dispatch(service: SupabaseClient, row: PushRow, accessToken: stri
   }
 }
 
+/**
+ * True when the caller is the pg_cron job (service-role JWT). Matching the
+ * header against SUPABASE_SERVICE_ROLE_KEY is not enough: that env var can
+ * differ from the legacy service_role key the cron keeps in Vault once the
+ * project's API keys are rotated. The gateway verifies the JWT signature
+ * (verify_jwt is on for this function), so the role claim can be trusted.
+ */
+function isServiceRole(authHeader: string): boolean {
+  if (authHeader === `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`) return true;
+  const token = authHeader.replace(/^Bearer\s+/i, "");
+  try {
+    const payload = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    return JSON.parse(atob(payload)).role === "service_role";
+  } catch {
+    return false;
+  }
+}
+
 // The browser (admin web) calls this cross-origin, so it needs a preflight
 // answer and CORS headers on every response.
 const CORS_HEADERS = {
@@ -233,7 +251,7 @@ async function handle(req: Request): Promise<Response> {
   }
 
   const service = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-  const isCron = authHeader === `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`;
+  const isCron = isServiceRole(authHeader);
   const select = "id, residential_id, title, body, destination, bulletin_id, audience, unit_ids, location_ids";
   let rows: PushRow[];
 

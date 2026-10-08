@@ -64,7 +64,13 @@ function send(id: string): Promise<ApiResult<{ sent: number; failed: number; rec
       results?: { sent?: number; failed?: number; recipients?: number; error?: string }[];
       error?: string;
     }>("send-push-announcement", { body: { pushId: id } });
-    if (error) throw new ApiError(error.message);
+    if (error) {
+      // functions.invoke hides the function's own message behind a generic
+      // error; the JSON body (when present) says what actually went wrong.
+      const context = (error as { context?: Response }).context;
+      const detail = context ? await context.json().then((j: { error?: string }) => j.error).catch(() => null) : null;
+      throw new ApiError(detail ?? error.message);
+    }
     if (data?.error) throw new ApiError(data.error);
     const result = data?.results?.[0];
     if (result?.error) throw new ApiError(result.error);

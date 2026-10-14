@@ -8,7 +8,9 @@ describe("RichDescription", () => {
       <RichDescription html='<p><strong>Hola</strong> <a href="https://example.com">enlace</a></p><ul><li>Uno</li></ul>' />,
     );
     expect(container.querySelector("strong")?.textContent).toBe("Hola");
-    expect(container.querySelector("a")?.getAttribute("href")).toBe("https://example.com");
+    expect(container.querySelector("a")?.getAttribute("href")).toBe(
+      "https://example.com",
+    );
     expect(container.querySelectorAll("li")).toHaveLength(1);
   });
 
@@ -23,7 +25,9 @@ describe("RichDescription", () => {
   });
 
   it("shows legacy plain text untouched", () => {
-    const { container } = render(<RichDescription html="Sin formato & simple" />);
+    const { container } = render(
+      <RichDescription html="Sin formato & simple" />,
+    );
     expect(container.textContent).toBe("Sin formato & simple");
   });
 });

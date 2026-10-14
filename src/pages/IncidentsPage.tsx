@@ -5,32 +5,53 @@
  */
 
 import { useMemo, useState } from "react";
-import { IconRefresh } from "@tabler/icons-react";
+import { IconLayoutGrid, IconRefresh, IconTable } from "@tabler/icons-react";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AddIncidentSheet, type NewIncidentFields } from "@/components/incidents/AddIncidentSheet";
+import {
+  AddIncidentSheet,
+  type NewIncidentFields,
+} from "@/components/incidents/AddIncidentSheet";
 import { IncidentDetailSheet } from "@/components/incidents/IncidentDetailSheet";
 import { IncidentTable } from "@/components/incidents/IncidentTable";
+import { IncidentBoard } from "@/components/incidents/IncidentBoard";
+import type { IncidentView } from "@/components/incidents/incidentMeta";
 import { toast } from "sonner";
 import { authService, incidentService } from "@/services";
 import { useSession } from "@/state/useSession";
 import { canManageResidential } from "@/state/useAccess";
-import { useIncidentManagerData, type IncidentFormPayload } from "@/hooks/useIncidentManagerData";
+import {
+  useIncidentManagerData,
+  type IncidentFormPayload,
+} from "@/hooks/useIncidentManagerData";
 import { useI18n } from "@/i18n/useI18n";
 import { useCreateIntent } from "@/lib/createIntent";
 import { SectionTabs } from "@/components/SectionTabs";
 import type { ResidentialRole } from "@/types/database.types";
 import type { IncidentWithRelations } from "@/types/incident.types";
 
-export function IncidentsPage({ residentialId, role }: { residentialId: string; role: ResidentialRole }) {
+export function IncidentsPage({
+  residentialId,
+  role,
+}: {
+  residentialId: string;
+  role: ResidentialRole;
+}) {
   const { t } = useI18n();
   const { session } = useSession();
   const canManage = canManageResidential(role);
   const [sheetOpen, setSheetOpen] = useState(false);
   useCreateIntent("incident", () => setSheetOpen(true));
-  const [selectedIncident, setSelectedIncident] = useState<IncidentWithRelations | null>(null);
+  const [selectedIncident, setSelectedIncident] =
+    useState<IncidentWithRelations | null>(null);
 
   const {
     incidents,
@@ -48,10 +69,17 @@ export function IncidentsPage({ residentialId, role }: { residentialId: string; 
   } = useIncidentManagerData(residentialId);
 
   const buckets = useMemo(() => {
-    const grouped: Record<string, IncidentWithRelations[]> = { new: [], in_progress: [], resolved: [], closed: [] };
+    const grouped: Record<string, IncidentWithRelations[]> = {
+      new: [],
+      in_progress: [],
+      resolved: [],
+      closed: [],
+    };
     for (const incident of incidents) {
       // Cancelled reports (withdrawn by the resident) live with the closed ones.
-      grouped[incident.status === "cancelled" ? "closed" : incident.status]?.push(incident);
+      grouped[
+        incident.status === "cancelled" ? "closed" : incident.status
+      ]?.push(incident);
     }
     return grouped;
   }, [incidents]);
@@ -70,29 +98,44 @@ export function IncidentsPage({ residentialId, role }: { residentialId: string; 
 
   // Keep the open detail sheet in sync with the underlying list after a
   // mutation (setStatus/assignTo update `incidents`, not `selectedIncident`).
-  const openIncident = incidents.find((i) => i.id === selectedIncident?.id) ?? null;
+  const openIncident =
+    incidents.find((i) => i.id === selectedIncident?.id) ?? null;
 
   const canOperate = canManage || role === "security";
-
-  const takeIncident = async (id: string) => {
-    const result = await incidentService.update(id, { status: "in_progress", assigned_to: session?.user?.id ?? null });
-    if (!result.success) {
-      toast.error(result.error.message);
-      return;
-    }
-    toast.success(t("inbox.incident.taken"));
-    await reload();
-  };
 
   const resolveIncidents = async (ids: string[]) => {
     const resolvedAt = new Date().toISOString();
     const results = await Promise.all(
-      ids.map((id) => incidentService.update(id, { status: "resolved", resolved_at: resolvedAt })),
+      ids.map((id) =>
+        incidentService.update(id, {
+          status: "resolved",
+          resolved_at: resolvedAt,
+        }),
+      ),
     );
     const failures = results.filter((result) => !result.success).length;
-    if (failures > 0) toast.error(t("incidents.bulk.failed", { count: failures }));
+    if (failures > 0)
+      toast.error(t("incidents.bulk.failed", { count: failures }));
     else toast.success(t("incidents.bulk.resolved", { count: ids.length }));
     await reload();
+  };
+
+  const [view, setViewState] = useState<IncidentView>(() => {
+    try {
+      return localStorage.getItem("incidents.view") === "cards"
+        ? "cards"
+        : "table";
+    } catch {
+      return "table";
+    }
+  });
+  const setView = (next: IncidentView) => {
+    setViewState(next);
+    try {
+      localStorage.setItem("incidents.view", next);
+    } catch {
+      /* per-viewer convenience only */
+    }
   };
 
   const tableProps = {
@@ -100,15 +143,37 @@ export function IncidentsPage({ residentialId, role }: { residentialId: string; 
     isSubmitting,
     canManage,
     canOperate,
-    onTake: takeIncident,
+    onSetStatus: setStatus,
+    onSetPriority: setPriority,
     onResolve: resolveIncidents,
     onOpen: setSelectedIncident,
     onDelete: deleteIncident,
   };
 
+  const viewToggle = (
+    <Tabs value={view} onValueChange={(v) => setView(v as IncidentView)}>
+      <TabsList aria-label={t("incidents.view.label")}>
+        <TabsTrigger value="table" className="gap-1.5">
+          <IconTable className="h-4 w-4" />
+          {t("incidents.view.table")}
+        </TabsTrigger>
+        <TabsTrigger value="cards" className="gap-1.5">
+          <IconLayoutGrid className="h-4 w-4" />
+          {t("incidents.view.cards")}
+        </TabsTrigger>
+      </TabsList>
+    </Tabs>
+  );
+
   return (
     <div className="min-h-screen">
-      <AppSidebar userEmail={session?.user?.email} residentialId={residentialId} role={role} onSignOut={() => authService.signOut()} showUserMenu />
+      <AppSidebar
+        userEmail={session?.user?.email}
+        residentialId={residentialId}
+        role={role}
+        onSignOut={() => authService.signOut()}
+        showUserMenu
+      />
 
       <div className="lg:pl-64">
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
@@ -117,49 +182,95 @@ export function IncidentsPage({ residentialId, role }: { residentialId: string; 
             <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <CardTitle>{t("incidents.page.title")}</CardTitle>
-                <CardDescription>{t("incidents.page.description")}</CardDescription>
+                <CardDescription>
+                  {t("incidents.page.description")}
+                </CardDescription>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" size="icon" aria-label={t("common.refresh")} onClick={reload} disabled={isLoading}>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  aria-label={t("common.refresh")}
+                  onClick={reload}
+                  disabled={isLoading}
+                >
                   <IconRefresh className="h-4 w-4" />
                 </Button>
-                <Button onClick={() => setSheetOpen(true)}>{t("incidents.page.reportIncident")}</Button>
+                <Button onClick={() => setSheetOpen(true)}>
+                  {t("incidents.page.reportIncident")}
+                </Button>
               </div>
             </CardHeader>
             <CardContent>
-              <Tabs defaultValue="new">
-                <TabsList>
-                  <TabsTrigger value="new">{t("incidents.tabs.new", { count: buckets.new.length })}</TabsTrigger>
-                  <TabsTrigger value="in_progress">
-                    {t("incidents.tabs.inProgress", { count: buckets.in_progress.length })}
-                  </TabsTrigger>
-                  <TabsTrigger value="resolved">
-                    {t("incidents.tabs.resolved", { count: buckets.resolved.length })}
-                  </TabsTrigger>
-                  <TabsTrigger value="closed">{t("incidents.tabs.closed", { count: buckets.closed.length })}</TabsTrigger>
-                </TabsList>
+              {view === "cards" ? (
+                <div className="space-y-4">
+                  <div className="flex justify-end">{viewToggle}</div>
+                  <IncidentBoard
+                    incidents={incidents}
+                    isLoading={isLoading}
+                    canManage={canManage}
+                    canOperate={canOperate}
+                    onOpen={setSelectedIncident}
+                    onSetStatus={setStatus}
+                    onDelete={deleteIncident}
+                  />
+                </div>
+              ) : (
+                <Tabs defaultValue="new">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <TabsList>
+                      <TabsTrigger value="new">
+                        {t("incidents.tabs.new", { count: buckets.new.length })}
+                      </TabsTrigger>
+                      <TabsTrigger value="in_progress">
+                        {t("incidents.tabs.inProgress", {
+                          count: buckets.in_progress.length,
+                        })}
+                      </TabsTrigger>
+                      <TabsTrigger value="resolved">
+                        {t("incidents.tabs.resolved", {
+                          count: buckets.resolved.length,
+                        })}
+                      </TabsTrigger>
+                      <TabsTrigger value="closed">
+                        {t("incidents.tabs.closed", {
+                          count: buckets.closed.length,
+                        })}
+                      </TabsTrigger>
+                    </TabsList>
+                    {viewToggle}
+                  </div>
 
-                <TabsContent value="new" className="pt-4">
-                  <IncidentTable incidents={buckets.new} emptyMessage={t("incidents.empty.new")} {...tableProps} />
-                </TabsContent>
-                <TabsContent value="in_progress" className="pt-4">
-                  <IncidentTable
-                    incidents={buckets.in_progress}
-                    emptyMessage={t("incidents.empty.inProgress")}
-                    {...tableProps}
-                  />
-                </TabsContent>
-                <TabsContent value="resolved" className="pt-4">
-                  <IncidentTable
-                    incidents={buckets.resolved}
-                    emptyMessage={t("incidents.empty.resolved")}
-                    {...tableProps}
-                  />
-                </TabsContent>
-                <TabsContent value="closed" className="pt-4">
-                  <IncidentTable incidents={buckets.closed} emptyMessage={t("incidents.empty.closed")} {...tableProps} />
-                </TabsContent>
-              </Tabs>
+                  <TabsContent value="new" className="pt-4">
+                    <IncidentTable
+                      incidents={buckets.new}
+                      emptyMessage={t("incidents.empty.new")}
+                      {...tableProps}
+                    />
+                  </TabsContent>
+                  <TabsContent value="in_progress" className="pt-4">
+                    <IncidentTable
+                      incidents={buckets.in_progress}
+                      emptyMessage={t("incidents.empty.inProgress")}
+                      {...tableProps}
+                    />
+                  </TabsContent>
+                  <TabsContent value="resolved" className="pt-4">
+                    <IncidentTable
+                      incidents={buckets.resolved}
+                      emptyMessage={t("incidents.empty.resolved")}
+                      {...tableProps}
+                    />
+                  </TabsContent>
+                  <TabsContent value="closed" className="pt-4">
+                    <IncidentTable
+                      incidents={buckets.closed}
+                      emptyMessage={t("incidents.empty.closed")}
+                      {...tableProps}
+                    />
+                  </TabsContent>
+                </Tabs>
+              )}
             </CardContent>
           </Card>
         </div>

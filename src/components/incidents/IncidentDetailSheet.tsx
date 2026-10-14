@@ -7,7 +7,8 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
+import { IconBuilding, IconMapPin, IconTag } from "@tabler/icons-react";
+import { StatusBadge, type StatusTone } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -60,6 +61,21 @@ const STATUS_LABEL_KEYS: Record<IncidentStatus, MessageKey> = {
   cancelled: "incidents.status.cancelled",
 };
 
+const PRIORITY_TONES: Record<IncidentPriority, StatusTone> = {
+  low: "neutral",
+  medium: "info",
+  high: "warning",
+  urgent: "error",
+};
+
+const STATUS_TONES: Record<IncidentStatus, StatusTone> = {
+  new: "info",
+  in_progress: "warning",
+  resolved: "success",
+  closed: "neutral",
+  cancelled: "neutral",
+};
+
 interface IncidentDetailSheetProps {
   incident: IncidentWithRelations | null;
   residentialId: string;
@@ -99,6 +115,21 @@ export function IncidentDetailSheet({
   const [viewer, setViewer] = useState<{ src: string; title: string } | null>(
     null,
   );
+
+  const [draft, setDraft] = useState<{
+    priority: IncidentPriority;
+    status: IncidentStatus;
+    assignedTo: string | null;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!incident) return;
+    setDraft({
+      priority: incident.priority,
+      status: incident.status,
+      assignedTo: incident.assigned_to ?? null,
+    });
+  }, [incident]);
 
   useEffect(() => {
     if (!incident) return;
@@ -193,6 +224,25 @@ export function IncidentDetailSheet({
     });
   };
 
+  const current = draft ?? {
+    priority: incident.priority,
+    status: incident.status,
+    assignedTo: incident.assigned_to ?? null,
+  };
+  const hasChanges =
+    current.priority !== incident.priority ||
+    current.status !== incident.status ||
+    current.assignedTo !== (incident.assigned_to ?? null);
+
+  const handleSave = () => {
+    if (current.priority !== incident.priority)
+      onSetPriority(incident.id, current.priority);
+    if (current.status !== incident.status)
+      onSetStatus(incident.id, current.status);
+    if (current.assignedTo !== (incident.assigned_to ?? null))
+      onAssign(incident.id, current.assignedTo);
+  };
+
   const items: UploadItem[] = [
     ...attachments.map((a, i) => ({
       id: a.id,
@@ -206,12 +256,27 @@ export function IncidentDetailSheet({
     ...uploading,
   ];
 
+  const tile = "rounded-xl border bg-card p-3";
+
   return (
     <Sheet open={!!incident} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-lg">
-        <SheetHeader>
-          <SheetTitle>{incident.title}</SheetTitle>
-          <SheetDescription>
+      <SheetContent
+        side="right"
+        className="flex w-full flex-col gap-0 p-0 sm:max-w-lg sm:p-0"
+      >
+        <SheetHeader className="space-y-3 border-b p-4 pr-12 text-left sm:p-6 sm:pr-12">
+          <div className="flex flex-wrap items-center gap-2">
+            <StatusBadge tone={STATUS_TONES[incident.status]}>
+              {t(STATUS_LABEL_KEYS[incident.status])}
+            </StatusBadge>
+            <StatusBadge tone={PRIORITY_TONES[incident.priority]}>
+              {t(PRIORITY_LABEL_KEYS[incident.priority])}
+            </StatusBadge>
+          </div>
+          <SheetTitle className="text-2xl font-semibold leading-tight">
+            {incident.title}
+          </SheetTitle>
+          <SheetDescription className="text-sm">
             {t("incidents.detail.reportedBy", {
               email:
                 incident.reporter?.email ??
@@ -221,114 +286,149 @@ export function IncidentDetailSheet({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="space-y-4 py-6">
+        <div className="flex-1 space-y-6 overflow-y-auto p-4 sm:p-6">
           {incident.description && (
-            <RichDescription html={incident.description} />
+            <div className={tile}>
+              <RichDescription
+                html={incident.description}
+                className="space-y-2 px-1 text-base text-foreground"
+              />
+            </div>
           )}
 
-          <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
-            {incident.units?.name && (
-              <Badge variant="secondary">{incident.units.name}</Badge>
-            )}
-            {incident.incident_types?.name && (
-              <Badge variant="secondary">{incident.incident_types.name}</Badge>
-            )}
-            {incident.location && (
-              <Badge variant="secondary">{incident.location}</Badge>
-            )}
-          </div>
-
-          {canManage ? (
-            <div className="grid gap-2 grid-cols-1">
-              <Select
-                value={incident.priority}
-                onValueChange={(v) =>
-                  onSetPriority(incident.id, v as IncidentPriority)
-                }
-                disabled={isSubmitting}
-              >
-                <SelectTrigger label={t("incidents.detail.priorityLabel")}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PRIORITIES.map((p) => (
-                    <SelectItem key={p} value={p} className="capitalize">
-                      {t(PRIORITY_LABEL_KEYS[p])}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select
-                value={incident.status}
-                onValueChange={(v) =>
-                  onSetStatus(incident.id, v as IncidentStatus)
-                }
-                disabled={isSubmitting}
-              >
-                <SelectTrigger label={t("common.status")}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {(incident.status === "cancelled"
-                    ? [...STATUSES, "cancelled" as const]
-                    : STATUSES
-                  ).map((s) => (
-                    <SelectItem key={s} value={s} className="capitalize">
-                      {t(STATUS_LABEL_KEYS[s])}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select
-                value={incident.assigned_to ?? "none"}
-                onValueChange={(v) =>
-                  onAssign(incident.id, v === "none" ? null : v)
-                }
-                disabled={isSubmitting}
-              >
-                <SelectTrigger
-                  label={t("incidents.detail.assignToLabel")}
-                  className="sm:col-span-2"
-                >
-                  <SelectValue placeholder={t("incidents.unassigned")} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">
-                    {t("incidents.unassigned")}
-                  </SelectItem>
-                  {assignableUsers.map((u) => (
-                    <SelectItem key={u.user_id} value={u.user_id}>
-                      {u.profiles?.email ?? u.user_id}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="capitalize">
-                {t(STATUS_LABEL_KEYS[incident.status])}
-              </Badge>
-              {incident.status === "new" && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={isSubmitting}
-                  onClick={() => onSetStatus(incident.id, "in_progress")}
-                >
-                  {t("incidents.detail.moveToInProgress")}
-                </Button>
+          {(incident.units?.name ||
+            incident.incident_types?.name ||
+            incident.location) && (
+            <dl className="grid grid-cols-2 gap-3 text-sm">
+              {incident.units?.name && (
+                <div className={tile}>
+                  <dt className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <IconBuilding className="h-4 w-4" />
+                    {t("incidents.detail.unitLabel")}
+                  </dt>
+                  <dd className="mt-1 truncate font-semibold">
+                    {incident.units.name}
+                  </dd>
+                </div>
               )}
-            </div>
+              {incident.incident_types?.name && (
+                <div className={tile}>
+                  <dt className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <IconTag className="h-4 w-4" />
+                    {t("incidents.table.category")}
+                  </dt>
+                  <dd className="mt-1 truncate font-semibold">
+                    {incident.incident_types.name}
+                  </dd>
+                </div>
+              )}
+              {incident.location && (
+                <div className={`${tile} col-span-2`}>
+                  <dt className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <IconMapPin className="h-4 w-4" />
+                    {t("incidents.detail.locationLabel")}
+                  </dt>
+                  <dd className="mt-1 font-semibold">{incident.location}</dd>
+                </div>
+              )}
+            </dl>
           )}
 
-          <div className="space-y-2 border-t pt-4">
-            <p className="text-xs font-medium text-muted-foreground">
-              {t("incidents.detail.photosLabel")} ({attachments.length}/
-              {MAX_INCIDENT_PHOTOS})
-            </p>
+          {canManage && (
+            <section className="space-y-3 border-t pt-5">
+              <div className="flex items-baseline justify-between gap-2">
+                <h3 className="text-sm font-semibold">
+                  {t("incidents.detail.manageLabel")}
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  {t("incidents.detail.manageHint")}
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Select
+                  value={current.priority}
+                  onValueChange={(v) =>
+                    setDraft({ ...current, priority: v as IncidentPriority })
+                  }
+                  disabled={isSubmitting}
+                >
+                  <SelectTrigger label={t("incidents.detail.priorityLabel")}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PRIORITIES.map((p) => (
+                      <SelectItem key={p} value={p} className="capitalize">
+                        {t(PRIORITY_LABEL_KEYS[p])}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select
+                  value={current.status}
+                  onValueChange={(v) =>
+                    setDraft({ ...current, status: v as IncidentStatus })
+                  }
+                  disabled={isSubmitting}
+                >
+                  <SelectTrigger label={t("common.status")}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(incident.status === "cancelled"
+                      ? [...STATUSES, "cancelled" as const]
+                      : STATUSES
+                    ).map((s) => (
+                      <SelectItem key={s} value={s} className="capitalize">
+                        {t(STATUS_LABEL_KEYS[s])}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select
+                  value={current.assignedTo ?? "none"}
+                  onValueChange={(v) =>
+                    setDraft({
+                      ...current,
+                      assignedTo: v === "none" ? null : v,
+                    })
+                  }
+                  disabled={isSubmitting}
+                >
+                  <SelectTrigger
+                    label={t("incidents.detail.assignToLabel")}
+                    className="col-span-2"
+                  >
+                    <SelectValue placeholder={t("incidents.unassigned")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">
+                      {t("incidents.unassigned")}
+                    </SelectItem>
+                    {assignableUsers.map((u) => (
+                      <SelectItem key={u.user_id} value={u.user_id}>
+                        {u.profiles?.email ?? u.user_id}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </section>
+          )}
+
+          <div className="space-y-3 border-t pt-5">
+            <div className="flex items-baseline justify-between gap-2">
+              <h3 className="text-sm font-semibold">
+                {t("incidents.detail.photosLabel")}
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                {t("incidents.detail.photosCount", {
+                  count: attachments.length,
+                  max: MAX_INCIDENT_PHOTOS,
+                })}
+              </p>
+            </div>
 
             {isLoadingAttachments ? (
               <Spinner size="sm" />
@@ -354,6 +454,26 @@ export function IncidentDetailSheet({
             )}
           </div>
         </div>
+
+        {(canManage || incident.status === "new") && (
+          <div className="flex items-center justify-end gap-3 border-t bg-background p-4 sm:px-6">
+            {canManage ? (
+              <Button
+                disabled={isSubmitting || !hasChanges}
+                onClick={handleSave}
+              >
+                {t("incidents.detail.saveChanges")}
+              </Button>
+            ) : (
+              <Button
+                disabled={isSubmitting}
+                onClick={() => onSetStatus(incident.id, "in_progress")}
+              >
+                {t("incidents.detail.moveToInProgress")}
+              </Button>
+            )}
+          </div>
+        )}
       </SheetContent>
 
       <ImageViewerDialog

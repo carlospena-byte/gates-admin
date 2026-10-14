@@ -18,7 +18,10 @@ function isSafeHref(href: string | null): href is string {
   }
 }
 
-function renderNodes(nodes: NodeListOf<ChildNode>, keyPrefix: string): ReactNode[] {
+function renderNodes(
+  nodes: NodeListOf<ChildNode>,
+  keyPrefix: string,
+): ReactNode[] {
   return Array.from(nodes).map((node, index) => {
     const key = `${keyPrefix}-${index}`;
     if (node.nodeType === Node.TEXT_NODE) return node.textContent;
@@ -46,7 +49,13 @@ function renderNodes(nodes: NodeListOf<ChildNode>, keyPrefix: string): ReactNode
       case "a": {
         const href = el.getAttribute("href");
         return isSafeHref(href) ? (
-          <a key={key} href={href} target="_blank" rel="noopener noreferrer" className="underline">
+          <a
+            key={key}
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline"
+          >
             {children}
           </a>
         ) : (
@@ -59,7 +68,17 @@ function renderNodes(nodes: NodeListOf<ChildNode>, keyPrefix: string): ReactNode
   });
 }
 
-export function RichDescription({ html }: { html: string }) {
+export function RichDescription({
+  html,
+  className,
+}: {
+  html: string;
+  className?: string;
+}) {
   const doc = new DOMParser().parseFromString(html, "text/html");
-  return <div className="space-y-1 text-sm text-muted-foreground">{renderNodes(doc.body.childNodes, "d")}</div>;
+  return (
+    <div className={className ?? "space-y-1 text-sm text-muted-foreground"}>
+      {renderNodes(doc.body.childNodes, "d")}
+    </div>
+  );
 }

@@ -3,12 +3,18 @@
  * Pagination scaffolding as VisitorTable/UnitTable.
  */
 
-import { useState } from "react";
+import { useState, type MouseEvent } from "react";
 
-import { StatusBadge, type StatusTone } from "@/components/ui/status-badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Spinner } from "@/components/LoadingStates";
 import { Pagination } from "@/components/Pagination";
 import { SortableTableHead } from "@/components/SortableTableHead";
@@ -16,38 +22,13 @@ import { DeleteIcon } from "@/components/icons";
 import { confirmDeleteToast } from "@/lib/confirmDeleteToast";
 import { usePaginatedSortedData } from "@/hooks/usePaginatedSortedData";
 import { useI18n } from "@/i18n/useI18n";
-import type { MessageKey } from "@/i18n/messages";
-import type { IncidentPriority, IncidentStatus, IncidentWithRelations } from "@/types/incident.types";
-
-const PRIORITY_LABEL_KEYS: Record<IncidentPriority, MessageKey> = {
-  low: "incidents.priority.low",
-  medium: "incidents.priority.medium",
-  high: "incidents.priority.high",
-  urgent: "incidents.priority.urgent",
-};
-
-const STATUS_LABEL_KEYS: Record<IncidentStatus, MessageKey> = {
-  new: "incidents.status.new",
-  in_progress: "incidents.status.inProgress",
-  resolved: "incidents.status.resolved",
-  closed: "incidents.status.closed",
-  cancelled: "incidents.status.cancelled",
-};
-
-const PRIORITY_TONES: Record<IncidentPriority, StatusTone> = {
-  low: "neutral",
-  medium: "info",
-  high: "warning",
-  urgent: "error",
-};
-
-const STATUS_TONES: Record<IncidentStatus, StatusTone> = {
-  new: "info",
-  in_progress: "warning",
-  resolved: "success",
-  closed: "neutral",
-  cancelled: "neutral",
-};
+import type {
+  IncidentPriority,
+  IncidentStatus,
+  IncidentWithRelations,
+} from "@/types/incident.types";
+import { IncidentPriorityMenu } from "@/components/incidents/IncidentPriorityMenu";
+import { IncidentStatusMenu } from "@/components/incidents/IncidentStatusMenu";
 
 interface IncidentTableProps {
   incidents: IncidentWithRelations[];
@@ -57,7 +38,8 @@ interface IncidentTableProps {
   emptyMessage: string;
   /** One-click row actions (take / resolve); hidden when not provided. */
   canOperate?: boolean;
-  onTake?: (id: string) => Promise<void>;
+  onSetStatus?: (id: string, status: IncidentStatus) => Promise<void>;
+  onSetPriority?: (id: string, priority: IncidentPriority) => Promise<void>;
   onResolve?: (ids: string[]) => Promise<void>;
   onOpen: (incident: IncidentWithRelations) => void;
   onDelete: (id: string) => Promise<boolean>;
@@ -70,7 +52,8 @@ export function IncidentTable({
   canManage,
   emptyMessage,
   canOperate = false,
-  onTake,
+  onSetStatus,
+  onSetPriority,
   onResolve,
   onOpen,
   onDelete,
@@ -95,11 +78,17 @@ export function IncidentTable({
     itemsPerPage: 10,
   });
 
-  const isOpenStatus = (status: IncidentStatus) => status === "new" || status === "in_progress";
-  const resolvableIds = incidents.filter((incident) => isOpenStatus(incident.status)).map((incident) => incident.id);
+  const isOpenStatus = (status: IncidentStatus) =>
+    status === "new" || status === "in_progress";
+  const resolvableIds = incidents
+    .filter((incident) => isOpenStatus(incident.status))
+    .map((incident) => incident.id);
   const selectedResolvable = resolvableIds.filter((id) => selectedIds.has(id));
-  const allSelected = resolvableIds.length > 0 && selectedResolvable.length === resolvableIds.length;
-  const showSelection = canOperate && Boolean(onResolve) && resolvableIds.length > 0;
+  const allSelected =
+    resolvableIds.length > 0 &&
+    selectedResolvable.length === resolvableIds.length;
+  const showSelection =
+    canOperate && Boolean(onResolve) && resolvableIds.length > 0;
 
   const toggleOne = (id: string) =>
     setSelectedIds((prev) => {
@@ -108,7 +97,8 @@ export function IncidentTable({
       else next.add(id);
       return next;
     });
-  const toggleAll = () => setSelectedIds(allSelected ? new Set() : new Set(resolvableIds));
+  const toggleAll = () =>
+    setSelectedIds(allSelected ? new Set() : new Set(resolvableIds));
 
   const resolveSelected = async () => {
     await onResolve?.(selectedResolvable);
@@ -121,6 +111,37 @@ export function IncidentTable({
     });
   };
 
+  const renderActions = (
+    incident: IncidentWithRelations,
+    showOpen: boolean,
+  ) => (
+    <div
+      className="flex justify-end gap-1"
+      onClick={(e: MouseEvent) => e.stopPropagation()}
+    >
+      {showOpen && (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => onOpen(incident)}
+          disabled={isSubmitting}
+        >
+          {t("incidents.table.open")}
+        </Button>
+      )}
+      {canManage && (
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => handleDelete(incident.id, incident.title)}
+          disabled={isSubmitting}
+        >
+          <DeleteIcon />
+        </Button>
+      )}
+    </div>
+  );
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
@@ -130,7 +151,11 @@ export function IncidentTable({
   }
 
   if (incidents.length === 0) {
-    return <div className="py-8 text-center text-sm text-muted-foreground">{emptyMessage}</div>;
+    return (
+      <div className="py-8 text-center text-sm text-muted-foreground">
+        {emptyMessage}
+      </div>
+    );
   }
 
   return (
@@ -140,10 +165,18 @@ export function IncidentTable({
           <p className="flex-1 text-sm font-medium text-gates-text-brand">
             {t("incidents.bulk.selected", { count: selectedResolvable.length })}
           </p>
-          <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())}>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setSelectedIds(new Set())}
+          >
             {t("common.cancel")}
           </Button>
-          <Button size="sm" onClick={() => void resolveSelected()} disabled={isSubmitting}>
+          <Button
+            size="sm"
+            onClick={() => void resolveSelected()}
+            disabled={isSubmitting}
+          >
             {t("incidents.bulk.resolve")}
           </Button>
         </div>
@@ -162,7 +195,12 @@ export function IncidentTable({
                   />
                 </TableHead>
               )}
-              <SortableTableHead field="title" currentSortField={sortField} sortOrder={sortOrder} onSort={handleSort}>
+              <SortableTableHead
+                field="title"
+                currentSortField={sortField}
+                sortOrder={sortOrder}
+                onSort={handleSort}
+              >
                 {t("incidents.table.title")}
               </SortableTableHead>
               <TableHead>{t("common.unit")}</TableHead>
@@ -178,7 +216,9 @@ export function IncidentTable({
               >
                 {t("incidents.table.created")}
               </SortableTableHead>
-              <TableHead className="text-right">{t("common.actions")}</TableHead>
+              <TableHead className="text-right">
+                {t("common.actions")}
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -195,15 +235,31 @@ export function IncidentTable({
                   </TableCell>
                 )}
                 <TableCell className="font-medium">{incident.title}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">{incident.units?.name ?? "—"}</TableCell>
-                <TableCell className="text-sm text-muted-foreground">{incident.incident_types?.name ?? "—"}</TableCell>
-                <TableCell>
-                  <StatusBadge tone={PRIORITY_TONES[incident.priority]} hideDot>
-                    {t(PRIORITY_LABEL_KEYS[incident.priority])}
-                  </StatusBadge>
+                <TableCell className="text-sm text-muted-foreground">
+                  {incident.units?.name ?? "—"}
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  {incident.incident_types?.name ?? "—"}
                 </TableCell>
                 <TableCell>
-                  <StatusBadge tone={STATUS_TONES[incident.status]}>{t(STATUS_LABEL_KEYS[incident.status])}</StatusBadge>
+                  <IncidentPriorityMenu
+                    priority={incident.priority}
+                    editable={canOperate && Boolean(onSetPriority)}
+                    disabled={isSubmitting}
+                    onChange={(priority) =>
+                      void onSetPriority?.(incident.id, priority)
+                    }
+                  />
+                </TableCell>
+                <TableCell>
+                  <IncidentStatusMenu
+                    status={incident.status}
+                    editable={canOperate && Boolean(onSetStatus)}
+                    disabled={isSubmitting}
+                    onChange={(status) =>
+                      void onSetStatus?.(incident.id, status)
+                    }
+                  />
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">
                   {incident.assignee?.email ?? t("incidents.unassigned")}
@@ -212,31 +268,7 @@ export function IncidentTable({
                   {new Date(incident.created_at).toLocaleDateString()}
                 </TableCell>
                 <TableCell className="text-right">
-                  <div className="flex justify-end gap-1">
-                    {canOperate && onTake && incident.status === "new" && (
-                      <Button size="sm" variant="outline" onClick={() => void onTake(incident.id)} disabled={isSubmitting}>
-                        {t("inbox.incident.take")}
-                      </Button>
-                    )}
-                    {canOperate && onResolve && isOpenStatus(incident.status) && (
-                      <Button size="sm" onClick={() => void onResolve([incident.id])} disabled={isSubmitting}>
-                        {t("inbox.incident.resolve")}
-                      </Button>
-                    )}
-                    <Button size="sm" variant="outline" onClick={() => onOpen(incident)} disabled={isSubmitting}>
-                      {t("incidents.table.open")}
-                    </Button>
-                    {canManage && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleDelete(incident.id, incident.title)}
-                        disabled={isSubmitting}
-                      >
-                        <DeleteIcon />
-                      </Button>
-                    )}
-                  </div>
+                  {renderActions(incident, true)}
                 </TableCell>
               </TableRow>
             ))}
